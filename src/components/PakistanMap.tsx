@@ -96,9 +96,9 @@ export function PakistanMap({ routes }: { routes: MapRoute[] }) {
           {/* Country landmass. */}
           <path
             d={d}
-            fill="#f1f5f9"
-            stroke="#cbd5e1"
-            className="fill-slate-100 stroke-slate-300 dark:fill-slate-800 dark:stroke-slate-700"
+            fill="#faf6ea"
+            stroke="#e4dbc5"
+            className="fill-[var(--card-2)] stroke-[var(--hair)]"
             strokeWidth={2}
             strokeLinejoin="round"
           />
@@ -112,14 +112,14 @@ export function PakistanMap({ routes }: { routes: MapRoute[] }) {
                   cx={x}
                   cy={y}
                   r={4}
-                  fill="#cbd5e1"
-                  className="fill-slate-300 dark:fill-slate-600"
+                  fill="#e4dbc5"
+                  className="fill-[var(--hair)]"
                 />
                 <text
                   x={x + 7}
                   y={y + 4}
-                  fill="#94a3b8"
-                  className="fill-slate-400 dark:fill-slate-500"
+                  fill="#98937e"
+                  className="fill-[var(--faint)]"
                   fontSize={13}
                 >
                   {c.name}
@@ -152,9 +152,9 @@ export function PakistanMap({ routes }: { routes: MapRoute[] }) {
                     cx={r.originXY.x}
                     cy={r.originXY.y}
                     r={5}
-                    fill="#ffffff"
-                    stroke="#94a3b8"
-                    className="fill-white stroke-slate-400 dark:fill-slate-900 dark:stroke-slate-500"
+                    fill="#fdfbf4"
+                    stroke="#98937e"
+                    className="fill-[var(--card)] stroke-[var(--faint)]"
                     strokeWidth={2}
                   />
                 )}
@@ -172,8 +172,8 @@ export function PakistanMap({ routes }: { routes: MapRoute[] }) {
                   cy={r.destXY.y}
                   r={6}
                   fill={st.hex}
-                  stroke="#ffffff"
-                  className={`${st.dot} stroke-white dark:stroke-slate-900`}
+                  stroke="#fdfbf4"
+                  className={`${st.dot} stroke-[var(--card)]`}
                   strokeWidth={2}
                 />
                 <text
@@ -190,8 +190,8 @@ export function PakistanMap({ routes }: { routes: MapRoute[] }) {
                   <text
                     x={r.destXY.x + 10}
                     y={r.destXY.y + 6}
-                    fill="#64748b"
-                    className="fill-slate-500 dark:fill-slate-400"
+                    fill="#98937e"
+                    className="fill-[var(--faint)] font-mono"
                     fontSize={12}
                   >
                     ETA {r.eta}
@@ -204,7 +204,7 @@ export function PakistanMap({ routes }: { routes: MapRoute[] }) {
 
         {!hasRoutes && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <span className="rounded-md bg-white/80 px-3 py-1.5 text-sm text-slate-500 shadow-sm dark:bg-slate-900/80 dark:text-slate-400">
+            <span className="rounded-md border border-hair bg-card px-3 py-1.5 text-sm text-muted shadow-sm">
               No active shipments
             </span>
           </div>
@@ -212,7 +212,7 @@ export function PakistanMap({ routes }: { routes: MapRoute[] }) {
       </div>
 
       {/* Legend. */}
-      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-faint">
         {LEGEND_ORDER.map((s) => (
           <span key={s} className="flex items-center gap-1.5">
             <span className={`inline-block h-2.5 w-2.5 rounded-full ${styleFor(s).legendSwatch}`} />

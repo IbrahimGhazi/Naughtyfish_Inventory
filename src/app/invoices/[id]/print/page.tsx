@@ -42,7 +42,10 @@ export default async function InvoicePrintPage({
     <div className="mx-auto max-w-3xl bg-white p-8 text-slate-900 print:p-0">
       {/* Screen-only toolbar (hidden on print). */}
       <div className="no-print mb-6 flex items-center justify-between">
-        <Link href={`/invoices/${invoice.id}`} className="text-sm text-slate-400 hover:text-cyan-700">
+        <Link
+          href={`/invoices/${invoice.id}`}
+          className="text-[12.5px] font-semibold text-slate-500 hover:text-slate-900"
+        >
           ← Back to invoice
         </Link>
         <PrintButton />

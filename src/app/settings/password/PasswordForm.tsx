@@ -11,7 +11,7 @@ export default function PasswordForm() {
   return (
     <form action={formAction} className="space-y-4">
       <label className="block text-sm">
-        <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+        <span className="mb-1 block text-xs font-medium text-muted">
           Current password
         </span>
         <input
@@ -23,8 +23,8 @@ export default function PasswordForm() {
         />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
-          New password <span className="font-normal text-slate-400 dark:text-slate-500">· min 6 characters</span>
+        <span className="mb-1 block text-xs font-medium text-muted">
+          New password <span className="font-normal text-faint">· min 6 characters</span>
         </span>
         <input
           className="input"
@@ -35,7 +35,7 @@ export default function PasswordForm() {
         />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+        <span className="mb-1 block text-xs font-medium text-muted">
           Confirm new password
         </span>
         <input
@@ -48,12 +48,12 @@ export default function PasswordForm() {
       </label>
 
       {state.error && (
-        <p className="text-sm text-red-600 dark:text-red-400" data-testid="pw-error">
+        <p className="text-sm text-neg" data-testid="pw-error">
           {state.error}
         </p>
       )}
       {state.ok && (
-        <p className="text-sm text-emerald-700 dark:text-emerald-400" data-testid="pw-ok">
+        <p className="text-sm font-medium text-pos" data-testid="pw-ok">
           ✓ Password changed.
         </p>
       )}
@@ -62,7 +62,8 @@ export default function PasswordForm() {
         type="submit"
         disabled={isPending}
         data-testid="pw-submit"
-        className="rounded-md bg-cyan-700 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+        className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+        style={{ background: "var(--accent)" }}
       >
         {isPending ? "Saving…" : "Change password"}
       </button>

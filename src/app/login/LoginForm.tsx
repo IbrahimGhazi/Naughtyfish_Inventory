@@ -10,8 +10,12 @@ export default function LoginForm() {
 
   return (
     <form action={formAction} className="space-y-4">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-faint2">
+        Open a book
+      </div>
+
       <label className="block text-sm">
-        <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Login ID</span>
+        <span className="mb-1 block text-xs font-medium text-muted">Login ID</span>
         <input
           className="input"
           name="loginId"
@@ -21,7 +25,7 @@ export default function LoginForm() {
         />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Password</span>
+        <span className="mb-1 block text-xs font-medium text-muted">Password</span>
         <input
           className="input"
           name="password"
@@ -32,7 +36,7 @@ export default function LoginForm() {
       </label>
 
       {state.error && (
-        <p className="text-sm text-red-600 dark:text-red-400" data-testid="login-error">
+        <p className="text-sm text-neg" data-testid="login-error">
           {state.error}
         </p>
       )}
@@ -41,10 +45,15 @@ export default function LoginForm() {
         type="submit"
         disabled={isPending}
         data-testid="login-submit"
-        className="w-full rounded-md bg-cyan-700 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+        className="w-full rounded-lg px-4 py-3 text-[14.5px] font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+        style={{ background: "var(--accent)" }}
       >
-        {isPending ? "Signing in…" : "Sign in"}
+        {isPending ? "Signing in…" : "Enter the ledger →"}
       </button>
+
+      <div className="text-center text-[11.5px] text-faint">
+        seeded dev logins — admin · accountant · delivery
+      </div>
     </form>
   );
 }

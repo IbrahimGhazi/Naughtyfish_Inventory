@@ -26,7 +26,7 @@ export function ChequeStatusButtons({ id, status }: { id: string; status: string
   const next = NEXT_BY_STATUS[status] ?? [];
 
   if (status === "cleared" || next.length === 0) {
-    return <span className="text-xs text-slate-400 dark:text-slate-500">—</span>;
+    return <span className="text-xs text-faint">—</span>;
   }
 
   function move(to: string) {
@@ -42,7 +42,7 @@ export function ChequeStatusButtons({ id, status }: { id: string; status: string
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-1">
+    <div className="flex flex-wrap items-center justify-end gap-1">
       {next.map((to) => (
         <button
           key={to}
@@ -50,12 +50,12 @@ export function ChequeStatusButtons({ id, status }: { id: string; status: string
           data-testid={`cheque-${id}-${to}`}
           disabled={isPending}
           onClick={() => move(to)}
-          className="rounded border border-slate-200 px-2 py-0.5 text-xs text-slate-600 hover:border-cyan-500 hover:text-cyan-700 disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:border-cyan-500 dark:hover:text-cyan-400"
+          className="rounded-lg border border-hair px-2 py-1 text-xs font-semibold text-muted transition-colors hover:border-accent hover:text-accent-deep disabled:opacity-40"
         >
           {LABELS[to] ?? to}
         </button>
       ))}
-      {error && <span className="text-xs text-red-600">{error}</span>}
+      {error && <span className="text-xs text-neg">{error}</span>}
     </div>
   );
 }
@@ -142,9 +142,10 @@ export function OutgoingChequeForm({ banks }: { banks: FormBank[] }) {
             onChange={(e) => setClearingDue(e.target.value)} />
         </Field>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-neg">{error}</p>}
       <button onClick={submit} disabled={!canSubmit} data-testid="out-submit"
-        className="rounded-md bg-cyan-700 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40">
+        className="rounded-lg px-4 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+        style={{ background: "var(--accent)" }}>
         {isPending ? "Saving…" : "Add outgoing cheque"}
       </button>
     </div>
@@ -154,9 +155,9 @@ export function OutgoingChequeForm({ banks }: { banks: FormBank[] }) {
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+      <span className="mb-1 block text-xs font-medium text-muted">
         {label}
-        {hint && <span className="ml-1 font-normal text-slate-400 dark:text-slate-500">· {hint}</span>}
+        {hint && <span className="ml-1 font-normal text-faint">· {hint}</span>}
       </span>
       {children}
     </label>

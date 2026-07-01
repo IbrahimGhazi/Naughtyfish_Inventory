@@ -47,11 +47,12 @@ export function AddCategoryForm() {
         onClick={submit}
         disabled={!canSubmit}
         data-testid="exp-cat-add"
-        className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+        className="rounded-lg px-3 py-1.5 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+        style={{ background: "var(--accent)" }}
       >
         {isPending ? "Adding…" : "+ Add category"}
       </button>
-      {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+      {error && <span className="text-xs text-neg">{error}</span>}
     </div>
   );
 }
@@ -117,11 +118,12 @@ export function AddEntryForm({ categories }: { categories: FormCategory[] }) {
       </div>
       <div className="flex items-center gap-3">
         <button onClick={submit} disabled={!canSubmit} data-testid="exp-entry-add"
-          className="rounded-md bg-cyan-700 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40">
+          className="rounded-lg px-4 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          style={{ background: "var(--accent)" }}>
           {isPending ? "Saving…" : "Add expense"}
         </button>
-        {ok && <span className="text-xs text-emerald-600 dark:text-emerald-400">✓ Saved.</span>}
-        {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+        {ok && <span className="text-xs text-pos">✓ Saved.</span>}
+        {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>
   );
@@ -130,9 +132,9 @@ export function AddEntryForm({ categories }: { categories: FormCategory[] }) {
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+      <span className="mb-1 block text-xs font-medium text-muted">
         {label}
-        {hint && <span className="ml-1 font-normal text-slate-400 dark:text-slate-500">· {hint}</span>}
+        {hint && <span className="ml-1 font-normal text-faint">· {hint}</span>}
       </span>
       {children}
     </label>

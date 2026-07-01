@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
 import { priorPaidAgainstInvoice, invoiceOutstanding } from "@/lib/payments";
+import { BackLink } from "@/components/ui";
 import PaymentForm, { type FormInvoice, type FormBank } from "./PaymentForm";
 
 export const dynamic = "force-dynamic";
@@ -50,13 +50,13 @@ export default async function RecordPaymentPage({
   }));
 
   return (
-    <div className="space-y-5">
+    <div className="animate-rise space-y-5">
       <div>
-        <Link href={`/parties/${id}`} className="text-xs text-slate-400 hover:text-cyan-700 dark:text-slate-500 dark:hover:text-cyan-400">
-          ← {party.name}
-        </Link>
-        <h1 className="mt-1 text-xl font-semibold">Record payment</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <BackLink href={`/parties/${id}`}>← {party.name}</BackLink>
+        <h1 className="font-serif text-[28px] font-semibold leading-tight text-ink">
+          Record payment
+        </h1>
+        <p className="mt-1 text-sm text-muted">
           {[party.partyType, party.subType, party.channel].filter(Boolean).join(" · ")}
           . Payment appears on the party ledger automatically.
         </p>

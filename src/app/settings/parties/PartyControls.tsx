@@ -198,12 +198,13 @@ export function AddPartyForm() {
           onClick={submit}
           disabled={!canSubmit}
           data-testid="party-add-submit"
-          className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          style={{ background: "var(--accent)" }}
         >
           {isPending ? "Adding…" : "+ Add party"}
         </button>
-        {ok && <span className="text-xs text-emerald-600 dark:text-emerald-400">✓ Saved.</span>}
-        {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+        {ok && <span className="text-xs font-medium text-pos">✓ Saved.</span>}
+        {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>
   );
@@ -249,11 +250,12 @@ function EditPartyForm({ party, onDone }: { party: PartyRow; onDone: () => void 
           onClick={submit}
           disabled={!canSubmit}
           data-testid={`party-edit-save-${party.id}`}
-          className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          style={{ background: "var(--accent)" }}
         >
           {isPending ? "Saving…" : "Save"}
         </button>
-        {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+        {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>
   );
@@ -263,21 +265,21 @@ function EditPartyForm({ party, onDone }: { party: PartyRow; onDone: () => void 
 export function PartyList({ title, parties }: { title: string; parties: PartyRow[] }) {
   return (
     <div>
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+      <h3 className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
         {title} ({parties.length})
       </h3>
       {parties.length === 0 ? (
-        <p className="text-sm text-slate-400 dark:text-slate-500">None yet.</p>
+        <p className="text-sm text-faint">None yet.</p>
       ) : (
-        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+        <ul className="divide-y divide-row">
           {parties.map((p) => (
             <li key={p.id} data-testid={`party-row-${p.id}`}>
               <EditToggle
                 testId={`party-${p.id}`}
                 summary={
                   <div>
-                    <div className="font-medium">{p.name}</div>
-                    <div className="text-xs text-slate-400 dark:text-slate-500">
+                    <div className="font-medium text-ink">{p.name}</div>
+                    <div className="text-xs text-faint">
                       {[p.subType, p.channel, p.ntn ? `NTN ${p.ntn}` : null]
                         .filter(Boolean)
                         .join(" · ") || "—"}

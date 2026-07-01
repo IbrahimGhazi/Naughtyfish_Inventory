@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
 import { pkr, dateShort } from "@/lib/format";
+import { Card, Chip, PageHeader, Th } from "@/components/ui";
 import { AddCategoryForm, AddEntryForm, type FormCategory } from "./ExpenseControls";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,10 @@ export default async function ExpensesPage() {
   const ctx = await getActiveContext();
   const scope = entityScope(ctx);
 
-  const [categories, entries] = await Promise.all([
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [categories, entries, monthAgg, byCategory] = await Promise.all([
     prisma.expenseCategory.findMany({ where: scope, orderBy: { name: "asc" } }),
     prisma.expenseEntry.findMany({
       where: scope,
@@ -18,86 +22,107 @@ export default async function ExpensesPage() {
       orderBy: { date: "desc" },
       take: 30,
     }),
+    // This-month total (entries dated within the current calendar month).
+    prisma.expenseEntry.aggregate({
+      where: { ...scope, date: { gte: monthStart } },
+      _sum: { amount: true },
+    }),
+    // Per-category totals feed the category chips.
+    prisma.expenseEntry.groupBy({
+      by: ["categoryId"],
+      where: scope,
+      _sum: { amount: true },
+    }),
   ]);
 
-  // This-month total (entries dated within the current calendar month).
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthAgg = await prisma.expenseEntry.aggregate({
-    where: { ...scope, date: { gte: monthStart } },
-    _sum: { amount: true },
-  });
   const monthTotal = Number(monthAgg._sum.amount ?? 0);
+  const totalByCategory = new Map(
+    byCategory.map((g) => [g.categoryId, Number(g._sum.amount ?? 0)]),
+  );
 
   const formCategories: FormCategory[] = categories.map((c) => ({ id: c.id, name: c.name }));
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-semibold">Expenses</h1>
+    <div className="animate-rise space-y-5">
+      <PageHeader
+        eyebrow="Money"
+        title="Expenses"
+        action={
+          <div className="text-right" data-testid="exp-month-total">
+            <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
+              This month
+            </div>
+            <div className="mt-0.5 font-mono text-[22px] font-semibold text-ink">
+              {pkr(monthTotal)}
+            </div>
+          </div>
+        }
+      />
 
-      {/* (a) Categories — flat, owner-editable list. */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Categories</h2>
+      {/* Category chips (with running totals) + add-category. */}
+      <div className="space-y-3">
         {categories.length === 0 ? (
-          <p className="mb-3 text-sm text-slate-400 dark:text-slate-500">No categories yet — add one below.</p>
+          <p className="text-sm text-faint">No categories yet — add one below.</p>
         ) : (
-          <ul className="mb-3 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             {categories.map((c) => (
-              <li
+              <span
                 key={c.id}
                 data-testid={`exp-cat-${c.id}`}
-                className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                className="inline-flex items-center gap-1.5 rounded-full border border-hair bg-card px-3 py-1.5 text-[12.5px] font-semibold text-text"
               >
                 {c.name}
-                {c.isOwnerAdded && <span className="ml-1 text-xs text-slate-400 dark:text-slate-500">·added</span>}
-              </li>
+                <span className="font-mono text-[11px] text-gold">
+                  {pkr(totalByCategory.get(c.id) ?? 0)}
+                </span>
+                {c.isOwnerAdded && <span className="text-[11px] text-faint">·added</span>}
+              </span>
             ))}
-          </ul>
+          </div>
         )}
         <AddCategoryForm />
-      </section>
+      </div>
 
-      {/* (b) Entries — add form + recent table with a this-month total. */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Entries</h2>
-          <span className="text-sm text-slate-500 dark:text-slate-400" data-testid="exp-month-total">
-            This month:{" "}
-            <span className="font-semibold text-slate-800 dark:text-slate-100">{pkr(monthTotal)}</span>
-          </span>
-        </div>
+      {/* Add-entry row. */}
+      <Card className="p-[18px]">
+        <AddEntryForm categories={formCategories} />
+      </Card>
 
-        <div className="mb-4">
-          <AddEntryForm categories={formCategories} />
-        </div>
-
-        {entries.length === 0 ? (
-          <p className="text-sm text-slate-400 dark:text-slate-500">No expense entries yet.</p>
-        ) : (
-          <div className="overflow-hidden rounded-md border border-slate-200 dark:border-slate-800">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-400 dark:bg-slate-800/50 dark:text-slate-500">
+      {/* Recent entries. */}
+      {entries.length === 0 ? (
+        <p className="text-sm text-faint">No expense entries yet.</p>
+      ) : (
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
                 <tr>
-                  <th className="px-3 py-2">Date</th>
-                  <th className="px-3 py-2">Category</th>
-                  <th className="px-3 py-2">Note</th>
-                  <th className="px-3 py-2 text-right">Amount</th>
+                  <Th className="w-[110px]">Date</Th>
+                  <Th className="w-[160px]">Category</Th>
+                  <Th>Note</Th>
+                  <Th align="right">Amount</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody>
                 {entries.map((e) => (
-                  <tr key={e.id}>
-                    <td className="px-3 py-2 text-slate-500 dark:text-slate-400">{dateShort(e.date)}</td>
-                    <td className="px-3 py-2">{e.category.name}</td>
-                    <td className="px-3 py-2 text-slate-500 dark:text-slate-400">{e.note ?? "—"}</td>
-                    <td className="px-3 py-2 text-right font-medium">{pkr(Number(e.amount))}</td>
+                  <tr key={e.id} className="border-b border-row hover:bg-card2">
+                    <td className="px-3.5 py-3 font-mono text-[12.5px] text-muted">
+                      {dateShort(e.date)}
+                    </td>
+                    <td className="px-3.5 py-3">
+                      <Chip tone="neutral">{e.category.name}</Chip>
+                    </td>
+                    <td className="px-3.5 py-3 text-[13px] text-text">{e.note ?? "—"}</td>
+                    <td className="px-3.5 py-3 text-right font-mono text-[13px] font-semibold text-neg">
+                      {pkr(Number(e.amount))}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
-      </section>
+        </Card>
+      )}
     </div>
   );
 }

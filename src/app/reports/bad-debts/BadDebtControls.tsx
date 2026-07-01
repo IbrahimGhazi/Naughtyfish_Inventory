@@ -104,7 +104,8 @@ export function AddBadDebtForm({
         type="button"
         data-testid="bd-open-add"
         onClick={() => setOpen(true)}
-        className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800"
+        className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors"
+        style={{ background: "var(--accent)" }}
       >
         + Add entry
       </button>
@@ -112,13 +113,13 @@ export function AddBadDebtForm({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+    <div className="rounded-xl border border-hair bg-card p-[18px]">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">New entry</h2>
+        <h2 className="font-serif text-[17px] font-semibold text-ink">New entry</h2>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-xs text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+          className="text-xs font-semibold text-faint hover:text-text"
         >
           Close
         </button>
@@ -126,17 +127,18 @@ export function AddBadDebtForm({
 
       {/* Sub-category toggle */}
       <div className="mb-3">
-        <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Type</span>
-        <div className="inline-flex overflow-hidden rounded-md border border-slate-200 dark:border-slate-700" data-testid="bd-subcategory">
+        <span className="mb-1 block text-xs font-medium text-faint2">Type</span>
+        <div className="inline-flex overflow-hidden rounded-lg border border-hair" data-testid="bd-subcategory">
           <button
             type="button"
             data-testid="bd-subcategory-bad_debt"
             onClick={() => setSubCategory("bad_debt")}
-            className={`px-3 py-1.5 text-sm ${
+            className="px-3 py-1.5 text-sm font-semibold transition-colors"
+            style={
               subCategory === "bad_debt"
-                ? "bg-red-600 text-white"
-                : "bg-white text-slate-600 dark:bg-slate-900 dark:text-slate-300"
-            }`}
+                ? { background: "var(--neg)", color: "var(--card)" }
+                : { background: "var(--card)", color: "var(--muted)" }
+            }
           >
             Bad debt
           </button>
@@ -144,11 +146,12 @@ export function AddBadDebtForm({
             type="button"
             data-testid="bd-subcategory-dispute"
             onClick={() => setSubCategory("dispute")}
-            className={`px-3 py-1.5 text-sm ${
+            className="px-3 py-1.5 text-sm font-semibold transition-colors"
+            style={
               subCategory === "dispute"
-                ? "bg-amber-500 text-white"
-                : "bg-white text-slate-600 dark:bg-slate-900 dark:text-slate-300"
-            }`}
+                ? { background: "var(--warn)", color: "var(--card)" }
+                : { background: "var(--card)", color: "var(--muted)" }
+            }
           >
             Dispute
           </button>
@@ -229,7 +232,7 @@ export function AddBadDebtForm({
               type="button"
               data-testid="bd-today"
               onClick={() => setDate(todayLocal())}
-              className="shrink-0 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+              className="shrink-0 rounded-lg border border-hair bg-card px-2 text-xs font-semibold text-muted transition-colors hover:bg-card2"
             >
               Today
             </button>
@@ -251,12 +254,13 @@ export function AddBadDebtForm({
           onClick={submit}
           disabled={!canSubmit}
           data-testid="bd-submit"
-          className="rounded-md bg-cyan-700 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          style={{ background: "var(--accent)" }}
         >
           {isPending ? "Saving…" : "Add entry"}
         </button>
-        {ok && <span className="text-xs text-emerald-600 dark:text-emerald-400">✓ Saved.</span>}
-        {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+        {ok && <span className="text-xs font-semibold text-pos">✓ Saved.</span>}
+        {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>
   );
@@ -288,11 +292,11 @@ export function DeleteBadDebtButton({ id }: { id: string }) {
         onClick={del}
         disabled={isPending}
         title="Delete entry"
-        className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-40 dark:text-red-400 dark:hover:bg-red-950"
+        className="rounded px-2 py-1 text-xs font-semibold text-neg transition-colors hover:bg-card2 disabled:opacity-40"
       >
         {isPending ? "…" : "Delete"}
       </button>
-      {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+      {error && <span className="text-xs text-neg">{error}</span>}
     </span>
   );
 }
@@ -300,9 +304,9 @@ export function DeleteBadDebtButton({ id }: { id: string }) {
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+      <span className="mb-1 block text-xs font-medium text-faint2">
         {label}
-        {hint && <span className="ml-1 font-normal text-slate-400 dark:text-slate-500">· {hint}</span>}
+        {hint && <span className="ml-1 font-normal text-faint">· {hint}</span>}
       </span>
       {children}
     </label>

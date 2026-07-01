@@ -75,12 +75,12 @@ export default function ShipmentControls({
   }
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Actions</h2>
+    <section className="rounded-xl border border-hair bg-card p-[18px]">
+      <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">Actions</h2>
 
       {/* Status change buttons */}
       <div className="mb-4">
-        <div className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">Set status</div>
+        <div className="mb-2 text-xs font-medium text-muted">Set status</div>
         <div className="flex flex-wrap gap-2" data-testid="ship-status-buttons">
           {SHIPMENT_STATUSES.map((s) => {
             const active = s === status;
@@ -91,11 +91,12 @@ export default function ShipmentControls({
                 disabled={active || isPending}
                 onClick={() => changeStatus(s)}
                 data-testid={`ship-set-${s}`}
-                className={`rounded-md border px-3 py-1.5 text-sm font-medium disabled:cursor-default ${
+                className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors disabled:cursor-default ${
                   active
-                    ? "border-cyan-700 bg-cyan-700 text-white dark:border-cyan-500 dark:bg-cyan-600"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                    ? "border-transparent text-accent-deep"
+                    : "border-hair bg-card text-muted hover:bg-card2 disabled:opacity-40"
                 }`}
+                style={active ? { background: "var(--accent-tint)" } : undefined}
               >
                 {STATUS_LABELS[s]}
               </button>
@@ -105,8 +106,8 @@ export default function ShipmentControls({
       </div>
 
       {/* ETA quick-edit */}
-      <div className="border-t border-slate-100 pt-4 dark:border-slate-800">
-        <div className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">Update ETA</div>
+      <div className="border-t border-row pt-4">
+        <div className="mb-2 text-xs font-medium text-muted">Update ETA</div>
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="datetime-local"
@@ -121,7 +122,7 @@ export default function ShipmentControls({
               type="button"
               onClick={() => applyEtaPreset(p.ms)}
               data-testid={`ship-eta-edit-preset-${p.label.replace(/\s+/g, "")}`}
-              className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="rounded-lg border border-hair px-2 py-1 text-xs font-semibold text-muted transition-colors hover:bg-card2"
             >
               {p.label}
             </button>
@@ -131,7 +132,8 @@ export default function ShipmentControls({
             onClick={saveEta}
             disabled={isPending}
             data-testid="ship-eta-save"
-            className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+            className="rounded-lg px-3 py-1.5 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+            style={{ background: "var(--accent)" }}
           >
             {isPending ? "Saving…" : "Save ETA"}
           </button>
@@ -140,8 +142,8 @@ export default function ShipmentControls({
 
       {(ok || error) && (
         <div className="mt-3 text-xs">
-          {ok && <span className="text-emerald-600 dark:text-emerald-400">✓ {ok}</span>}
-          {error && <span className="text-red-600 dark:text-red-400">{error}</span>}
+          {ok && <span className="text-pos">✓ {ok}</span>}
+          {error && <span className="text-neg">{error}</span>}
         </div>
       )}
     </section>

@@ -3,6 +3,7 @@ import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
 import BackLink from "../BackLink";
 import { Card } from "../ui";
+import { PageHeader } from "@/components/ui";
 import { AddPartyForm, PartyList, type PartyRow } from "./PartyControls";
 
 export const dynamic = "force-dynamic";
@@ -29,27 +30,27 @@ export default async function PartiesSettingsPage() {
   const suppliers = rows.filter((p) => p.partyType === "supplier");
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-[1000px] animate-rise px-8 pb-14 pt-7">
       <BackLink />
-      <div>
-        <h1 className="text-xl font-semibold">Parties &amp; suppliers</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Add and edit customers and suppliers. Local buyers can be name-only
-          (leave NTN blank); opening balances feed the ledgers.
-        </p>
+      <PageHeader
+        eyebrow="Admin"
+        title="Parties & suppliers"
+        subtitle="Add and edit customers and suppliers. Local buyers can be name-only (leave NTN blank); opening balances feed the ledgers."
+      />
+
+      <div className="space-y-4">
+        <Card className="space-y-5">
+          <PartyList title="Customers" parties={customers} />
+          <PartyList title="Suppliers" parties={suppliers} />
+        </Card>
+
+        <Card>
+          <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">
+            Add party / supplier
+          </h2>
+          <AddPartyForm />
+        </Card>
       </div>
-
-      <Card className="space-y-5">
-        <PartyList title="Customers" parties={customers} />
-        <PartyList title="Suppliers" parties={suppliers} />
-      </Card>
-
-      <Card>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
-          Add party / supplier
-        </h2>
-        <AddPartyForm />
-      </Card>
     </div>
   );
 }

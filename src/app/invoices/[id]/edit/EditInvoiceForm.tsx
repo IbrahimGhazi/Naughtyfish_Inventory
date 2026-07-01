@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { computeLine, computeInvoiceTotal, type Channel, type LineResult } from "@/lib/billing";
 import { pkr, kg, pct } from "@/lib/format";
+import { Card, Chip } from "@/components/ui";
 import { updateInvoice } from "../../actions";
 
 export interface EditFormItem {
@@ -128,201 +129,205 @@ export default function EditInvoiceForm({
     });
   }
 
+  const netWeightTotal = computed.reduce(
+    (s, c) => s + (c.result ? c.result.netWeightKg : 0),
+    0,
+  );
+
   return (
-    <div className="space-y-5">
-      {/* Header — party + channel are FIXED on edit. */}
-      <div className="grid grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-2 dark:border-slate-800 dark:bg-slate-900">
-        <Field label="Party" hint="fixed on edit">
-          <div className="input bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400">{partyName}</div>
-        </Field>
-        <Field label="Channel" hint="fixed on edit">
-          <div className="input bg-slate-50 capitalize text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-            {channel === "north" ? "North (frozen)" : "Local (fresh)"}
+    <div className="grid items-start gap-4 lg:grid-cols-[1fr_320px]">
+      <div className="flex flex-col gap-3.5">
+        {/* Header — party + channel are FIXED on edit. */}
+        <Card className="p-[18px]">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Party" hint="fixed on edit">
+              <div className="input bg-card2 text-muted">{partyName}</div>
+            </Field>
+            <Field label="Channel" hint="fixed on edit">
+              <div className="input bg-card2 capitalize text-muted">
+                {channel === "north" ? "North (frozen)" : "Local (fresh)"}
+              </div>
+            </Field>
           </div>
-        </Field>
-      </div>
+        </Card>
 
-      {/* Line items */}
-      <div className="space-y-3">
-        {rows.map((r, i) => {
-          const c = computed[i];
-          const item = itemById.get(r.itemId);
-          return (
-            <div key={i} className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Field label="Item">
-                  <select
-                    className="input"
-                    data-testid={`edit-item-${i}`}
-                    value={r.itemId}
-                    onChange={(e) => pickItem(i, e.target.value)}
-                  >
-                    <option value="">Select…</option>
-                    {items.map((it) => (
-                      <option key={it.id} value={it.id}>
-                        {it.name}
-                        {it.isPrawn ? " 🦐" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Gross weight (kg)">
-                  <input
-                    className="input"
-                    data-testid={`edit-gross-${i}`}
-                    inputMode="decimal"
-                    value={r.grossWeightKg}
-                    onChange={(e) => updateRow(i, { grossWeightKg: e.target.value })}
-                  />
-                </Field>
-                {channel === "north" ? (
-                  <Field label="Final/net weight (kg)" hint="buyer's defrosted weight">
-                    <input
-                      className="input"
-                      data-testid={`edit-final-${i}`}
-                      inputMode="decimal"
-                      value={r.finalWeightKg}
-                      onChange={(e) => updateRow(i, { finalWeightKg: e.target.value })}
-                    />
-                  </Field>
-                ) : (
-                  <Field label="Glazing %" hint="local = 0 (ignored)">
-                    <input
-                      className="input"
-                      data-testid={`edit-glazing-${i}`}
-                      inputMode="decimal"
-                      value={r.glazingPercent}
-                      disabled
-                      placeholder="0"
-                    />
-                  </Field>
-                )}
-                <Field label="Rate / kg (net)">
-                  <input
-                    className="input"
-                    data-testid={`edit-rate-${i}`}
-                    inputMode="decimal"
-                    value={r.ratePerKg}
-                    onChange={(e) => updateRow(i, { ratePerKg: e.target.value })}
-                  />
-                </Field>
-                <Field label="Cartons">
-                  <input
-                    className="input"
-                    data-testid={`edit-cartons-${i}`}
-                    inputMode="numeric"
-                    value={r.cartonCount}
-                    onChange={(e) => updateRow(i, { cartonCount: e.target.value })}
-                  />
-                </Field>
-                <Field label="Packets">
-                  <input
-                    className="input"
-                    data-testid={`edit-packets-${i}`}
-                    inputMode="numeric"
-                    value={r.packetCount}
-                    onChange={(e) => updateRow(i, { packetCount: e.target.value })}
-                  />
-                </Field>
-                <Field label="Expected packets" hint="for short-count alert">
-                  <input
-                    className="input"
-                    data-testid={`edit-expected-${i}`}
-                    inputMode="numeric"
-                    value={r.expectedPacketCount}
-                    onChange={(e) => updateRow(i, { expectedPacketCount: e.target.value })}
-                    placeholder={item ? String((Number(r.cartonCount) || 0) * item.packetsPerCarton || "") : ""}
-                  />
-                </Field>
-              </div>
-
-              {/* Live results from the shared engine */}
-              <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
-                {c?.error && <span className="text-amber-600 dark:text-amber-400">⚠ {c.error}</span>}
-                {c?.result && (
-                  <>
-                    <span className="text-slate-500 dark:text-slate-400">
-                      Net: <strong className="text-slate-800 dark:text-slate-100">{kg(c.result.netWeightKg)}</strong>
-                    </span>
-                    <span className="text-slate-500 dark:text-slate-400">
-                      Glazing: <strong className="text-slate-800 dark:text-slate-100">{pct(c.result.glazingPercent)}</strong>
-                    </span>
-                    <span className="text-slate-500 dark:text-slate-400">
-                      Amount: <strong className="text-slate-800 dark:text-slate-100">{pkr(c.result.amount)}</strong>
-                    </span>
-                    {c.result.varianceAlert && (
-                      <span className="rounded bg-red-50 px-2 py-0.5 text-red-700 dark:bg-red-950 dark:text-red-300">
-                        ⚠ Over-deduction: {pct(c.result.varianceAlert.actualPercent)} vs expected{" "}
-                        {pct(c.result.varianceAlert.expectedPercent)} (+
-                        {pct(c.result.varianceAlert.exceededByPercent)})
-                      </span>
+        {/* Line-items table */}
+        <Card className="overflow-hidden">
+          <div className="grid grid-cols-[1fr_76px_92px_84px_88px_90px_100px_30px] items-center gap-2 border-b border-hair2 bg-card2 px-3.5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-faint2">
+            <span>Item</span>
+            <span>Cartons</span>
+            <span>Gross kg</span>
+            <span>{channel === "north" ? "Net kg in" : "Glaz %"}</span>
+            <span>Rate</span>
+            <span className="text-right">Net kg</span>
+            <span className="text-right">Amount</span>
+            <span />
+          </div>
+          <div>
+            {rows.map((r, i) => {
+              const c = computed[i];
+              const item = itemById.get(r.itemId);
+              return (
+                <div key={i} className="animate-pop border-b border-row px-3.5 py-2.5">
+                  <div className="grid grid-cols-[1fr_76px_92px_84px_88px_90px_100px_30px] items-center gap-2">
+                    <select className="input !py-1.5 text-[13px]" data-testid={`edit-item-${i}`} value={r.itemId} onChange={(e) => pickItem(i, e.target.value)}>
+                      <option value="">Select…</option>
+                      {items.map((it) => (
+                        <option key={it.id} value={it.id}>
+                          {it.name}
+                          {it.isPrawn ? " 🦐" : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-cartons-${i}`} inputMode="numeric" value={r.cartonCount}
+                      onChange={(e) => updateRow(i, { cartonCount: e.target.value })} />
+                    <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-gross-${i}`} inputMode="decimal" value={r.grossWeightKg}
+                      onChange={(e) => updateRow(i, { grossWeightKg: e.target.value })} />
+                    {channel === "north" ? (
+                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-final-${i}`} inputMode="decimal" value={r.finalWeightKg}
+                        onChange={(e) => updateRow(i, { finalWeightKg: e.target.value })} placeholder="net kg" />
+                    ) : (
+                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-glazing-${i}`} inputMode="decimal" value={r.glazingPercent} disabled placeholder="0" />
                     )}
-                    {c.result.packetShortAlert && (
-                      <span className="rounded bg-amber-50 px-2 py-0.5 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                        ⚠ Short {c.result.packetShortAlert.shortBy} packet(s):{" "}
-                        {c.result.packetShortAlert.actual}/{c.result.packetShortAlert.expected}
-                      </span>
+                    <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-rate-${i}`} inputMode="decimal" value={r.ratePerKg}
+                      onChange={(e) => updateRow(i, { ratePerKg: e.target.value })} />
+                    <span className="text-right font-mono text-[13px] text-text">
+                      {c?.result ? kg(c.result.netWeightKg) : "—"}
+                    </span>
+                    <span className="text-right font-mono text-[13px] font-semibold text-ink">
+                      {c?.result ? pkr(c.result.amount) : "—"}
+                    </span>
+                    {rows.length > 1 ? (
+                      <button type="button" data-testid={`edit-remove-${i}`}
+                        onClick={() => setRows((rs) => rs.filter((_, idx) => idx !== i))}
+                        title="Remove line"
+                        className="justify-self-center text-[15px] text-faint2 hover:text-neg">×</button>
+                    ) : (
+                      <span />
                     )}
-                  </>
-                )}
-                {rows.length > 1 && (
-                  <button
-                    type="button"
-                    data-testid={`edit-remove-${i}`}
-                    onClick={() => setRows((rs) => rs.filter((_, idx) => idx !== i))}
-                    className="ml-auto text-xs text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400"
-                  >
-                    Remove line
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-        <button
-          type="button"
-          data-testid="edit-add-line"
-          onClick={() => setRows((rs) => [...rs, { ...emptyLine }])}
-          className="text-sm text-cyan-700 hover:underline dark:text-cyan-400"
-        >
-          + Add line
-        </button>
-      </div>
+                  </div>
 
-      {/* Footer */}
-      <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <input
-          className="input max-w-xs"
-          data-testid="edit-notes"
-          placeholder="Notes (optional)"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-        <div className="text-right">
-          <div className="text-xs uppercase text-slate-400 dark:text-slate-500">Invoice total</div>
-          <div className="text-xl font-semibold">{pkr(total)}</div>
+                  {/* Live packets + alerts */}
+                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <Field label="Packets">
+                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-packets-${i}`} inputMode="numeric" value={r.packetCount}
+                        onChange={(e) => updateRow(i, { packetCount: e.target.value })} />
+                    </Field>
+                    <Field label="Expected packets" hint="short-count alert">
+                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-expected-${i}`} inputMode="numeric" value={r.expectedPacketCount}
+                        onChange={(e) => updateRow(i, { expectedPacketCount: e.target.value })}
+                        placeholder={item ? String((Number(r.cartonCount) || 0) * item.packetsPerCarton || "") : ""} />
+                    </Field>
+                    <div className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-1 self-end text-[12px] sm:col-span-2">
+                      {c?.error && <span className="text-warn">⚠ {c.error}</span>}
+                      {c?.result && (
+                        <>
+                          <span className="text-muted">Glazing: <strong className="font-mono text-text">{pct(c.result.glazingPercent)}</strong></span>
+                          {c.result.varianceAlert && (
+                            <Chip tone="neg">
+                              ⚠ Over-deduction {pct(c.result.varianceAlert.actualPercent)} vs {pct(c.result.varianceAlert.expectedPercent)} (+{pct(c.result.varianceAlert.exceededByPercent)})
+                            </Chip>
+                          )}
+                          {c.result.packetShortAlert && (
+                            <Chip tone="warn">
+                              ⚠ Short {c.result.packetShortAlert.shortBy}: {c.result.packetShortAlert.actual}/{c.result.packetShortAlert.expected}
+                            </Chip>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            data-testid="edit-add-line"
+            onClick={() => setRows((rs) => [...rs, { ...emptyLine }])}
+            className="block w-full px-3.5 py-3 text-left text-[13px] font-semibold text-accent transition-colors hover:bg-card2"
+            style={{ background: "var(--card-2)" }}
+          >
+            + Add line
+          </button>
+        </Card>
+
+        <div className="px-0.5 text-[12px] text-faint">
+          The invoice number stays the same. A new versioned delivery record is appended for dispute
+          defense — the previous record is preserved, never overwritten.
         </div>
+
+        {error && <p className="text-sm text-neg">{error}</p>}
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
-
-      <div className="flex items-center gap-3">
+      {/* Summary panel (dark ink, sticky) */}
+      <div
+        className="sticky top-[84px] rounded-2xl p-5"
+        style={{ background: "var(--side-bg)", color: "var(--side-fg)" }}
+      >
+        <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--side-dim)" }}>
+          Summary
+        </div>
+        <div className="my-3.5 flex flex-col gap-2.5 text-[13px]">
+          <div className="flex justify-between">
+            <span style={{ color: "var(--side-dim)" }}>Invoice</span>
+            <span className="font-mono">#{invoiceNumber}</span>
+          </div>
+          <div className="flex justify-between">
+            <span style={{ color: "var(--side-dim)" }}>Channel</span>
+            <span className="font-semibold capitalize">{channel}</span>
+          </div>
+          <div className="flex justify-between">
+            <span style={{ color: "var(--side-dim)" }}>Lines</span>
+            <span className="font-mono">{rows.length}</span>
+          </div>
+          <div className="flex justify-between">
+            <span style={{ color: "var(--side-dim)" }}>Net weight</span>
+            <span className="font-mono">{kg(netWeightTotal)}</span>
+          </div>
+          <label className="mt-1 block">
+            <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em]" style={{ color: "var(--side-dim)" }}>
+              Notes
+            </div>
+            <input
+              data-testid="edit-notes"
+              placeholder="Notes (optional)"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full rounded-lg px-2.5 py-2 text-[13px] outline-none"
+              style={{
+                background: "rgba(242,235,217,.08)",
+                border: "1px solid rgba(242,235,217,.22)",
+                color: "var(--side-fg)",
+              }}
+            />
+          </label>
+        </div>
+        <div className="border-t pt-3.5" style={{ borderColor: "rgba(242,235,217,.14)" }}>
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--side-dim)" }}>
+            Total
+          </div>
+          <div className="mt-1.5 font-mono text-[28px] font-semibold tracking-tight">
+            {pkr(total)}
+          </div>
+        </div>
         <button
           onClick={submit}
           disabled={!canSubmit}
           data-testid="edit-save"
-          className="rounded-md bg-cyan-700 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+          className="mt-4 w-full rounded-[10px] py-3 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          style={{ background: "var(--accent)" }}
         >
           {isPending ? "Saving…" : `Save changes to #${invoiceNumber}`}
         </button>
-        <a href={`/invoices/${invoiceId}`} className="text-sm text-slate-500 hover:underline dark:text-slate-400">
+        <a
+          href={`/invoices/${invoiceId}`}
+          className="mt-2.5 block text-center text-[13px]"
+          style={{ color: "var(--side-dim)" }}
+        >
           Cancel
         </a>
       </div>
-      <p className="text-xs text-slate-400 dark:text-slate-500">
-        The invoice number stays the same. A new versioned delivery record is appended for dispute
-        defense — the previous record is preserved, never overwritten.
-      </p>
     </div>
   );
 }
@@ -330,9 +335,9 @@ export default function EditInvoiceForm({
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.06em] text-faint2">
         {label}
-        {hint && <span className="ml-1 font-normal text-slate-400 dark:text-slate-500">· {hint}</span>}
+        {hint && <span className="ml-1 font-normal normal-case tracking-normal text-faint">· {hint}</span>}
       </span>
       {children}
     </label>

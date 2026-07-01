@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createItem, updateItem, setItemActive } from "../actions";
 import { Field, EditToggle } from "../ui";
+import { Chip } from "@/components/ui";
 import { ITEM_CATEGORIES, type ItemCategory } from "@/lib/enums";
 import { pkr, pct } from "@/lib/format";
 
@@ -126,9 +127,9 @@ function ItemFields({
           data-testid={`${idPrefix}-isprawn`}
           checked={v.isPrawn}
           onChange={(e) => set({ isPrawn: e.target.checked })}
-          className="h-4 w-4 rounded border-slate-300 dark:border-slate-600"
+          className="h-4 w-4 rounded border-hair2"
         />
-        <span className="text-slate-600 dark:text-slate-300">
+        <span className="text-text">
           Is prawn (uses water-percent billing)
         </span>
       </label>
@@ -186,12 +187,13 @@ export function AddItemForm() {
           onClick={submit}
           disabled={!canSubmit}
           data-testid="item-add-submit"
-          className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          style={{ background: "var(--accent)" }}
         >
           {isPending ? "Adding…" : "+ Add item"}
         </button>
-        {ok && <span className="text-xs text-emerald-600 dark:text-emerald-400">✓ Saved.</span>}
-        {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+        {ok && <span className="text-xs font-medium text-pos">✓ Saved.</span>}
+        {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>
   );
@@ -242,11 +244,12 @@ function EditItemForm({ item, onDone }: { item: ItemRow; onDone: () => void }) {
           onClick={submit}
           disabled={!canSubmit}
           data-testid={`item-edit-save-${item.id}`}
-          className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          style={{ background: "var(--accent)" }}
         >
           {isPending ? "Saving…" : "Save"}
         </button>
-        {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+        {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>
   );
@@ -270,10 +273,8 @@ function ActiveToggle({ item }: { item: ItemRow }) {
       onClick={toggle}
       disabled={isPending}
       data-testid={`item-toggle-${item.id}`}
-      className={`shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium disabled:opacity-40 ${
-        item.active
-          ? "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-          : "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950"
+      className={`shrink-0 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-card2 disabled:opacity-40 ${
+        item.active ? "border-hair text-text" : "border-hair text-pos"
       }`}
     >
       {isPending ? "…" : item.active ? "Deactivate" : "Reactivate"}
@@ -283,33 +284,21 @@ function ActiveToggle({ item }: { item: ItemRow }) {
 
 export function ItemList({ items }: { items: ItemRow[] }) {
   if (items.length === 0) {
-    return (
-      <p className="text-sm text-slate-400 dark:text-slate-500">
-        No items yet — add one below.
-      </p>
-    );
+    return <p className="text-sm text-faint">No items yet — add one below.</p>;
   }
   return (
-    <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+    <ul className="divide-y divide-row">
       {items.map((it) => (
         <li key={it.id} data-testid={`item-row-${it.id}`}>
           <div className="py-3">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">{it.name}</span>
-                  {!it.active && (
-                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                      inactive
-                    </span>
-                  )}
-                  {it.isPrawn && (
-                    <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">
-                      prawn
-                    </span>
-                  )}
+                  <span className="font-medium text-ink">{it.name}</span>
+                  {!it.active && <Chip tone="warn">inactive</Chip>}
+                  {it.isPrawn && <Chip tone="info">prawn</Chip>}
                 </div>
-                <div className="text-xs text-slate-400 dark:text-slate-500">
+                <div className="text-xs text-faint">
                   {it.category} · {it.cartonWeightKg} kg/carton ·{" "}
                   {it.packetsPerCarton} pkts
                   {it.fixedRate != null ? ` · rate ${pkr(it.fixedRate)}` : ""}
@@ -324,9 +313,7 @@ export function ItemList({ items }: { items: ItemRow[] }) {
               <EditToggle
                 testId={`item-${it.id}`}
                 summary={
-                  <span className="text-xs text-slate-400 dark:text-slate-500">
-                    Edit details
-                  </span>
+                  <span className="text-xs text-faint">Edit details</span>
                 }
               >
                 {(close) => <EditItemForm item={it} onDone={close} />}

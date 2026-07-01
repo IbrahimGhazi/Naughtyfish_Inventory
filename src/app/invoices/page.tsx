@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
 import { pkr, dateShort } from "@/lib/format";
+import { PageHeader, PrimaryButton, Card, Chip, StatusChip, Th } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -10,59 +11,113 @@ export default async function InvoicesPage() {
   const ctx = await getActiveContext();
   const invoices = await prisma.invoice.findMany({
     where: entityScope(ctx),
-    include: { party: true },
+    include: { party: true, payments: { select: { amount: true } } },
     orderBy: { invoiceNumber: "desc" },
   });
 
+  const balanceOf = (inv: (typeof invoices)[number]) =>
+    Number(inv.totalAmount) -
+    inv.payments.reduce((s, p) => s + Number(p.amount), 0);
+
+  const outstanding = invoices.reduce(
+    (sum, inv) => sum + Math.max(0, balanceOf(inv)),
+    0,
+  );
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Invoices</h1>
-        <Link href="/invoices/new" className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800">
-          + New Invoice
-        </Link>
-      </div>
+    <div className="animate-rise space-y-4">
+      <PageHeader
+        eyebrow="Sales"
+        title="Invoices"
+        action={
+          <PrimaryButton href="/invoices/new">
+            <span className="text-base leading-none">+</span> New invoice
+          </PrimaryButton>
+        }
+      />
+
       {invoices.length === 0 ? (
-        <p className="text-sm text-slate-400 dark:text-slate-500">No invoices yet.</p>
+        <p className="text-sm text-faint">No invoices yet.</p>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-400 dark:bg-slate-800/50 dark:text-slate-500">
+        <Card className="overflow-hidden">
+          <table className="w-full border-collapse">
+            <thead>
               <tr>
-                <th className="px-4 py-2">#</th>
-                <th className="px-4 py-2">Reference</th>
-                <th className="px-4 py-2">Party</th>
-                <th className="px-4 py-2">Channel</th>
-                <th className="px-4 py-2">Date</th>
-                <th className="px-4 py-2 text-right">Total</th>
+                <Th>Invoice</Th>
+                <Th>Party</Th>
+                <Th>Date</Th>
+                <Th>Status</Th>
+                <Th align="right">Balance due</Th>
+                <Th align="right">Total</Th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {invoices.map((inv) => (
-                <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800">
-                  <td className="px-4 py-2 font-mono">
-                    <Link href={`/invoices/${inv.id}`} className="text-cyan-700 hover:underline dark:text-cyan-400">
-                      {inv.invoiceNumber}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2 font-mono text-slate-500 dark:text-slate-400">
-                    <Link href={`/invoices/${inv.id}`} className="hover:text-cyan-700 dark:hover:text-cyan-400">
-                      {inv.referenceNumber ?? "—"}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2">
-                    <Link href={`/parties/${inv.partyId}`} className="hover:text-cyan-700 dark:hover:text-cyan-400">{inv.party.name}</Link>
-                  </td>
-                  <td className="px-4 py-2">
-                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs uppercase dark:bg-slate-800 dark:text-slate-300">{inv.channel}</span>
-                  </td>
-                  <td className="px-4 py-2 text-slate-500 dark:text-slate-400">{dateShort(inv.date)}</td>
-                  <td className="px-4 py-2 text-right font-medium">{pkr(Number(inv.totalAmount))}</td>
-                </tr>
-              ))}
+            <tbody>
+              {invoices.map((inv) => {
+                const due = balanceOf(inv);
+                return (
+                  <tr
+                    key={inv.id}
+                    className="border-b border-row transition-colors hover:bg-card2"
+                  >
+                    <td className="px-3.5 py-3">
+                      <Link href={`/invoices/${inv.id}`} className="block">
+                        <div className="text-[13.5px] font-semibold text-ink">
+                          #{inv.invoiceNumber}
+                        </div>
+                        <div className="mt-0.5 font-mono text-[11px] text-gold">
+                          {inv.referenceNumber ?? "—"}
+                        </div>
+                      </Link>
+                    </td>
+                    <td className="px-3.5 py-3 text-[13.5px] text-text">
+                      <Link
+                        href={`/invoices/${inv.id}`}
+                        className="inline-flex items-center gap-2"
+                      >
+                        {inv.party.name}
+                        <Chip tone="neutral" className="uppercase">
+                          {inv.channel}
+                        </Chip>
+                      </Link>
+                    </td>
+                    <td className="px-3.5 py-3 text-[13px] text-muted">
+                      <Link href={`/invoices/${inv.id}`} className="block">
+                        {dateShort(inv.date)}
+                      </Link>
+                    </td>
+                    <td className="px-3.5 py-3">
+                      <Link href={`/invoices/${inv.id}`} className="block">
+                        <StatusChip status={inv.status} />
+                      </Link>
+                    </td>
+                    <td className="px-3.5 py-3 text-right">
+                      <Link href={`/invoices/${inv.id}`} className="block">
+                        <span
+                          className={`font-mono text-[13px] ${due > 0 ? "text-neg" : "text-muted"}`}
+                        >
+                          {pkr(due)}
+                        </span>
+                      </Link>
+                    </td>
+                    <td className="px-3.5 py-3 text-right">
+                      <Link href={`/invoices/${inv.id}`} className="block">
+                        <span className="font-mono text-[13px] font-semibold text-ink">
+                          {pkr(Number(inv.totalAmount))}
+                        </span>
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
-        </div>
+          <div className="flex justify-between border-t border-hair2 bg-card2 px-3.5 py-2.5 text-xs text-muted">
+            <span>
+              {invoices.length} invoice{invoices.length === 1 ? "" : "s"}
+            </span>
+            <span className="font-mono">outstanding {pkr(outstanding)}</span>
+          </div>
+        </Card>
       )}
     </div>
   );

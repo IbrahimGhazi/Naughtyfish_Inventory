@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PageHeader, BackLink } from "@/components/ui";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
@@ -72,16 +72,16 @@ export default async function EditInvoicePage({
   }));
 
   return (
-    <div className="space-y-4">
+    <div className="animate-rise space-y-4">
       <div>
-        <Link href={`/invoices/${invoice.id}`} className="text-xs text-slate-400 hover:text-cyan-700 dark:text-slate-500 dark:hover:text-cyan-400">
+        <BackLink href={`/invoices/${invoice.id}`}>
           ← Invoice #{invoice.invoiceNumber}
-        </Link>
-        <h1 className="mt-1 text-xl font-semibold">Edit Invoice #{invoice.invoiceNumber}</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Goods arrived short? Adjust the lines below — amounts recompute through the shared billing
-          engine, the invoice number stays the same, and a new versioned delivery record is appended.
-        </p>
+        </BackLink>
+        <PageHeader
+          eyebrow="Sales"
+          title={`Edit invoice #${invoice.invoiceNumber}`}
+          subtitle="Goods arrived short? Adjust the lines below — amounts recompute through the shared billing engine, the invoice number stays the same, and a new versioned delivery record is appended."
+        />
       </div>
       <EditInvoiceForm
         invoiceId={invoice.id}

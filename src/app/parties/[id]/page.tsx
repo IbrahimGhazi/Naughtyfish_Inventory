@@ -5,6 +5,7 @@ import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
 import { buildPartyLedger } from "@/lib/ledger";
 import { pkr, dateShort } from "@/lib/format";
+import { BackLink, Card, Chip, PrimaryButton, Th } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -25,84 +26,117 @@ export default async function PartyLedgerPage({
   const asOfDate = asOf ? new Date(asOf + "T23:59:59") : undefined;
   const ledger = await buildPartyLedger(ctx.entityId, id, asOfDate);
 
+  const meta =
+    [party.partyType, party.subType, party.channel].filter(Boolean).join(" · ") +
+    (party.ntn ? ` · NTN ${party.ntn}` : " · no NTN (local)");
+
   return (
-    <div className="space-y-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <Link href="/parties" className="text-xs text-slate-400 hover:text-cyan-700 dark:text-slate-500 dark:hover:text-cyan-400">← Parties</Link>
-          <h1 className="mt-1 text-xl font-semibold">{party.name}</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {[party.partyType, party.subType, party.channel].filter(Boolean).join(" · ")}
-            {party.ntn ? ` · NTN ${party.ntn}` : " · no NTN (local)"}
-          </p>
+    <div className="animate-rise space-y-4">
+      <div>
+        <BackLink href="/parties">← All parties</BackLink>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-serif text-[28px] font-semibold leading-tight text-ink">
+              {party.name}
+            </h1>
+            <p className="mt-1 text-sm text-muted">{meta}</p>
+          </div>
+          <PrimaryButton href={`/parties/${id}/payment`} data-testid="record-payment">
+            + Record payment
+          </PrimaryButton>
         </div>
-        <Link
-          href={`/parties/${id}/payment`}
-          data-testid="record-payment"
-          className="shrink-0 rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800"
-        >
-          + Record payment
-        </Link>
       </div>
 
-      {/* As-of date filter — plan §4.5 "as of 27 June, who owes me". */}
-      <form className="flex items-end gap-2 text-sm" action={`/parties/${id}`}>
-        <label className="text-xs text-slate-500 dark:text-slate-400">
-          As of date
-          <input type="date" name="asOf" defaultValue={asOf} className="input mt-1" />
-        </label>
-        <button className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">Apply</button>
-        {asOf && <Link href={`/parties/${id}`} className="px-2 py-1.5 text-slate-400 dark:text-slate-500">clear</Link>}
-      </form>
-
-      <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-500 dark:text-slate-400">
-            Net outstanding{asOf ? ` (as of ${dateShort(asOfDate!)})` : ""}
-          </span>
-          <span className={`text-lg font-semibold ${ledger.netOutstanding > 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+      {/* Net outstanding summary + as-of date filter — plan §4.5 "as of 27 June, who owes me". */}
+      <div className="flex flex-wrap items-stretch gap-3.5">
+        <Card className="flex flex-1 items-center justify-between gap-4 p-4">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-faint2">
+              Net outstanding{asOf ? ` (as of ${dateShort(asOfDate!)})` : ""}
+            </div>
+            <div className="mt-1 text-[11.5px] text-muted">
+              opening balance {pkr(ledger.opening)} · positive = party owes us
+            </div>
+          </div>
+          <div
+            className={`font-mono text-2xl font-semibold ${
+              ledger.netOutstanding > 0 ? "text-neg" : "text-pos"
+            }`}
+          >
             {pkr(ledger.netOutstanding)}
-          </span>
-        </div>
-        <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-          Positive = party owes us. Opening balance {pkr(ledger.opening)}.
-        </p>
+          </div>
+        </Card>
+
+        <form className="shrink-0" action={`/parties/${id}`}>
+          <label>
+            <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
+              As of date
+            </div>
+            <div className="flex gap-1.5">
+              <input type="date" name="asOf" defaultValue={asOf} className="input" />
+              <button className="rounded-lg border border-hair bg-card px-3 py-2 text-sm font-semibold text-text transition-colors hover:bg-card2">
+                Apply
+              </button>
+              {asOf && (
+                <Link
+                  href={`/parties/${id}`}
+                  className="inline-flex items-center px-2 text-[12.5px] font-semibold text-muted hover:text-accent-deep"
+                >
+                  clear
+                </Link>
+              )}
+            </div>
+          </label>
+        </form>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase text-slate-400 dark:bg-slate-800/50 dark:text-slate-500">
+      {/* Paper ledger table. */}
+      <Card className="overflow-hidden">
+        <table className="w-full border-collapse">
+          <thead>
             <tr>
-              <th className="px-4 py-2">Date</th>
-              <th className="px-4 py-2">Detail</th>
-              <th className="px-4 py-2 text-right">Debit</th>
-              <th className="px-4 py-2 text-right">Credit</th>
-              <th className="px-4 py-2 text-right">Balance</th>
+              <Th className="w-[90px]">Date</Th>
+              <Th>Detail</Th>
+              <Th align="right">Debit</Th>
+              <Th align="right">Credit</Th>
+              <Th align="right">Balance</Th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+          <tbody>
             {ledger.rows.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400 dark:text-slate-500">No activity.</td></tr>
+              <tr>
+                <td colSpan={5} className="px-3.5 py-6 text-center text-sm text-faint">
+                  No activity.
+                </td>
+              </tr>
             ) : (
               ledger.rows.map((r, i) => (
-                <tr key={i}>
-                  <td className="px-4 py-2 text-slate-500 dark:text-slate-400">{dateShort(r.date)}</td>
-                  <td className="px-4 py-2">
-                    <span className={`mr-2 rounded px-1.5 py-0.5 text-xs ${r.kind === "invoice" ? "bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"}`}>
-                      {r.kind}
-                    </span>
-                    {r.ref}
-                    {r.meta && <span className="ml-1 text-xs text-slate-400 dark:text-slate-500">· {r.meta}</span>}
+                <tr key={i} className="border-b border-row transition-colors hover:bg-card2">
+                  <td className="px-3.5 py-3 font-mono text-[12.5px] text-muted">
+                    {dateShort(r.date)}
                   </td>
-                  <td className="px-4 py-2 text-right">{r.debit ? pkr(r.debit) : ""}</td>
-                  <td className="px-4 py-2 text-right">{r.credit ? pkr(r.credit) : ""}</td>
-                  <td className="px-4 py-2 text-right font-medium">{pkr(r.balance)}</td>
+                  <td className="px-3.5 py-3 text-[13px] text-text">
+                    <Chip tone={r.kind === "invoice" ? "accent" : "pos"} className="mr-2">
+                      {r.kind}
+                    </Chip>
+                    {r.ref}
+                    {r.meta && <span className="ml-1 text-[12px] text-muted">· {r.meta}</span>}
+                  </td>
+                  <td className="px-3.5 py-3 text-right font-mono text-[12.5px] text-neg">
+                    {r.debit ? pkr(r.debit) : ""}
+                  </td>
+                  <td className="px-3.5 py-3 text-right font-mono text-[12.5px] text-pos">
+                    {r.credit ? pkr(r.credit) : ""}
+                  </td>
+                  <td className="px-3.5 py-3 text-right font-mono text-[12.5px] font-semibold text-ink">
+                    {pkr(r.balance)}
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
-      </div>
+      </Card>
     </div>
   );
 }

@@ -34,27 +34,26 @@ export function BalanceEditor({
 
   if (!editing) {
     return (
-      <div className="flex items-center gap-3">
-        <span className="text-lg font-semibold">{pkr(balance)}</span>
-        <button
-          type="button"
-          data-testid={`bank-${id}-edit`}
-          onClick={() => {
-            setValue(String(balance));
-            setEditing(true);
-          }}
-          className="text-xs text-cyan-700 hover:underline dark:text-cyan-400"
-        >
-          Edit
-        </button>
-      </div>
+      <button
+        type="button"
+        data-testid={`bank-${id}-edit`}
+        onClick={() => {
+          setValue(String(balance));
+          setEditing(true);
+        }}
+        title="Click to correct"
+        className="rounded-lg px-1 text-right transition-colors hover:bg-card2"
+      >
+        <div className="font-mono text-[18px] font-semibold text-ink">{pkr(balance)}</div>
+        <div className="mt-0.5 text-[11px] text-faint">click to correct</div>
+      </button>
     );
   }
 
   return (
     <div className="flex items-center gap-2">
       <input
-        className="input max-w-[10rem]"
+        className="input max-w-[10rem] font-mono"
         data-testid={`bank-${id}-balance`}
         inputMode="decimal"
         value={value}
@@ -65,18 +64,19 @@ export function BalanceEditor({
         data-testid={`bank-${id}-save`}
         disabled={isPending}
         onClick={save}
-        className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+        className="rounded-lg px-3 py-1.5 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+        style={{ background: "var(--accent)" }}
       >
         {isPending ? "…" : "Save"}
       </button>
       <button
         type="button"
         onClick={() => setEditing(false)}
-        className="text-xs text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+        className="text-xs text-faint transition-colors hover:text-text"
       >
         Cancel
       </button>
-      {error && <span className="text-xs text-red-600">{error}</span>}
+      {error && <span className="text-xs text-neg">{error}</span>}
     </div>
   );
 }
@@ -127,9 +127,10 @@ export function AddBankForm() {
             onChange={(e) => setEstimatedBalance(e.target.value)} />
         </Field>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-neg">{error}</p>}
       <button onClick={submit} disabled={!canSubmit} data-testid="add-bank-submit"
-        className="rounded-md bg-cyan-700 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40">
+        className="rounded-lg px-4 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+        style={{ background: "var(--accent)" }}>
         {isPending ? "Saving…" : "Add account"}
       </button>
     </div>
@@ -139,7 +140,7 @@ export function AddBankForm() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">{label}</span>
+      <span className="mb-1 block text-xs font-medium text-muted">{label}</span>
       {children}
     </label>
   );

@@ -83,7 +83,7 @@ export default function PaymentForm({
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-2 dark:border-slate-800 dark:bg-slate-900">
+      <div className="grid grid-cols-1 gap-4 rounded-xl border border-hair bg-card p-[18px] sm:grid-cols-2">
         <Field label="Payment type">
           <div className="flex gap-2">
             {(["cash", "transfer", "cheque"] as PayType[]).map((t) => (
@@ -92,11 +92,12 @@ export default function PaymentForm({
                 type="button"
                 data-testid={`type-${t}`}
                 onClick={() => setType(t)}
-                className={`rounded-md border px-3 py-1.5 text-sm capitalize ${
+                className={`rounded-lg border px-3 py-1.5 text-sm font-semibold capitalize transition-colors ${
                   type === t
-                    ? "border-cyan-600 bg-cyan-50 text-cyan-800 dark:border-cyan-500 dark:bg-cyan-950 dark:text-cyan-300"
-                    : "border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300"
+                    ? "border-transparent text-[#F6F2E6]"
+                    : "border-hair bg-card text-text hover:bg-card2"
                 }`}
+                style={type === t ? { background: "var(--accent)" } : undefined}
               >
                 {t}
               </button>
@@ -141,7 +142,7 @@ export default function PaymentForm({
 
       {/* Cash proof flags (the tape: cash recorded "ehtiyaatan") */}
       {type === "cash" && (
-        <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <div className="space-y-3 rounded-xl border border-hair bg-card p-[18px]">
           <Field label="Note (required for cash)" hint="proof / what this cash is">
             <input
               className="input"
@@ -150,7 +151,7 @@ export default function PaymentForm({
               onChange={(e) => setNote(e.target.value)}
             />
           </Field>
-          <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+          <label className="flex items-center gap-2 text-sm text-text">
             <input
               type="checkbox"
               data-testid="precautionary"
@@ -159,7 +160,7 @@ export default function PaymentForm({
             />
             Precautionary cash (recorded as proof)
           </label>
-          <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+          <label className="flex items-center gap-2 text-sm text-text">
             <input
               type="checkbox"
               data-testid="promise"
@@ -173,7 +174,7 @@ export default function PaymentForm({
 
       {/* Note for non-cash types (optional) */}
       {type !== "cash" && (
-        <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <div className="rounded-xl border border-hair bg-card p-[18px]">
           <Field label="Note (optional)">
             <input
               className="input"
@@ -187,7 +188,7 @@ export default function PaymentForm({
 
       {/* Cheque fields */}
       {type === "cheque" && (
-        <div className="grid grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-2 dark:border-slate-800 dark:bg-slate-900">
+        <div className="grid grid-cols-1 gap-4 rounded-xl border border-hair bg-card p-[18px] sm:grid-cols-2">
           <Field label="Cheque number">
             <input
               className="input"
@@ -232,13 +233,14 @@ export default function PaymentForm({
         </div>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-neg">{error}</p>}
 
       <button
         onClick={submit}
         disabled={!canSubmit}
         data-testid="submit-payment"
-        className="rounded-md bg-cyan-700 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+        className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+        style={{ background: "var(--accent)" }}
       >
         {isPending ? "Recording…" : "Record payment"}
       </button>
@@ -249,9 +251,9 @@ export default function PaymentForm({
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+      <span className="mb-1 block text-xs font-medium text-faint2">
         {label}
-        {hint && <span className="ml-1 font-normal text-slate-400 dark:text-slate-500">· {hint}</span>}
+        {hint && <span className="ml-1 font-normal text-faint">· {hint}</span>}
       </span>
       {children}
     </label>

@@ -76,16 +76,16 @@ export function BarChart({ data }: { data: BarDatum[] }) {
                 x2={W - padR}
                 y1={y}
                 y2={y}
-                stroke="#f1f5f9"
-                className="stroke-slate-100 dark:stroke-slate-800"
+                stroke="#e7dfc9"
+                className="stroke-[var(--hair-2)]"
                 strokeWidth={1}
               />
               <text
                 x={padL - 8}
                 y={y + 3}
                 textAnchor="end"
-                fill="#94a3b8"
-                className="fill-slate-400 dark:fill-slate-500"
+                fill="#98937e"
+                className="fill-[var(--faint)] font-mono"
                 fontSize={10}
               >
                 {compact(v)}
@@ -109,8 +109,8 @@ export function BarChart({ data }: { data: BarDatum[] }) {
                 width={barW}
                 height={padT + plotH - revY}
                 rx={2}
-                fill="#0891b2"
-                className="fill-cyan-600 dark:fill-cyan-500"
+                fill="#0e7c7b"
+                className="fill-[var(--accent)]"
               />
               <rect
                 x={expX}
@@ -118,15 +118,15 @@ export function BarChart({ data }: { data: BarDatum[] }) {
                 width={barW}
                 height={padT + plotH - expY}
                 rx={2}
-                fill="#fbbf24"
-                className="fill-amber-400 dark:fill-amber-500"
+                fill="#d9b98a"
+                className="fill-[#D9B98A]"
               />
               <text
                 x={padL + slot * i + slot / 2}
                 y={H - padB + 16}
                 textAnchor="middle"
-                fill="#64748b"
-                className="fill-slate-500 dark:fill-slate-400"
+                fill="#7a8578"
+                className="fill-[var(--faint)] font-mono"
                 fontSize={11}
               >
                 {d.label}
@@ -143,16 +143,16 @@ export function BarChart({ data }: { data: BarDatum[] }) {
               x2={W - padR}
               y1={zeroY}
               y2={zeroY}
-              stroke="#cbd5e1"
-              className="stroke-slate-300 dark:stroke-slate-600"
+              stroke="#e4dbc5"
+              className="stroke-[var(--hair)]"
               strokeWidth={1}
               strokeDasharray="2 3"
             />
             <path
               d={linePath}
               fill="none"
-              stroke="#059669"
-              className="stroke-emerald-600 dark:stroke-emerald-400"
+              stroke="#337a54"
+              className="stroke-[var(--pos)]"
               strokeWidth={2}
               strokeLinejoin="round"
             />
@@ -162,22 +162,16 @@ export function BarChart({ data }: { data: BarDatum[] }) {
                   cx={p.cx}
                   cy={p.cy}
                   r={3.5}
-                  fill={p.profit < 0 ? "#ef4444" : "#059669"}
-                  className={
-                    p.profit < 0
-                      ? "fill-red-500 dark:fill-red-400"
-                      : "fill-emerald-600 dark:fill-emerald-400"
-                  }
+                  fill={p.profit < 0 ? "#c2492f" : "#337a54"}
+                  className={p.profit < 0 ? "fill-[var(--neg)]" : "fill-[var(--pos)]"}
                 />
                 <text
                   x={p.cx}
                   y={p.cy - 8}
                   textAnchor="middle"
-                  fill={p.profit < 0 ? "#dc2626" : "#047857"}
+                  fill={p.profit < 0 ? "#c2492f" : "#337a54"}
                   className={
-                    p.profit < 0
-                      ? "fill-red-600 dark:fill-red-400"
-                      : "fill-emerald-700 dark:fill-emerald-300"
+                    p.profit < 0 ? "fill-[var(--neg)] font-mono" : "fill-[var(--pos)] font-mono"
                   }
                   fontSize={10}
                   fontWeight={600}
@@ -191,11 +185,11 @@ export function BarChart({ data }: { data: BarDatum[] }) {
       </svg>
 
       {/* Legend. */}
-      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
-        <LegendSwatch className="bg-cyan-600 dark:bg-cyan-500" label="Revenue" />
-        <LegendSwatch className="bg-amber-400 dark:bg-amber-500" label="Expenses" />
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-faint">
+        <LegendSwatch className="bg-[var(--accent)]" label="Revenue" />
+        <LegendSwatch className="bg-[#D9B98A]" label="Expenses" />
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-0.5 w-4 rounded bg-emerald-600 dark:bg-emerald-400" />
+          <span className="inline-block h-0.5 w-4 rounded bg-[var(--pos)]" />
           Profit
         </span>
       </div>

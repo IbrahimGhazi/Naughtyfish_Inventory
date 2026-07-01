@@ -14,20 +14,16 @@ export function Field({
 }) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+      <span className="mb-1 block text-xs font-medium text-muted">
         {label}
-        {hint && (
-          <span className="ml-1 font-normal text-slate-400 dark:text-slate-500">
-            · {hint}
-          </span>
-        )}
+        {hint && <span className="ml-1 font-normal text-faint">· {hint}</span>}
       </span>
       {children}
     </label>
   );
 }
 
-/** Dark-aware card surface used for every settings section. */
+/** Paper card surface used for every settings section. */
 export function Card({
   children,
   className = "",
@@ -37,7 +33,7 @@ export function Card({
 }) {
   return (
     <section
-      className={`rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 ${className}`}
+      className={`rounded-xl border border-hair bg-card p-[18px] ${className}`}
     >
       {children}
     </section>
@@ -66,13 +62,13 @@ export function EditToggle({
           type="button"
           data-testid={`${testId}-edit`}
           onClick={() => setOpen((o) => !o)}
-          className="shrink-0 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+          className="shrink-0 rounded-lg border border-hair bg-card px-2.5 py-1 text-xs font-medium text-text transition-colors hover:bg-card2"
         >
           {open ? "Close" : "Edit"}
         </button>
       </div>
       {open && (
-        <div className="mt-3 rounded-md border border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/40">
+        <div className="mt-3 rounded-lg border border-hair2 bg-card2 p-3">
           {children(() => setOpen(false))}
         </div>
       )}
@@ -98,7 +94,8 @@ export function PrimaryButton({
       onClick={onClick}
       disabled={disabled}
       data-testid={testId}
-      className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+      className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+      style={{ background: "var(--accent)" }}
     >
       {children}
     </button>

@@ -45,3 +45,6 @@ prisma/dev.db*
 *.db
 *.db-journal
 /backups/
+
+# design handoff bundles
+*handoff*.zip

@@ -176,12 +176,13 @@ export function AddUserForm() {
           onClick={submit}
           disabled={!canSubmit}
           data-testid="user-add-submit"
-          className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          style={{ background: "var(--accent)" }}
         >
           {isPending ? "Adding…" : "+ Add user"}
         </button>
-        {ok && <span className="text-xs text-emerald-600 dark:text-emerald-400">✓ Saved.</span>}
-        {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+        {ok && <span className="text-xs font-medium text-pos">✓ Saved.</span>}
+        {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>
   );
@@ -239,11 +240,12 @@ function EditUserForm({ user, onDone }: { user: UserRow; onDone: () => void }) {
           onClick={submit}
           disabled={!canSubmit}
           data-testid={`user-edit-save-${user.id}`}
-          className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          style={{ background: "var(--accent)" }}
         >
           {isPending ? "Saving…" : "Save"}
         </button>
-        {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+        {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>
   );
@@ -251,27 +253,21 @@ function EditUserForm({ user, onDone }: { user: UserRow; onDone: () => void }) {
 
 export function UserList({ users }: { users: UserRow[] }) {
   if (users.length === 0) {
-    return (
-      <p className="text-sm text-slate-400 dark:text-slate-500">
-        No users yet — add one below.
-      </p>
-    );
+    return <p className="text-sm text-faint">No users yet — add one below.</p>;
   }
   return (
-    <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+    <ul className="divide-y divide-row">
       {users.map((u) => (
         <li key={u.id} data-testid={`user-row-${u.id}`}>
           <EditToggle
             testId={`user-${u.id}`}
             summary={
               <div>
-                <div className="font-medium">
+                <div className="font-medium text-ink">
                   {u.name}{" "}
-                  <span className="font-normal text-slate-400 dark:text-slate-500">
-                    @{u.loginId}
-                  </span>
+                  <span className="font-normal text-faint">@{u.loginId}</span>
                 </div>
-                <div className="text-xs text-slate-400 dark:text-slate-500">
+                <div className="text-xs text-faint">
                   {[u.role, `access ${u.entityAccess}`, `region ${u.regionScope}`].join(
                     " · ",
                   )}

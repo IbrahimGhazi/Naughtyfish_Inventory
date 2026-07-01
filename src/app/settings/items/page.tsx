@@ -3,6 +3,7 @@ import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
 import BackLink from "../BackLink";
 import { Card } from "../ui";
+import { PageHeader } from "@/components/ui";
 import { AddItemForm, ItemList, type ItemRow } from "./ItemControls";
 
 export const dynamic = "force-dynamic";
@@ -28,31 +29,36 @@ export default async function ItemsSettingsPage() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-[1000px] animate-rise px-8 pb-14 pt-7">
       <BackLink />
-      <div>
-        <h1 className="text-xl font-semibold">Items / products</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Fish-fillet and prawn products. Fixed rates and default glazing % are{" "}
-          <span className="font-medium">owner-confirmable</span> — leave them
-          blank until confirmed. Items are deactivated, not deleted (they appear
-          in invoice history).
-        </p>
+      <PageHeader
+        eyebrow="Admin"
+        title="Items / products"
+        subtitle={
+          <>
+            Fish-fillet and prawn products. Fixed rates and default glazing % are{" "}
+            <span className="font-medium text-text">owner-confirmable</span> — leave them
+            blank until confirmed. Items are deactivated, not deleted (they appear
+            in invoice history).
+          </>
+        }
+      />
+
+      <div className="space-y-4">
+        <Card>
+          <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">
+            Existing items
+          </h2>
+          <ItemList items={rows} />
+        </Card>
+
+        <Card>
+          <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">
+            Add item
+          </h2>
+          <AddItemForm />
+        </Card>
       </div>
-
-      <Card>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
-          Existing items
-        </h2>
-        <ItemList items={rows} />
-      </Card>
-
-      <Card>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
-          Add item
-        </h2>
-        <AddItemForm />
-      </Card>
     </div>
   );
 }

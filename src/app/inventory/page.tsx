@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { entityScope, storeScope } from "@/lib/scope";
 import { kg } from "@/lib/format";
+import { Card, Chip, PageHeader, Th } from "@/components/ui";
 import StockAdjustForm, { type AdjFormStore, type AdjFormItem } from "./StockAdjustForm";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,12 @@ export default async function InventoryPage() {
     0,
   );
 
+  // Largest single line (by total kg) → the "Level" mini-bar is filled relative to it.
+  const maxLineKg = Math.max(
+    1,
+    ...stores.flatMap((s) => s.inventoryLines.map((l) => Number(l.totalKg))),
+  );
+
   const formStores: AdjFormStore[] = stores.map((s) => ({ id: s.id, name: s.name }));
   const formItems: AdjFormItem[] = items.map((i) => ({
     id: i.id,
@@ -45,25 +52,30 @@ export default async function InventoryPage() {
   }));
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-semibold">Inventory</h1>
+    <div className="animate-rise space-y-5">
+      <PageHeader eyebrow="Operations" title="Inventory" />
 
       {/* Grand-total banner across visible stores. */}
       <div
         data-testid="inv-grand-total"
-        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-cyan-200 bg-cyan-50 p-4 dark:border-cyan-900 dark:bg-cyan-950"
+        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-hair px-4 py-3"
+        style={{ background: "var(--warn-bg)", color: "var(--warn)" }}
       >
-        <span className="text-sm font-medium text-cyan-800 dark:text-cyan-300">
+        <span className="flex items-center gap-2 text-[12.5px] font-semibold">
+          <span
+            className="h-2 w-2 shrink-0 rounded-full"
+            style={{ background: "var(--warn)" }}
+          />
           Grand total · {stores.length} store{stores.length === 1 ? "" : "s"}
         </span>
-        <span className="text-sm text-cyan-800 dark:text-cyan-300">
-          <span className="font-semibold">{grandTotalCartons}</span> cartons ·{" "}
-          <span className="font-semibold">{kg(grandTotalKg)}</span>
+        <span className="text-[12.5px]">
+          <span className="font-mono font-semibold">{grandTotalCartons}</span> cartons ·{" "}
+          <span className="font-mono font-semibold">{kg(grandTotalKg)}</span>
         </span>
       </div>
 
       {stores.length === 0 ? (
-        <p className="text-sm text-slate-400 dark:text-slate-500">No stores in your scope.</p>
+        <p className="text-sm text-faint">No stores in your scope.</p>
       ) : (
         stores.map((store) => {
           const storeKg = store.inventoryLines.reduce((t, l) => t + Number(l.totalKg), 0);
@@ -73,61 +85,116 @@ export default async function InventoryPage() {
             <section
               key={store.id}
               data-testid={`inv-store-${store.id}`}
-              className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+              className="overflow-hidden rounded-xl border border-hair bg-card"
             >
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              <div className="flex items-center justify-between border-b border-hair2 bg-card2 px-4 py-3.5">
+                <h2 className="font-serif text-[16px] font-semibold text-ink">
                   {store.name}
-                  {store.city ? <span className="ml-1 font-normal text-slate-400 dark:text-slate-500">· {store.city}</span> : null}
+                  {store.city ? (
+                    <span className="ml-1.5 font-sans text-[12.5px] font-normal text-muted">
+                      · {store.city}
+                    </span>
+                  ) : null}
                 </h2>
-                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs uppercase text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                <Chip tone="neutral" className="uppercase">
                   {store.ownershipType}
-                </span>
+                </Chip>
               </div>
 
               {store.inventoryLines.length === 0 ? (
-                <p className="text-sm text-slate-400 dark:text-slate-500">No stock recorded.</p>
+                <p className="px-4 py-6 text-sm text-faint">No stock recorded.</p>
               ) : (
-                <div className="overflow-hidden rounded-md border border-slate-200 dark:border-slate-800">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-50 text-left text-xs uppercase text-slate-400 dark:bg-slate-800/50 dark:text-slate-500">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
                       <tr>
-                        <th className="px-3 py-2">Item</th>
-                        <th className="px-3 py-2 text-right">Cartons</th>
-                        <th className="px-3 py-2 text-right">Packets</th>
-                        <th className="px-3 py-2 text-right">Kg / carton</th>
-                        <th className="px-3 py-2 text-right">Total kg</th>
+                        <Th>Item</Th>
+                        <Th className="w-[240px]">Level</Th>
+                        <Th align="right">Cartons</Th>
+                        <Th align="right">Packets</Th>
+                        <Th align="right">Kg / carton</Th>
+                        <Th align="right">Net weight</Th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {store.inventoryLines.map((line) => (
-                        <tr key={line.id}>
-                          <td className="px-3 py-2">
-                            {line.item.name}
-                            {line.item.isPrawn ? " 🦐" : ""}
-                          </td>
-                          <td className={`px-3 py-2 text-right ${line.cartonCount < 0 ? "text-red-600 dark:text-red-400" : ""}`}>
-                            {line.cartonCount}
-                          </td>
-                          <td className={`px-3 py-2 text-right ${line.packetCount < 0 ? "text-red-600 dark:text-red-400" : ""}`}>
-                            {line.packetCount}
-                          </td>
-                          <td className="px-3 py-2 text-right text-slate-500 dark:text-slate-400">
-                            {kg(Number(line.kgPerCarton))}
-                          </td>
-                          <td className={`px-3 py-2 text-right font-medium ${Number(line.totalKg) < 0 ? "text-red-600 dark:text-red-400" : ""}`}>
-                            {kg(Number(line.totalKg))}
-                          </td>
-                        </tr>
-                      ))}
+                    <tbody>
+                      {store.inventoryLines.map((line) => {
+                        const lineKg = Number(line.totalKg);
+                        const pctFill = Math.max(
+                          0,
+                          Math.min(100, (lineKg / maxLineKg) * 100),
+                        );
+                        return (
+                          <tr key={line.id} className="border-b border-row hover:bg-card2">
+                            <td className="px-3.5 py-3 text-[13px] font-semibold text-text">
+                              {line.item.name}
+                              {line.item.isPrawn ? " 🦐" : ""}
+                            </td>
+                            <td className="px-3.5 py-3">
+                              <div className="h-1.5 overflow-hidden rounded-full bg-row">
+                                <div
+                                  className="h-full rounded-full"
+                                  style={{
+                                    width: `${pctFill}%`,
+                                    background:
+                                      lineKg < 0 ? "var(--neg)" : "var(--accent)",
+                                  }}
+                                />
+                              </div>
+                            </td>
+                            <td
+                              className={`px-3.5 py-3 text-right font-mono text-[13px] ${
+                                line.cartonCount < 0 ? "text-neg" : "text-text"
+                              }`}
+                            >
+                              {line.cartonCount}
+                            </td>
+                            <td
+                              className={`px-3.5 py-3 text-right font-mono text-[13px] ${
+                                line.packetCount < 0 ? "text-neg" : "text-text"
+                              }`}
+                            >
+                              {line.packetCount}
+                            </td>
+                            <td className="px-3.5 py-3 text-right font-mono text-[13px] text-muted">
+                              {kg(Number(line.kgPerCarton))}
+                            </td>
+                            <td
+                              className={`px-3.5 py-3 text-right font-mono text-[13px] font-semibold ${
+                                lineKg < 0 ? "text-neg" : "text-text"
+                              }`}
+                            >
+                              {kg(lineKg)}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
-                    <tfoot className="border-t border-slate-200 bg-slate-50 text-sm font-semibold dark:border-slate-800 dark:bg-slate-800/50">
-                      <tr>
-                        <td className="px-3 py-2">Store total</td>
-                        <td className={`px-3 py-2 text-right ${storeCartons < 0 ? "text-red-600 dark:text-red-400" : ""}`}>{storeCartons}</td>
-                        <td className={`px-3 py-2 text-right ${storePackets < 0 ? "text-red-600 dark:text-red-400" : ""}`}>{storePackets}</td>
-                        <td className="px-3 py-2 text-right text-slate-400 dark:text-slate-500">—</td>
-                        <td className={`px-3 py-2 text-right ${storeKg < 0 ? "text-red-600 dark:text-red-400" : ""}`}>{kg(storeKg)}</td>
+                    <tfoot>
+                      <tr className="border-t border-hair2 bg-card2 text-[13px] font-semibold">
+                        <td className="px-3.5 py-3 text-text">Store total</td>
+                        <td className="px-3.5 py-3" />
+                        <td
+                          className={`px-3.5 py-3 text-right font-mono ${
+                            storeCartons < 0 ? "text-neg" : "text-text"
+                          }`}
+                        >
+                          {storeCartons}
+                        </td>
+                        <td
+                          className={`px-3.5 py-3 text-right font-mono ${
+                            storePackets < 0 ? "text-neg" : "text-text"
+                          }`}
+                        >
+                          {storePackets}
+                        </td>
+                        <td className="px-3.5 py-3 text-right font-mono text-faint">—</td>
+                        <td
+                          className={`px-3.5 py-3 text-right font-mono ${
+                            storeKg < 0 ? "text-neg" : "text-text"
+                          }`}
+                        >
+                          {kg(storeKg)}
+                        </td>
                       </tr>
                     </tfoot>
                   </table>
@@ -139,14 +206,16 @@ export default async function InventoryPage() {
       )}
 
       {/* Receive / adjust stock. */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="mb-1 text-sm font-semibold text-slate-700 dark:text-slate-200">Receive / adjust stock</h2>
-        <p className="mb-3 text-xs text-slate-400 dark:text-slate-500">
+      <Card className="p-[18px]">
+        <h2 className="mb-1 font-serif text-[17px] font-semibold text-ink">
+          Receive / adjust stock
+        </h2>
+        <p className="mb-3 text-[12.5px] text-muted">
           Adds to the store&apos;s on-hand and records a stock movement. Negative values are
           allowed for real-world corrections.
         </p>
         <StockAdjustForm stores={formStores} items={formItems} />
-      </section>
+      </Card>
     </div>
   );
 }

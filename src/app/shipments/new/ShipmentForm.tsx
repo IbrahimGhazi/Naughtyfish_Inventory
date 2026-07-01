@@ -140,8 +140,8 @@ export default function ShipmentForm({
   return (
     <div className="space-y-5">
       {/* Origin */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Origin</h2>
+      <section className="rounded-xl border border-hair bg-card p-[18px]">
+        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">Origin</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Field label="From store" hint="auto-fills name & city">
             <select
@@ -185,8 +185,8 @@ export default function ShipmentForm({
       </section>
 
       {/* Destination */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Destination</h2>
+      <section className="rounded-xl border border-hair bg-card p-[18px]">
+        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">Destination</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Destination name" hint="optional">
             <input
@@ -215,8 +215,8 @@ export default function ShipmentForm({
       </section>
 
       {/* Schedule */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Schedule</h2>
+      <section className="rounded-xl border border-hair bg-card p-[18px]">
+        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">Schedule</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Departure">
             <div className="flex items-center gap-2">
@@ -231,7 +231,7 @@ export default function ShipmentForm({
                 type="button"
                 onClick={setDepartureNow}
                 data-testid="ship-departure-now"
-                className="shrink-0 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                className="shrink-0 rounded-lg border border-hair px-2.5 py-1.5 text-xs font-semibold text-muted transition-colors hover:bg-card2"
               >
                 Now
               </button>
@@ -253,7 +253,7 @@ export default function ShipmentForm({
                     type="button"
                     onClick={() => applyEtaPreset(p.ms)}
                     data-testid={`ship-eta-preset-${p.label.replace(/\s+/g, "")}`}
-                    className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                    className="rounded-lg border border-hair px-2 py-1 text-xs font-semibold text-muted transition-colors hover:bg-card2"
                   >
                     {p.label}
                   </button>
@@ -265,8 +265,8 @@ export default function ShipmentForm({
       </section>
 
       {/* Details */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Details</h2>
+      <section className="rounded-xl border border-hair bg-card p-[18px]">
+        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">Details</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Reference" hint="optional label">
             <input
@@ -351,11 +351,12 @@ export default function ShipmentForm({
           onClick={submit}
           disabled={!canSubmit}
           data-testid="ship-submit"
-          className="rounded-md bg-cyan-700 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+          className="rounded-lg px-4 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          style={{ background: "var(--accent)" }}
         >
           {isPending ? "Creating…" : "Create shipment"}
         </button>
-        {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+        {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>
   );
@@ -372,9 +373,9 @@ function Field({
 }) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+      <span className="mb-1 block text-xs font-medium text-muted">
         {label}
-        {hint && <span className="ml-1 font-normal text-slate-400 dark:text-slate-500">· {hint}</span>}
+        {hint && <span className="ml-1 font-normal text-faint">· {hint}</span>}
       </span>
       {children}
     </label>

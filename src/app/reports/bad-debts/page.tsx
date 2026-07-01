@@ -4,6 +4,7 @@ import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
 import { pkr, dateShort } from "@/lib/format";
 import { BAD_DEBT_SUBCATEGORIES } from "@/lib/enums";
+import { BackLink, Card, Chip, Th } from "@/components/ui";
 import {
   totalBadDebts,
   type BadDebtRow,
@@ -31,20 +32,12 @@ function normalizeFilter(raw?: string): Filter {
   return "all";
 }
 
-/** Sub-category chip — red pair for bad_debt, amber pair for dispute. */
+/** Sub-category chip — warn tone for dispute, neg tone for bad_debt. */
 function SubCategoryChip({ sub }: { sub: BadDebtSubCategory }) {
   if (sub === "dispute") {
-    return (
-      <span className="rounded px-1.5 py-0.5 text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-        Dispute
-      </span>
-    );
+    return <Chip tone="warn">Dispute</Chip>;
   }
-  return (
-    <span className="rounded px-1.5 py-0.5 text-xs font-medium bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300">
-      Bad debt
-    </span>
-  );
+  return <Chip tone="neg">Bad debt</Chip>;
 }
 
 export default async function BadDebtsPage({
@@ -114,37 +107,39 @@ export default async function BadDebtsPage({
   }));
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <Link
-            href="/reports"
-            className="text-xs text-slate-400 hover:text-cyan-700 dark:text-slate-500 dark:hover:text-cyan-400"
-          >
-            ← Reports
-          </Link>
-          <h1 className="mt-1 text-xl font-semibold">Bad debts &amp; disputes</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Write-offs and disputed amounts for {ctx.entityName} — link a party/invoice for dispute defense.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/reports/bad-debts/print"
-            data-testid="bd-print-link"
-            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            Print summary
-          </Link>
-          <AddBadDebtForm parties={formParties} invoices={formInvoices} />
+    <div className="animate-rise space-y-5">
+      <div>
+        <BackLink href="/reports">← Reports</BackLink>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
+              Insight
+            </div>
+            <h1 className="mt-0.5 font-serif text-[28px] font-semibold leading-tight text-ink">
+              Bad debts &amp; disputes
+            </h1>
+            <p className="mt-1 text-sm text-muted">
+              Write-offs and disputed amounts for {ctx.entityName} — link a party/invoice for dispute defense.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/reports/bad-debts/print"
+              data-testid="bd-print-link"
+              className="rounded-lg border border-hair bg-card px-3.5 py-2 text-sm font-semibold text-text transition-colors hover:bg-card2"
+            >
+              Print summary
+            </Link>
+            <AddBadDebtForm parties={formParties} invoices={formInvoices} />
+          </div>
         </div>
       </div>
 
       {/* Summary cards for the active filter/book. */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <SummaryCard label="Bad debts" value={totals.badDebt} tone="red" testid="bd-total-bad_debt" />
-        <SummaryCard label="Disputed" value={totals.dispute} tone="amber" testid="bd-total-dispute" />
-        <SummaryCard label="Grand total" value={totals.grand} tone="slate" testid="bd-total-grand" />
+        <SummaryCard label="Bad debts" value={totals.badDebt} tone="neg" testid="bd-total-bad_debt" />
+        <SummaryCard label="Disputed" value={totals.dispute} tone="warn" testid="bd-total-dispute" />
+        <SummaryCard label="Grand total" value={totals.grand} tone="ink" testid="bd-total-grand" />
       </div>
 
       {/* Filter tabs. */}
@@ -157,11 +152,12 @@ export default async function BadDebtsPage({
               key={t.key}
               href={href}
               data-testid={`bd-tab-${t.key}`}
-              className={`rounded-full px-3 py-1 ${
+              className={`rounded-full px-3 py-1 font-semibold transition-colors ${
                 active
-                  ? "bg-cyan-700 text-white"
-                  : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                  ? "text-[#F6F2E6]"
+                  : "border border-hair bg-card text-muted hover:bg-card2"
               }`}
+              style={active ? { background: "var(--accent)" } : undefined}
             >
               {t.label}
             </Link>
@@ -170,60 +166,61 @@ export default async function BadDebtsPage({
       </div>
 
       {/* Ledger table. */}
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase text-slate-400 dark:bg-slate-800/50 dark:text-slate-500">
+      <Card className="overflow-hidden">
+        <table className="w-full border-collapse">
+          <thead>
             <tr>
-              <th className="px-4 py-2">Date</th>
-              <th className="px-4 py-2">Party / person</th>
-              <th className="px-4 py-2">Invoice</th>
-              <th className="px-4 py-2">Type</th>
-              <th className="px-4 py-2 text-right">Amount</th>
-              <th className="px-4 py-2">Note</th>
-              <th className="px-4 py-2 text-right">Actions</th>
+              <Th>Date</Th>
+              <Th>Party / person</Th>
+              <Th>Invoice</Th>
+              <Th>Type</Th>
+              <Th align="right">Amount</Th>
+              <Th>Note</Th>
+              <Th align="right">Actions</Th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+          <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-slate-400 dark:text-slate-500">
+                <td colSpan={7} className="px-3.5 py-6 text-center text-sm text-faint">
                   No entries{filter !== "all" ? " for this filter" : ""}.
                 </td>
               </tr>
             ) : (
               rows.map((r) => (
-                <tr key={r.id}>
-                  <td className="px-4 py-2 text-slate-500 dark:text-slate-400">{dateShort(r.date)}</td>
-                  <td className="px-4 py-2">
+                <tr key={r.id} className="border-b border-row transition-colors hover:bg-card2">
+                  <td className="px-3.5 py-3 font-mono text-[12.5px] text-muted">
+                    {dateShort(r.date)}
+                  </td>
+                  <td className="px-3.5 py-3 text-[13px] text-text">
                     {r.partyId ? (
-                      <Link
-                        href={`/parties/${r.partyId}`}
-                        className="text-cyan-700 hover:underline dark:text-cyan-400"
-                      >
+                      <Link href={`/parties/${r.partyId}`} className="text-accent-deep hover:underline">
                         {r.partyName}
                       </Link>
                     ) : (
                       <span>{r.personName}</span>
                     )}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-3.5 py-3">
                     {r.invoiceId ? (
                       <Link
                         href={`/invoices/${r.invoiceId}`}
-                        className="font-mono text-cyan-700 hover:underline dark:text-cyan-400"
+                        className="font-mono text-[12.5px] text-accent-deep hover:underline"
                       >
                         #{r.invoiceNumber}
                       </Link>
                     ) : (
-                      <span className="text-slate-400 dark:text-slate-500">—</span>
+                      <span className="text-faint">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-3.5 py-3">
                     <SubCategoryChip sub={r.subCategory} />
                   </td>
-                  <td className="px-4 py-2 text-right font-medium">{pkr(r.amount)}</td>
-                  <td className="px-4 py-2 text-slate-500 dark:text-slate-400">{r.note ?? "—"}</td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-3.5 py-3 text-right font-mono text-[12.5px] font-semibold text-text">
+                    {pkr(r.amount)}
+                  </td>
+                  <td className="px-3.5 py-3 text-[13px] text-muted">{r.note ?? "—"}</td>
+                  <td className="px-3.5 py-3 text-right">
                     <DeleteBadDebtButton id={r.id} />
                   </td>
                 </tr>
@@ -231,7 +228,7 @@ export default async function BadDebtsPage({
             )}
           </tbody>
         </table>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -244,21 +241,17 @@ function SummaryCard({
 }: {
   label: string;
   value: number;
-  tone: "red" | "amber" | "slate";
+  tone: "neg" | "warn" | "ink";
   testid: string;
 }) {
   const valueTone =
-    tone === "red"
-      ? "text-red-600 dark:text-red-400"
-      : tone === "amber"
-        ? "text-amber-600 dark:text-amber-400"
-        : "text-slate-800 dark:text-slate-100";
+    tone === "neg" ? "text-neg" : tone === "warn" ? "text-warn" : "text-ink";
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <div className="text-xs uppercase text-slate-400 dark:text-slate-500">{label}</div>
-      <div className={`mt-1 text-lg font-semibold ${valueTone}`} data-testid={testid}>
+    <Card className="p-4">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-faint2">{label}</div>
+      <div className={`mt-2 font-mono text-2xl font-semibold ${valueTone}`} data-testid={testid}>
         {pkr(value)}
       </div>
-    </div>
+    </Card>
   );
 }

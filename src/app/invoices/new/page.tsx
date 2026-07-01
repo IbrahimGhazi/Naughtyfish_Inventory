@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { entityScope, storeScope } from "@/lib/scope";
 import InvoiceForm, { type FormItem, type FormParty, type FormStore } from "./InvoiceForm";
+import { PageHeader, BackLink } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -43,13 +44,22 @@ export default async function NewInvoicePage() {
   const regions = series.map((s) => s.bookRegion);
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-semibold">New Invoice / Delivery</h1>
-      <p className="text-sm text-slate-500 dark:text-slate-400">
-        North (frozen) bills on <strong>net</strong> weight after glazing; enter gross + the
-        buyer&apos;s final weight and the % is derived. Local (Karachi, fresh) has no glazing.
-        Every amount is recomputed on the server through the shared billing engine.
-      </p>
+    <div className="animate-rise space-y-4">
+      <div>
+        <BackLink href="/invoices">← All invoices</BackLink>
+        <PageHeader
+          eyebrow="Sales"
+          title="New invoice"
+          subtitle={
+            <>
+              North (frozen) bills on <strong>net</strong> weight after glazing;
+              enter gross + the buyer&apos;s final weight and the % is derived.
+              Local (Karachi, fresh) has no glazing. Every amount is recomputed on
+              the server through the shared billing engine.
+            </>
+          }
+        />
+      </div>
       <InvoiceForm
         parties={formParties}
         items={formItems}

@@ -53,9 +53,9 @@ export function Donut({
           cy={cy}
           r={r}
           fill="none"
-          stroke="#f1f5f9"
+          stroke="#faf6ea"
           strokeWidth={stroke}
-          className="stroke-slate-100 dark:stroke-slate-800"
+          className="stroke-[var(--card-2)]"
         />
 
         {total > 0 &&
@@ -65,8 +65,8 @@ export function Donut({
           x={cx}
           y={cy - 4}
           textAnchor="middle"
-          fill="#0f172a"
-          className="fill-slate-900 dark:fill-slate-100"
+          fill="#16262e"
+          className="fill-[var(--ink)] font-mono"
           fontSize={22}
           fontWeight={700}
         >
@@ -77,8 +77,8 @@ export function Donut({
             x={cx}
             y={cy + 16}
             textAnchor="middle"
-            fill="#94a3b8"
-            className="fill-slate-400 dark:fill-slate-500"
+            fill="#98937e"
+            className="fill-[var(--faint)]"
             fontSize={11}
           >
             {centerLabel}
@@ -88,17 +88,17 @@ export function Donut({
 
       <ul className="min-w-0 flex-1 space-y-1.5 text-sm">
         {total === 0 ? (
-          <li className="text-slate-400 dark:text-slate-500">{emptyLabel}</li>
+          <li className="text-faint">{emptyLabel}</li>
         ) : (
           slices.map((s) => (
             <li key={s.label} className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+              <span className="flex items-center gap-2 text-text">
                 <span className={`inline-block h-2.5 w-2.5 rounded-sm ${s.swatch}`} />
                 {s.label}
               </span>
-              <span className="tabular-nums text-slate-500 dark:text-slate-400">
+              <span className="font-mono tabular-nums text-muted">
                 {s.value}
-                <span className="ml-1 text-xs text-slate-400 dark:text-slate-500">
+                <span className="ml-1 text-xs text-faint">
                   {total > 0 ? `${Math.round((s.value / total) * 100)}%` : ""}
                 </span>
               </span>

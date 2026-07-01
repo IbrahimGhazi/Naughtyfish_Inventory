@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { entityScope, storeScope } from "@/lib/scope";
 import { CITY_NAMES } from "@/lib/geo";
+import { BackLink, PageHeader } from "@/components/ui";
 import ShipmentForm, {
   type FormStore,
   type FormParty,
@@ -42,12 +43,20 @@ export default async function NewShipmentPage() {
   }));
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-semibold">New shipment</h1>
-      <p className="text-sm text-slate-500 dark:text-slate-400">
-        Track a parcel from an origin to a destination city. Cities feed the
-        dashboard map; departure and ETA drive the “in&nbsp;2&nbsp;days / overdue” hints.
-      </p>
+    <div className="animate-rise space-y-5">
+      <div>
+        <BackLink href="/shipments">← Shipments</BackLink>
+        <PageHeader
+          eyebrow="Operations"
+          title="New shipment"
+          subtitle={
+            <>
+              Track a parcel from an origin to a destination city. Cities feed the
+              dashboard map; departure and ETA drive the “in&nbsp;2&nbsp;days / overdue” hints.
+            </>
+          }
+        />
+      </div>
       <ShipmentForm
         cities={CITY_NAMES}
         stores={formStores}

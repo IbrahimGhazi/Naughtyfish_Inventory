@@ -38,12 +38,9 @@ function Preview({ v }: { v: SeriesValues }) {
     Number(v.digitWidth || 1),
   );
   return (
-    <div className="rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800/40">
-      <span className="text-slate-500 dark:text-slate-400">Next number: </span>
-      <span
-        className="font-mono font-medium text-cyan-700 dark:text-cyan-400"
-        data-testid="series-preview"
-      >
+    <div className="rounded-lg border border-hair2 bg-card2 px-3 py-2 text-sm">
+      <span className="text-muted">Next number: </span>
+      <span className="font-mono font-medium text-gold" data-testid="series-preview">
         {preview}
       </span>
     </div>
@@ -143,12 +140,13 @@ export function AddSeriesForm() {
           onClick={submit}
           disabled={!canSubmit}
           data-testid="series-add-submit"
-          className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          style={{ background: "var(--accent)" }}
         >
           {isPending ? "Adding…" : "+ Add series"}
         </button>
-        {ok && <span className="text-xs text-emerald-600 dark:text-emerald-400">✓ Saved.</span>}
-        {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+        {ok && <span className="text-xs font-medium text-pos">✓ Saved.</span>}
+        {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>
   );
@@ -190,11 +188,12 @@ function EditSeriesForm({ series, onDone }: { series: SeriesRow; onDone: () => v
           onClick={submit}
           disabled={!canSubmit}
           data-testid={`series-edit-save-${series.id}`}
-          className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          style={{ background: "var(--accent)" }}
         >
           {isPending ? "Saving…" : "Save"}
         </button>
-        {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+        {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>
   );
@@ -203,26 +202,24 @@ function EditSeriesForm({ series, onDone }: { series: SeriesRow; onDone: () => v
 export function SeriesList({ series }: { series: SeriesRow[] }) {
   if (series.length === 0) {
     return (
-      <p className="text-sm text-slate-400 dark:text-slate-500">
-        No reference series yet — add one below.
-      </p>
+      <p className="text-sm text-faint">No reference series yet — add one below.</p>
     );
   }
   return (
-    <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+    <ul className="divide-y divide-row">
       {series.map((s) => (
         <li key={s.id} data-testid={`series-row-${s.id}`}>
           <EditToggle
             testId={`series-${s.id}`}
             summary={
               <div>
-                <div className="font-medium">{s.bookRegion}</div>
-                <div className="text-xs text-slate-400 dark:text-slate-500">
+                <div className="font-medium text-ink">{s.bookRegion}</div>
+                <div className="text-xs text-faint">
                   next{" "}
-                  <span className="font-mono text-cyan-700 dark:text-cyan-400">
+                  <span className="font-mono text-gold">
                     {nextReferencePreview(s.prefix, s.currentNumber, s.digitWidth)}
                   </span>{" "}
-                  · at {s.currentNumber}
+                  · at <span className="font-mono">{s.currentNumber}</span>
                 </div>
               </div>
             }

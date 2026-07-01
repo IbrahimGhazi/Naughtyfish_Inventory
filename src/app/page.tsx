@@ -3,11 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
 import { pkr, dateShort } from "@/lib/format";
-import { monthlyPnL, tally } from "@/lib/analytics";
+import { monthlyPnL } from "@/lib/analytics";
 import { cityByName, project } from "@/lib/geo";
 import { BarChart, type BarDatum } from "@/components/charts/BarChart";
-import { Donut, type DonutSlice } from "@/components/charts/Donut";
 import { PakistanMap, type MapRoute } from "@/components/PakistanMap";
+import { Card, Kpi, StatusChip, PrimaryButton } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,6 @@ export default async function Dashboard() {
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
   const [
-    invoiceCount,
     parties,
     payments,
     dueCheques,
@@ -31,7 +30,6 @@ export default async function Dashboard() {
     activeShipments,
     channelCounts,
   ] = await Promise.all([
-    prisma.invoice.count({ where: scope }),
     prisma.party.findMany({ where: scope }),
     // All payments in the book, tagged with their party's type so we can split
     // customer receipts from supplier disbursements.
@@ -76,7 +74,7 @@ export default async function Dashboard() {
       where: { ...scope, status: { notIn: ["delivered", "cancelled"] } },
       orderBy: [{ estimatedArrivalAt: "asc" }, { createdAt: "desc" }],
     }),
-    // Breakdown donut: customer invoices by channel (north vs local).
+    // Breakdown: customer invoices by channel (north vs local).
     prisma.invoice.groupBy({
       by: ["channel"],
       where: scope,
@@ -114,7 +112,6 @@ export default async function Dashboard() {
   // Net position includes suppliers (plan §3): receivables_net − supplier_payables.
   const netPosition = round2(receivablesNet - supplierPayables);
 
-  const supplierCount = parties.filter((p) => p.partyType === "supplier").length;
   const estBank = banks.reduce((s, b) => s + Number(b.estimatedBalance), 0);
 
   // --- Profit / Loss chart data (last 6 months). Number()-cast Decimals. ---
@@ -131,38 +128,12 @@ export default async function Dashboard() {
     profit: round2(m.profit),
   }));
 
-  // --- Breakdown donut: invoices by channel. ---
+  // --- Invoices by channel (north vs local split bar). ---
   const channelMap = new Map(channelCounts.map((c) => [c.channel, c._count._all]));
   const northCount = channelMap.get("north") ?? 0;
   const localCount = channelMap.get("local") ?? 0;
-  const channelSlices: DonutSlice[] = [
-    {
-      label: "North",
-      value: northCount,
-      fill: "fill-cyan-500 dark:fill-cyan-400",
-      swatch: "bg-cyan-500 dark:bg-cyan-400",
-      hex: "#06b6d4",
-    },
-    {
-      label: "Local",
-      value: localCount,
-      fill: "fill-violet-500 dark:fill-violet-400",
-      swatch: "bg-violet-500 dark:bg-violet-400",
-      hex: "#8b5cf6",
-    },
-  ];
-
-  // --- Shipment status donut (secondary breakdown) using tally() ---
-  const shipmentStatusSlices = buildShipmentSlices(
-    tally(
-      activeShipments.map((s) => ({ key: s.status })),
-      [
-        { key: "in_transit", label: "In transit" },
-        { key: "preparing", label: "Preparing" },
-        { key: "delayed", label: "Delayed" },
-      ],
-    ),
-  );
+  const channelTotal = Math.max(1, northCount + localCount);
+  const northPct = Math.round((northCount / channelTotal) * 100);
 
   // --- Map routes: project origin/dest cities, serialize to plain props. ---
   const routes: MapRoute[] = activeShipments.map((s) => {
@@ -182,7 +153,8 @@ export default async function Dashboard() {
     };
   });
 
-  // In-transit list rows (serialized).
+  // In-transit list rows (serialized). `progress` drives the thin on-the-road
+  // bar; derived from status since shipments carry no explicit % field.
   const shipmentRows = activeShipments.map((s) => ({
     id: s.id,
     status: s.status,
@@ -191,177 +163,240 @@ export default async function Dashboard() {
     reference: s.reference,
     eta: s.estimatedArrivalAt ? dateShort(s.estimatedArrivalAt) : null,
     etaHint: etaHint(s.estimatedArrivalAt, now),
+    progress: shipProgress(s.status),
   }));
 
+  const greeting = greetFor(now, ctx.user.name);
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Dashboard</h1>
-        <Link
-          href="/invoices/new"
-          className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800"
-        >
-          + New Invoice
-        </Link>
+    <div className="animate-rise space-y-3.5">
+      {/* Page header: serif greeting + new-invoice action. */}
+      <div className="mb-1 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-[30px] font-semibold leading-tight tracking-[-0.01em] text-ink">
+            {greeting}
+          </h1>
+          <div className="mt-1 text-[13px] text-muted">
+            {dateLong(now)} — here&apos;s where the {ctx.entityName} book stands.
+          </div>
+        </div>
+        <PrimaryButton href="/invoices/new" className="shrink-0">
+          <span className="text-base leading-none">+</span> New invoice
+        </PrimaryButton>
       </div>
 
       {/* KPI row. */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat label="Invoices" value={String(invoiceCount)} />
-        <Stat
+      <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
+        <Kpi
           label="Receivables (net)"
           value={pkr(receivablesNet)}
           sub="customer invoices − receipts"
         />
-        <Stat
+        <Kpi
+          label="Supplier payables"
+          value={pkr(supplierPayables)}
+          sub="owed to suppliers"
+          valueColor="var(--neg)"
+        />
+        <Kpi
           label="Net position"
           value={pkr(netPosition)}
-          sub="receivables − supplier payables"
+          sub="receivables − payables"
+          valueColor="var(--accent-deep)"
         />
-        <Stat label="Est. bank balance" value={pkr(estBank)} sub="manual" />
+        <Kpi label="Est. bank balance" value={pkr(estBank)} sub={`manual · ${banks.length} accounts`} />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat label="Parties" value={`${parties.length}`} sub={`${supplierCount} suppliers`} />
-        <Stat label="Supplier payables" value={pkr(supplierPayables)} sub="owed to suppliers" />
-      </div>
-
-      {/* Charts row: P/L (wide) + breakdown (narrow). */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>Profit / Loss · last 6 months</CardHeader>
+      {/* Row: Profit & loss (wide) + cheques-due / channel column. */}
+      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[1fr_340px]">
+        <Card className="p-5">
+          <div className="mb-4 flex items-baseline justify-between">
+            <div className="font-serif text-[17px] font-semibold text-ink">Profit &amp; loss</div>
+            <div className="text-[11.5px] text-faint2">last 6 months · revenue vs expenses</div>
+          </div>
           <BarChart data={barData} />
         </Card>
-        <Card>
-          <CardHeader>Invoices by channel</CardHeader>
-          <Donut
-            slices={channelSlices}
-            centerLabel="invoices"
-            emptyLabel="No invoices yet"
-          />
-          <div className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800">
-            <h3 className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
-              Active shipments by status
-            </h3>
-            <Donut
-              slices={shipmentStatusSlices}
-              centerLabel="active"
-              emptyLabel="No active shipments"
-            />
+
+        <div className="flex flex-col gap-3.5">
+          {/* Cheques due (next 24h). */}
+          <Card className="flex-1 p-[18px]">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="font-serif text-[17px] font-semibold text-ink">Cheques due</div>
+              <span
+                className="inline-flex rounded-full px-2.5 py-[3px] text-[11px] font-semibold"
+                style={{ background: "var(--neg-bg)", color: "var(--neg)" }}
+              >
+                next 24h
+              </span>
+            </div>
+            {dueCheques.length === 0 ? (
+              <p className="text-[13px] text-faint">No cheques due soon.</p>
+            ) : (
+              <Link href="/cheques" className="block">
+                {dueCheques.map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex items-center gap-2.5 border-b border-row px-0.5 py-2.5 last:border-0 hover:bg-card2"
+                  >
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: "var(--neg)", animation: "pulseRed 2s infinite" }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-semibold text-text">
+                        {c.bankAccount.bankName}
+                      </div>
+                      <div className="text-[11.5px] text-faint">
+                        #{c.chequeNumber} · due {c.clearingDue ? dateShort(c.clearingDue) : "—"}
+                      </div>
+                    </div>
+                    <div className="font-mono text-[13px] font-semibold text-text">
+                      {pkr(Number(c.amount))}
+                    </div>
+                  </div>
+                ))}
+              </Link>
+            )}
+          </Card>
+
+          {/* Invoices by channel (thin split bar). */}
+          <Card className="p-[18px]">
+            <div className="mb-3 font-serif text-[17px] font-semibold text-ink">
+              Invoices by channel
+            </div>
+            <div
+              className="flex h-3 overflow-hidden rounded-full"
+              style={{ background: "var(--row)" }}
+            >
+              <div style={{ width: `${northPct}%`, background: "var(--accent)" }} />
+              <div style={{ width: `${100 - northPct}%`, background: "var(--gold)" }} />
+            </div>
+            <div className="mt-2.5 flex justify-between text-[11.5px] text-faint">
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="h-[9px] w-[9px] rounded-sm"
+                  style={{ background: "var(--accent)" }}
+                />{" "}
+                North · <span className="font-mono">{northCount}</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="h-[9px] w-[9px] rounded-sm"
+                  style={{ background: "var(--gold)" }}
+                />{" "}
+                Local · <span className="font-mono">{localCount}</span>
+              </span>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Row: Recent invoices + On the road. */}
+      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
+        {/* Recent invoices. */}
+        <Card className="p-[18px]">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="font-serif text-[17px] font-semibold text-ink">Recent invoices</div>
+            <Link
+              href="/invoices"
+              className="p-1 text-[12px] font-semibold text-accent hover:text-accent-deep"
+            >
+              View all →
+            </Link>
           </div>
+          {recent.length === 0 ? (
+            <p className="text-[13px] text-faint">
+              No invoices yet.{" "}
+              <Link href="/invoices/new" className="text-gold underline hover:text-accent-deep">
+                Create the first one →
+              </Link>
+            </p>
+          ) : (
+            <div>
+              {recent.map((inv) => (
+                <Link
+                  key={inv.id}
+                  href={`/invoices/${inv.id}`}
+                  className="flex items-center gap-3 border-b border-row px-0.5 py-2.5 last:border-0 hover:bg-card2"
+                >
+                  <span className="font-mono text-[12px] text-gold">#{inv.invoiceNumber}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13px] font-semibold text-text">
+                      {inv.party.name}
+                    </div>
+                    <div className="text-[11px] text-faint">{dateShort(inv.date)}</div>
+                  </div>
+                  <StatusChip status={inv.status} />
+                  <div className="w-24 text-right font-mono text-[13px] font-semibold text-text">
+                    {pkr(Number(inv.totalAmount))}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* On the road (active shipments). */}
+        <Card className="p-[18px]">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="font-serif text-[17px] font-semibold text-ink">On the road</div>
+            <Link
+              href="/shipments"
+              className="p-1 text-[12px] font-semibold text-accent hover:text-accent-deep"
+            >
+              Shipments →
+            </Link>
+          </div>
+          {shipmentRows.length === 0 ? (
+            <p className="text-[13px] text-faint">
+              No active shipments.{" "}
+              <Link href="/shipments" className="text-gold underline hover:text-accent-deep">
+                Add one →
+              </Link>
+            </p>
+          ) : (
+            <div>
+              {shipmentRows.map((s) => (
+                <Link
+                  key={s.id}
+                  href="/shipments"
+                  className="block border-b border-row px-0.5 py-2.5 last:border-0 hover:bg-card2"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex-1 text-[13px] font-semibold text-text">
+                      Karachi → {s.destinationCity}
+                    </div>
+                    <StatusChip status={s.status} />
+                  </div>
+                  <div className="mt-2 flex items-center gap-2.5">
+                    <div
+                      className="h-[3px] flex-1 overflow-hidden rounded-full"
+                      style={{ background: "var(--row)" }}
+                    >
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${s.progress}%`, background: shipColor(s.status) }}
+                      />
+                    </div>
+                    <div className="shrink-0 text-[11px] text-faint">
+                      {s.eta ? `ETA ${s.eta}` : "ETA —"}
+                      {s.etaHint ? ` · ${s.etaHint}` : ""}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 
       {/* Shipment tracker map (full width). */}
-      <Card>
+      <Card className="p-[18px]">
         <div className="mb-3 flex items-center justify-between">
-          <CardHeader className="mb-0">Shipment tracker</CardHeader>
-          <span className="text-xs text-slate-400 dark:text-slate-500">
-            {activeShipments.length} active
-          </span>
+          <div className="font-serif text-[17px] font-semibold text-ink">Shipment tracker</div>
+          <span className="text-[11.5px] text-faint2">{activeShipments.length} active</span>
         </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <PakistanMap routes={routes} />
-          </div>
-          <div>
-            <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
-              In transit
-            </h3>
-            {shipmentRows.length === 0 ? (
-              <p className="text-sm text-slate-400 dark:text-slate-500">
-                No active shipments.{" "}
-                <Link href="/shipments" className="text-cyan-700 underline dark:text-cyan-400">
-                  Add one →
-                </Link>
-              </p>
-            ) : (
-              <ul className="divide-y divide-slate-100 text-sm dark:divide-slate-800">
-                {shipmentRows.map((s) => (
-                  <li key={s.id} className="py-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="min-w-0 truncate font-medium">{s.destination}</span>
-                      <ShipmentBadge status={s.status} />
-                    </div>
-                    <div className="mt-0.5 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                      <span>{s.reference ?? "—"}</span>
-                      <span>
-                        {s.eta ? `ETA ${s.eta}` : "ETA —"}
-                        {s.etaHint && (
-                          <span className="ml-1 text-slate-400 dark:text-slate-500">
-                            · {s.etaHint}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      </Card>
-
-      {/* Cheque reminders — plan §4.4: warn ~1 day before a cheque falls due. */}
-      <Card>
-        <CardHeader>⏰ Cheques due soon</CardHeader>
-        {dueCheques.length === 0 ? (
-          <p className="text-sm text-slate-400 dark:text-slate-500">No cheques due soon.</p>
-        ) : (
-          <ul className="divide-y divide-slate-100 text-sm dark:divide-slate-800">
-            {dueCheques.map((c) => (
-              <li key={c.id} className="flex items-center justify-between py-2">
-                <span className="flex items-center gap-2">
-                  <span
-                    className={`rounded px-1.5 py-0.5 text-xs uppercase ${
-                      c.direction === "incoming"
-                        ? "bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300"
-                        : "bg-violet-50 text-violet-700 dark:bg-violet-950 dark:text-violet-300"
-                    }`}
-                  >
-                    {c.direction}
-                  </span>
-                  Cheque <span className="font-mono">{c.chequeNumber}</span> · {c.bankAccount.bankName}
-                </span>
-                <span className="text-slate-500 dark:text-slate-400">
-                  {pkr(Number(c.amount))} · due {c.clearingDue ? dateShort(c.clearingDue) : "—"}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      {/* Recent invoices. */}
-      <Card>
-        <CardHeader>Recent invoices</CardHeader>
-        {recent.length === 0 ? (
-          <p className="text-sm text-slate-400 dark:text-slate-500">
-            No invoices yet.{" "}
-            <Link href="/invoices/new" className="text-cyan-700 underline dark:text-cyan-400">
-              Create the first one →
-            </Link>
-          </p>
-        ) : (
-          <ul className="divide-y divide-slate-100 text-sm dark:divide-slate-800">
-            {recent.map((inv) => (
-              <li key={inv.id} className="flex items-center justify-between py-2">
-                <Link
-                  href={`/parties/${inv.partyId}`}
-                  className="hover:text-cyan-700 dark:hover:text-cyan-400"
-                >
-                  #{inv.invoiceNumber} · {inv.party.name}
-                </Link>
-                <span className="text-slate-500 dark:text-slate-400">
-                  <span className="mr-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs uppercase dark:bg-slate-800 dark:text-slate-300">
-                    {inv.channel}
-                  </span>
-                  {pkr(Number(inv.totalAmount))}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <PakistanMap routes={routes} />
       </Card>
     </div>
   );
@@ -382,79 +417,50 @@ function etaHint(eta: Date | null, now: Date): string | null {
   return `in ${days}d`;
 }
 
-/** Map shipment tally slices onto the map's status colors for consistency. */
-function buildShipmentSlices(
-  slices: { label: string; value: number }[],
-): DonutSlice[] {
-  const palette: Record<string, { fill: string; swatch: string; hex: string }> = {
-    "In transit": {
-      fill: "fill-cyan-500 dark:fill-cyan-400",
-      swatch: "bg-cyan-500 dark:bg-cyan-400",
-      hex: "#06b6d4",
-    },
-    Preparing: {
-      fill: "fill-slate-400 dark:fill-slate-500",
-      swatch: "bg-slate-400 dark:bg-slate-500",
-      hex: "#94a3b8",
-    },
-    Delayed: {
-      fill: "fill-amber-500 dark:fill-amber-400",
-      swatch: "bg-amber-500 dark:bg-amber-400",
-      hex: "#f59e0b",
-    },
-  };
-  return slices.map((s) => ({
-    label: s.label,
-    value: s.value,
-    fill: palette[s.label]?.fill ?? "fill-slate-400 dark:fill-slate-500",
-    swatch: palette[s.label]?.swatch ?? "bg-slate-400 dark:bg-slate-500",
-    hex: palette[s.label]?.hex ?? "#94a3b8",
-  }));
+/** Thin on-the-road progress bar width (%) derived from shipment status. */
+function shipProgress(status: string): number {
+  switch (status) {
+    case "preparing":
+      return 20;
+    case "delayed":
+      return 55;
+    case "in_transit":
+      return 70;
+    case "delivered":
+      return 100;
+    default:
+      return 45;
+  }
 }
 
-function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <section
-      className={`rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 ${className}`}
-    >
-      {children}
-    </section>
-  );
+/** On-the-road progress-bar color per status (matches the map palette). */
+function shipColor(status: string): string {
+  switch (status) {
+    case "delayed":
+      return "var(--neg)";
+    case "preparing":
+      return "#D9B98A";
+    case "delivered":
+      return "var(--pos)";
+    default:
+      return "var(--accent)";
+  }
 }
 
-function CardHeader({ children, className = "mb-3" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <h2 className={`text-sm font-semibold text-slate-700 dark:text-slate-200 ${className}`}>
-      {children}
-    </h2>
-  );
+/** Time-of-day greeting, personalised with the signed-in user's first name. */
+function greetFor(now: Date, name: string): string {
+  const first = name.split(" ")[0] || name;
+  const h = now.getHours();
+  const part = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  return `${part}, ${first}`;
 }
 
-function ShipmentBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    in_transit: "bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300",
-    preparing: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-    delayed: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-    delivered: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-  };
-  const label = status.replace("_", " ");
-  return (
-    <span
-      className={`shrink-0 rounded px-1.5 py-0.5 text-xs uppercase ${
-        styles[status] ?? styles.preparing
-      }`}
-    >
-      {label}
-    </span>
-  );
-}
-
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <div className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">{label}</div>
-      <div className="mt-1 text-lg font-semibold">{value}</div>
-      {sub && <div className="text-xs text-slate-400 dark:text-slate-500">{sub}</div>}
-    </div>
-  );
+/** Long human date, e.g. "Wednesday, 1 July 2026". */
+function dateLong(d: Date): string {
+  return d.toLocaleDateString("en-PK", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }

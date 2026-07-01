@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getActiveContext } from "@/lib/session";
 import { pkr, dateShort } from "@/lib/format";
+import { BackLink, Card, PrimaryButton, Th } from "@/components/ui";
 import {
   buildWeeklyStatement,
   defaultWeekRange,
@@ -75,28 +76,30 @@ export default async function WeeklyStatementPage({
   const printHref = `/reports/weekly/print?from=${fromValue}&to=${toValue}`;
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <Link
-            href="/reports"
-            className="text-xs text-slate-400 hover:text-cyan-700 dark:text-slate-500 dark:hover:text-cyan-400"
+    <div className="animate-rise space-y-5">
+      <div>
+        <BackLink href="/reports">← Reports</BackLink>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
+              Insight
+            </div>
+            <h1 className="mt-0.5 font-serif text-[28px] font-semibold leading-tight text-ink">
+              Weekly statement
+            </h1>
+            <p className="mt-1 text-sm text-muted">
+              {ctx.entityName} · {dateShort(range.from)} → {dateShort(range.to)} · balances as of{" "}
+              {dateShort(range.to)}
+            </p>
+          </div>
+          <PrimaryButton
+            href={printHref}
+            data-testid="wk-print"
+            style={{ background: "var(--ink)", color: "var(--card)" }}
           >
-            ← Reports
-          </Link>
-          <h1 className="mt-1 text-xl font-semibold">Weekly statement</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {ctx.entityName} · {dateShort(range.from)} → {dateShort(range.to)} · balances as of{" "}
-            {dateShort(range.to)}
-          </p>
+            Print / Save as PDF
+          </PrimaryButton>
         </div>
-        <Link
-          href={printHref}
-          data-testid="wk-print"
-          className="shrink-0 rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800"
-        >
-          Print / Save as PDF
-        </Link>
       </div>
 
       {/* Preset quick-links */}
@@ -106,7 +109,7 @@ export default async function WeeklyStatementPage({
             key={p.key}
             href={`/reports/weekly?preset=${p.key}`}
             data-testid={`wk-preset-${p.key}`}
-            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-slate-700 hover:border-cyan-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-cyan-800"
+            className="rounded-lg border border-hair bg-card px-3 py-1.5 font-semibold text-text transition-colors hover:bg-card2"
           >
             {p.label}
           </Link>
@@ -115,30 +118,30 @@ export default async function WeeklyStatementPage({
 
       {/* Explicit from/to GET form (like the party ledger as-of filter). */}
       <form className="flex flex-wrap items-end gap-2 text-sm" action="/reports/weekly">
-        <label className="text-xs text-slate-500 dark:text-slate-400">
+        <label className="text-xs font-semibold uppercase tracking-[0.1em] text-faint2">
           From
           <input
             type="date"
             name="from"
             defaultValue={fromValue}
             data-testid="wk-from"
-            className="input mt-1"
+            className="input mt-1 block font-normal normal-case tracking-normal"
           />
         </label>
-        <label className="text-xs text-slate-500 dark:text-slate-400">
+        <label className="text-xs font-semibold uppercase tracking-[0.1em] text-faint2">
           To
           <input
             type="date"
             name="to"
             defaultValue={toValue}
             data-testid="wk-to"
-            className="input mt-1"
+            className="input mt-1 block font-normal normal-case tracking-normal"
           />
         </label>
         <button
           type="submit"
           data-testid="wk-apply"
-          className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+          className="rounded-lg border border-hair bg-card px-3 py-2 font-semibold text-text transition-colors hover:bg-card2"
         >
           Apply
         </button>
@@ -147,10 +150,10 @@ export default async function WeeklyStatementPage({
       {/* Receivables — corporate + local sub-sections. */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-faint2">
             Receivables — owed to us
           </h2>
-          <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+          <span className="font-mono text-sm font-semibold text-neg">
             {pkr(stmt.receivablesTotal)}
           </span>
         </div>
@@ -170,10 +173,10 @@ export default async function WeeklyStatementPage({
       {/* Payables — suppliers we owe. */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-faint2">
             Payables — we owe
           </h2>
-          <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+          <span className="font-mono text-sm font-semibold text-warn">
             {pkr(stmt.payablesTotal)}
           </span>
         </div>
@@ -181,26 +184,20 @@ export default async function WeeklyStatementPage({
       </section>
 
       {/* Net position. */}
-      <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <Card className="p-4">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-500 dark:text-slate-400">
-            Net position (receivables − payables)
-          </span>
+          <span className="text-sm text-muted">Net position (receivables − payables)</span>
           <span
-            className={`text-lg font-semibold ${
-              stmt.net >= 0
-                ? "text-emerald-600 dark:text-emerald-400"
-                : "text-red-600 dark:text-red-400"
-            }`}
+            className={`font-mono text-lg font-semibold ${stmt.net >= 0 ? "text-pos" : "text-neg"}`}
           >
             {pkr(stmt.net)}
           </span>
         </div>
-        <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+        <p className="mt-1 text-[11.5px] text-faint">
           Positive = net owed to us. {pkr(stmt.receivablesTotal)} receivable −{" "}
           {pkr(stmt.payablesTotal)} payable.
         </p>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -223,60 +220,64 @@ function ReceivablesTable({
   const subtotal = sorted.reduce((s, r) => s + r.outstanding, 0);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-      <div className="border-b border-slate-200 px-4 py-2 text-xs font-semibold uppercase text-slate-500 dark:border-slate-800 dark:text-slate-400">
+    <Card className="overflow-hidden">
+      <div className="border-b border-hair2 bg-card2 px-3.5 py-2.5 font-serif text-[15px] font-semibold text-ink">
         {title}
       </div>
-      <table className="w-full text-sm">
-        <thead className="bg-slate-50 text-left text-xs uppercase text-slate-400 dark:bg-slate-800/50 dark:text-slate-500">
+      <table className="w-full border-collapse">
+        <thead>
           <tr>
-            <th className="px-4 py-2">Party</th>
-            <th className="px-4 py-2">Open invoices</th>
-            <th className="px-4 py-2 text-right">Outstanding</th>
+            <Th>Party</Th>
+            <Th>Open invoices</Th>
+            <Th align="right">Outstanding</Th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+        <tbody>
           {sorted.length === 0 ? (
             <tr>
-              <td colSpan={3} className="px-4 py-6 text-center text-slate-400 dark:text-slate-500">
+              <td colSpan={3} className="px-3.5 py-6 text-center text-sm text-faint">
                 {emptyLabel}
               </td>
             </tr>
           ) : (
             sorted.map((r) => (
-              <tr key={r.partyId}>
-                <td className="px-4 py-2 font-medium">
-                  <Link
-                    href={`/parties/${r.partyId}`}
-                    className="hover:text-cyan-700 dark:hover:text-cyan-400"
-                  >
+              <tr key={r.partyId} className="border-b border-row transition-colors hover:bg-card2">
+                <td className="px-3.5 py-3 text-[13px] font-semibold text-text">
+                  <Link href={`/parties/${r.partyId}`} className="hover:text-accent-deep">
                     {r.name}
                   </Link>
                 </td>
-                <td className="px-4 py-2 text-xs text-slate-500 dark:text-slate-400">
+                <td className="px-3.5 py-3 font-mono text-[12px] text-muted">
                   {r.invoices.length === 0
                     ? "—"
                     : r.invoices
                         .map((inv) => `#${inv.number}${inv.reference ? ` · ${inv.reference}` : ""}`)
                         .join(", ")}
                 </td>
-                <td className="px-4 py-2 text-right font-medium">{pkr(r.outstanding)}</td>
+                <td className="px-3.5 py-3 text-right font-mono text-[12.5px] font-semibold text-text">
+                  {pkr(r.outstanding)}
+                </td>
               </tr>
             ))
           )}
         </tbody>
         {sorted.length > 0 && (
           <tfoot>
-            <tr className="border-t border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/50">
-              <td colSpan={2} className="px-4 py-2 text-right text-xs uppercase text-slate-500 dark:text-slate-400">
+            <tr className="border-t border-hair2 bg-card2">
+              <td
+                colSpan={2}
+                className="px-3.5 py-2.5 text-right text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2"
+              >
                 Subtotal
               </td>
-              <td className="px-4 py-2 text-right font-semibold">{pkr(subtotal)}</td>
+              <td className="px-3.5 py-2.5 text-right font-mono text-[12.5px] font-semibold text-ink">
+                {pkr(subtotal)}
+              </td>
             </tr>
           </tfoot>
         )}
       </table>
-    </div>
+    </Card>
   );
 }
 
@@ -285,51 +286,52 @@ function PayablesTable({ rows }: { rows: StatementRow[] }) {
   const subtotal = sorted.reduce((s, r) => s + r.outstanding, 0);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-      <div className="border-b border-slate-200 px-4 py-2 text-xs font-semibold uppercase text-slate-500 dark:border-slate-800 dark:text-slate-400">
+    <Card className="overflow-hidden">
+      <div className="border-b border-hair2 bg-card2 px-3.5 py-2.5 font-serif text-[15px] font-semibold text-ink">
         Suppliers
       </div>
-      <table className="w-full text-sm">
-        <thead className="bg-slate-50 text-left text-xs uppercase text-slate-400 dark:bg-slate-800/50 dark:text-slate-500">
+      <table className="w-full border-collapse">
+        <thead>
           <tr>
-            <th className="px-4 py-2">Supplier</th>
-            <th className="px-4 py-2 text-right">Outstanding</th>
+            <Th>Supplier</Th>
+            <Th align="right">Outstanding</Th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+        <tbody>
           {sorted.length === 0 ? (
             <tr>
-              <td colSpan={2} className="px-4 py-6 text-center text-slate-400 dark:text-slate-500">
+              <td colSpan={2} className="px-3.5 py-6 text-center text-sm text-faint">
                 No suppliers with an outstanding balance.
               </td>
             </tr>
           ) : (
             sorted.map((r) => (
-              <tr key={r.partyId}>
-                <td className="px-4 py-2 font-medium">
-                  <Link
-                    href={`/parties/${r.partyId}`}
-                    className="hover:text-cyan-700 dark:hover:text-cyan-400"
-                  >
+              <tr key={r.partyId} className="border-b border-row transition-colors hover:bg-card2">
+                <td className="px-3.5 py-3 text-[13px] font-semibold text-text">
+                  <Link href={`/parties/${r.partyId}`} className="hover:text-accent-deep">
                     {r.name}
                   </Link>
                 </td>
-                <td className="px-4 py-2 text-right font-medium">{pkr(r.outstanding)}</td>
+                <td className="px-3.5 py-3 text-right font-mono text-[12.5px] font-semibold text-text">
+                  {pkr(r.outstanding)}
+                </td>
               </tr>
             ))
           )}
         </tbody>
         {sorted.length > 0 && (
           <tfoot>
-            <tr className="border-t border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/50">
-              <td className="px-4 py-2 text-right text-xs uppercase text-slate-500 dark:text-slate-400">
+            <tr className="border-t border-hair2 bg-card2">
+              <td className="px-3.5 py-2.5 text-right text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
                 Subtotal
               </td>
-              <td className="px-4 py-2 text-right font-semibold">{pkr(subtotal)}</td>
+              <td className="px-3.5 py-2.5 text-right font-mono text-[12.5px] font-semibold text-ink">
+                {pkr(subtotal)}
+              </td>
             </tr>
           </tfoot>
         )}
       </table>
-    </div>
+    </Card>
   );
 }

@@ -4,15 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
 import { pkr, kg, pct, dateShort } from "@/lib/format";
+import {
+  Card,
+  Chip,
+  StatusChip,
+  BackLink,
+  GhostButton,
+  Th,
+} from "@/components/ui";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-  submitted: "bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300",
-  edited: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-  printed: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-};
 
 export default async function InvoiceDetailPage({
   params,
@@ -35,204 +36,291 @@ export default async function InvoiceDetailPage({
   if (!invoice) notFound();
 
   const total = Number(invoice.totalAmount);
+  const paid = invoice.payments.reduce((s, p) => s + Number(p.amount), 0);
+  const balance = total - paid;
+  const paidPct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <Link href="/invoices" className="text-xs text-slate-400 hover:text-cyan-700 dark:text-slate-500 dark:hover:text-cyan-400">
-            ← Invoices
-          </Link>
-          <h1 className="mt-1 text-xl font-semibold">
-            Invoice #{invoice.invoiceNumber}
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {invoice.referenceNumber ? (
-              <span className="font-mono">{invoice.referenceNumber} · </span>
-            ) : null}
-            <Link href={`/parties/${invoice.partyId}`} className="hover:text-cyan-700 dark:hover:text-cyan-400">
-              {invoice.party.name}
+    <div className="animate-rise space-y-3.5">
+      <div>
+        <BackLink href="/invoices">← All invoices</BackLink>
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h1 className="font-serif text-[30px] font-semibold leading-tight text-ink">
+              Invoice #{invoice.invoiceNumber}
+            </h1>
+            <div className="mt-1.5 text-[13px] text-muted">
+              {invoice.referenceNumber && (
+                <>
+                  <span className="font-mono text-gold">
+                    {invoice.referenceNumber}
+                  </span>
+                  {" · "}
+                </>
+              )}
+              <Link
+                href={`/parties/${invoice.partyId}`}
+                className="underline decoration-hair underline-offset-2 hover:text-accent-deep"
+              >
+                {invoice.party.name}
+              </Link>
+              {" · "}
+              {dateShort(invoice.date)}
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <GhostButton href={`/invoices/${invoice.id}/edit`}>
+              <span data-testid="edit-invoice">Edit</span>
+            </GhostButton>
+            <Link
+              href={`/invoices/${invoice.id}/print`}
+              data-testid="print-invoice"
+              className="inline-flex items-center justify-center rounded-lg px-3.5 py-2 text-sm font-semibold"
+              style={{ background: "var(--ink)", color: "var(--card)" }}
+            >
+              Print
             </Link>
-            {" · "}
-            {dateShort(invoice.date)}
-          </p>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <Link
-            href={`/invoices/${invoice.id}/edit`}
-            data-testid="edit-invoice"
-            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            Edit
-          </Link>
-          <Link
-            href={`/invoices/${invoice.id}/print`}
-            data-testid="print-invoice"
-            className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800"
-          >
-            Print
-          </Link>
+          </div>
         </div>
       </div>
 
-      {/* Meta card */}
-      <div className="grid grid-cols-2 gap-4 rounded-lg border border-slate-200 bg-white p-4 text-sm sm:grid-cols-4 dark:border-slate-800 dark:bg-slate-900">
-        <Meta label="Channel">
-          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs uppercase dark:bg-slate-800 dark:text-slate-300">
-            {invoice.channel}
-          </span>
-        </Meta>
-        <Meta label="Status">
-          <span
-            className={`rounded px-1.5 py-0.5 text-xs uppercase ${
-              STATUS_STYLES[invoice.status] ?? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-            }`}
-          >
-            {invoice.status}
-          </span>
-        </Meta>
-        <Meta label="Version">v{invoice.version}</Meta>
-        <Meta label="Source store">{invoice.sourceStore?.name ?? "—"}</Meta>
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Card className="p-3.5">
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
+            Channel
+          </div>
+          <div className="mt-1.5">
+            <Chip tone="neutral" className="uppercase">
+              {invoice.channel}
+            </Chip>
+          </div>
+        </Card>
+        <Card className="p-3.5">
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
+            Status
+          </div>
+          <div className="mt-1.5">
+            <StatusChip status={invoice.status} />
+          </div>
+        </Card>
+        <Card className="p-3.5">
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
+            Version
+          </div>
+          <div className="mt-1.5 text-[13.5px] font-semibold text-ink">
+            v{invoice.version}
+          </div>
+        </Card>
+        <Card className="p-3.5">
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
+            Source store
+          </div>
+          <div className="mt-1.5 text-[13.5px] font-semibold text-ink">
+            {invoice.sourceStore?.name ?? "—"}
+          </div>
+        </Card>
       </div>
 
       {/* Line items */}
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase text-slate-400 dark:bg-slate-800/50 dark:text-slate-500">
+      <Card className="overflow-hidden">
+        <table className="w-full border-collapse">
+          <thead>
             <tr>
-              <th className="px-4 py-2">Item</th>
-              <th className="px-4 py-2 text-right">Gross</th>
-              <th className="px-4 py-2 text-right">Final / net</th>
-              <th className="px-4 py-2 text-right">Glazing %</th>
-              <th className="px-4 py-2 text-right">Rate / kg</th>
-              <th className="px-4 py-2 text-right">Cartons</th>
-              <th className="px-4 py-2 text-right">Packets</th>
-              <th className="px-4 py-2 text-right">Amount</th>
+              <Th>Item</Th>
+              <Th align="right">Gross</Th>
+              <Th align="right">Net</Th>
+              <Th align="right">Glazing</Th>
+              <Th align="right">Rate / kg</Th>
+              <Th align="right">Cartons</Th>
+              <Th align="right">Packets</Th>
+              <Th align="right">Amount</Th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+          <tbody>
             {invoice.lineItems.map((li) => (
-              <tr key={li.id}>
-                <td className="px-4 py-2">{li.item.name}</td>
-                <td className="px-4 py-2 text-right">{kg(Number(li.grossWeightKg))}</td>
-                <td className="px-4 py-2 text-right">{kg(Number(li.netWeightKg))}</td>
-                <td className="px-4 py-2 text-right">{pct(Number(li.glazingPct))}</td>
-                <td className="px-4 py-2 text-right">{pkr(Number(li.ratePerKg))}</td>
-                <td className="px-4 py-2 text-right">{li.cartonCount ?? "—"}</td>
-                <td className="px-4 py-2 text-right">{li.packetCount ?? "—"}</td>
-                <td className="px-4 py-2 text-right font-medium">{pkr(Number(li.amount))}</td>
+              <tr key={li.id} className="border-b border-row">
+                <td className="px-3.5 py-3 text-[13.5px] font-semibold text-ink">
+                  {li.item.name}
+                </td>
+                <td className="px-3.5 py-3 text-right font-mono text-[13px] text-text">
+                  {kg(Number(li.grossWeightKg))}
+                </td>
+                <td className="px-3.5 py-3 text-right font-mono text-[13px] text-text">
+                  {kg(Number(li.netWeightKg))}
+                </td>
+                <td className="px-3.5 py-3 text-right font-mono text-[13px] text-muted">
+                  {pct(Number(li.glazingPct))}
+                </td>
+                <td className="px-3.5 py-3 text-right font-mono text-[13px] text-text">
+                  {pkr(Number(li.ratePerKg))}
+                </td>
+                <td className="px-3.5 py-3 text-right font-mono text-[13px] text-text">
+                  {li.cartonCount ?? "—"}
+                </td>
+                <td className="px-3.5 py-3 text-right font-mono text-[13px] text-text">
+                  {li.packetCount ?? "—"}
+                </td>
+                <td className="px-3.5 py-3 text-right font-mono text-[13px] font-semibold text-ink">
+                  {pkr(Number(li.amount))}
+                </td>
               </tr>
             ))}
           </tbody>
           <tfoot>
-            <tr className="border-t border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/50">
-              <td colSpan={7} className="px-4 py-2 text-right text-xs uppercase text-slate-400 dark:text-slate-500">
+            <tr className="border-t border-hair2 bg-card2">
+              <td
+                colSpan={7}
+                className="px-3.5 py-3 text-right text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2"
+              >
                 Total
               </td>
-              <td className="px-4 py-2 text-right text-base font-semibold">{pkr(total)}</td>
+              <td className="px-3.5 py-3 text-right font-mono text-base font-semibold text-ink">
+                {pkr(total)}
+              </td>
             </tr>
           </tfoot>
         </table>
-      </div>
+      </Card>
 
       {invoice.notes && (
-        <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="text-xs uppercase text-slate-400 dark:text-slate-500">Notes</div>
-          <p className="mt-1 whitespace-pre-wrap text-slate-700 dark:text-slate-200">{invoice.notes}</p>
-        </div>
+        <Card className="p-[18px] text-sm">
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
+            Notes
+          </div>
+          <p className="mt-1 whitespace-pre-wrap text-text">{invoice.notes}</p>
+        </Card>
       )}
 
-      {/* Payments recorded against this invoice */}
-      <section>
-        <h2 className="mb-2 text-sm font-semibold text-slate-500 dark:text-slate-400">Payments against this invoice</h2>
-        {invoice.payments.length === 0 ? (
-          <p className="text-sm text-slate-400 dark:text-slate-500">None recorded.</p>
-        ) : (
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-400 dark:bg-slate-800/50 dark:text-slate-500">
-                <tr>
-                  <th className="px-4 py-2">Date</th>
-                  <th className="px-4 py-2">Type</th>
-                  <th className="px-4 py-2">Detail</th>
-                  <th className="px-4 py-2 text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {invoice.payments.map((p) => (
-                  <tr key={p.id}>
-                    <td className="px-4 py-2 text-slate-500 dark:text-slate-400">{dateShort(p.date)}</td>
-                    <td className="px-4 py-2 capitalize">{p.type}</td>
-                    <td className="px-4 py-2 text-slate-600 dark:text-slate-300">
-                      {p.type === "cheque" && p.cheque
-                        ? `Cheque ${p.cheque.chequeNumber}`
-                        : p.note ?? "—"}
-                      {p.isPartial && (
-                        <span className="ml-1 rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                          partial
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-right font-medium">{pkr(Number(p.amount))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Payments + balance-due panel */}
+      <div className="grid gap-3.5 lg:grid-cols-[1fr_300px]">
+        <Card className="p-[18px]">
+          <div className="mb-2.5 font-serif text-[17px] font-semibold text-ink">
+            Payments against this invoice
           </div>
-        )}
-      </section>
+          {invoice.payments.length === 0 ? (
+            <div className="text-[13px] text-faint">None recorded yet.</div>
+          ) : (
+            <div>
+              {invoice.payments.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center gap-2.5 border-b border-row py-2.5 last:border-b-0"
+                >
+                  <span
+                    className="h-[7px] w-[7px] flex-none rounded-full"
+                    style={{ background: "var(--pos)" }}
+                  />
+                  <div className="flex-1 text-[13px] text-text">
+                    <span className="capitalize">{p.type}</span>
+                    {p.type === "cheque" && p.cheque
+                      ? ` · Cheque ${p.cheque.chequeNumber}`
+                      : p.note
+                        ? ` · ${p.note}`
+                        : ""}
+                    {p.isPartial && (
+                      <Chip tone="warn" className="ml-2">
+                        partial
+                      </Chip>
+                    )}
+                  </div>
+                  <div className="text-[12px] text-faint">{dateShort(p.date)}</div>
+                  <div className="font-mono text-[13px] font-semibold text-pos">
+                    {pkr(Number(p.amount))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <div
+          className="self-start rounded-xl p-[18px]"
+          style={{ background: "var(--side-bg)", color: "var(--side-fg)" }}
+        >
+          <div
+            className="text-[10.5px] font-semibold uppercase tracking-[0.12em]"
+            style={{ color: "var(--side-dim)" }}
+          >
+            Balance due
+          </div>
+          <div
+            className="mt-2 font-mono text-[26px] font-semibold"
+            style={{ color: balance > 0 ? "var(--neg)" : "var(--side-fg)" }}
+          >
+            {pkr(balance)}
+          </div>
+          <div
+            className="mt-1 text-[11.5px]"
+            style={{ color: "var(--side-dim)" }}
+          >
+            of {pkr(total)} · {paidPct}% received
+          </div>
+          <div
+            className="mt-2.5 h-1 overflow-hidden rounded-full"
+            style={{ background: "rgba(242,235,217,.14)" }}
+          >
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${paidPct}%`, background: "var(--accent)" }}
+            />
+          </div>
+          <Link
+            href={`/parties/${invoice.partyId}`}
+            className="mt-4 block rounded-lg py-2.5 text-center text-sm font-semibold text-[#F6F2E6]"
+            style={{ background: "var(--accent)" }}
+          >
+            Record payment
+          </Link>
+        </div>
+      </div>
 
       {/* Delivery-record version history — the dispute-defense trail. */}
-      <section>
-        <h2 className="mb-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
-          Delivery record history
-          <span className="ml-1 font-normal text-slate-400 dark:text-slate-500">· append-only dispute defense</span>
-        </h2>
-        {invoice.deliveryRecords.length === 0 ? (
-          <p className="text-sm text-slate-400 dark:text-slate-500">No delivery records.</p>
-        ) : (
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-400 dark:bg-slate-800/50 dark:text-slate-500">
-                <tr>
-                  <th className="px-4 py-2">Version</th>
-                  <th className="px-4 py-2">Delivered at</th>
-                  <th className="px-4 py-2 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {invoice.deliveryRecords.map((dr) => (
-                  <tr key={dr.id}>
-                    <td className="px-4 py-2">
-                      v{dr.version}
-                      {dr.supersedesId === null && (
-                        <span className="ml-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                          original
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-slate-500 dark:text-slate-400">
-                      {new Date(dr.deliveredAt).toLocaleString("en-PK")}
-                    </td>
-                    <td className="px-4 py-2 text-right font-medium">
-                      {pkr(Number(dr.totalAmount))}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <Card className="overflow-hidden">
+        <div className="flex items-baseline gap-1.5 px-[18px] pt-[18px]">
+          <div className="font-serif text-[17px] font-semibold text-ink">
+            Delivery record history
           </div>
+          <span className="text-[12px] text-faint">
+            · append-only dispute defense
+          </span>
+        </div>
+        {invoice.deliveryRecords.length === 0 ? (
+          <div className="px-[18px] pb-[18px] pt-2 text-[13px] text-faint">
+            No delivery records.
+          </div>
+        ) : (
+          <table className="mt-3 w-full border-collapse">
+            <thead>
+              <tr>
+                <Th>Version</Th>
+                <Th>Delivered at</Th>
+                <Th align="right">Total</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoice.deliveryRecords.map((dr) => (
+                <tr key={dr.id} className="border-b border-row">
+                  <td className="px-3.5 py-3 text-[13px] text-text">
+                    v{dr.version}
+                    {dr.supersedesId === null && (
+                      <Chip tone="neutral" className="ml-1.5">
+                        original
+                      </Chip>
+                    )}
+                  </td>
+                  <td className="px-3.5 py-3 font-mono text-[13px] text-muted">
+                    {new Date(dr.deliveredAt).toLocaleString("en-PK")}
+                  </td>
+                  <td className="px-3.5 py-3 text-right font-mono text-[13px] font-semibold text-ink">
+                    {pkr(Number(dr.totalAmount))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
-      </section>
-    </div>
-  );
-}
-
-function Meta({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="text-xs uppercase text-slate-400 dark:text-slate-500">{label}</div>
-      <div className="mt-0.5 text-slate-700 dark:text-slate-200">{children}</div>
+      </Card>
     </div>
   );
 }

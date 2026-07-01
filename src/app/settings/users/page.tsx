@@ -4,6 +4,7 @@ import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
 import BackLink from "../BackLink";
 import { Card } from "../ui";
+import { PageHeader } from "@/components/ui";
 import { AddUserForm, UserList, type UserRow } from "./UserControls";
 
 export const dynamic = "force-dynamic";
@@ -40,31 +41,36 @@ export default async function UsersSettingsPage() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-[1000px] animate-rise px-8 pb-14 pt-7">
       <BackLink />
-      <div>
-        <h1 className="text-xl font-semibold">Users</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Staff logins, roles and access for{" "}
-          <span className="font-medium">{ctx.entityName}</span>. Passwords are
-          hashed and never shown — leave the field blank when editing to keep the
-          current one.
-        </p>
+      <PageHeader
+        eyebrow="Admin"
+        title="Users"
+        subtitle={
+          <>
+            Staff logins, roles and access for{" "}
+            <span className="font-medium text-text">{ctx.entityName}</span>. Passwords are
+            hashed and never shown — leave the field blank when editing to keep the
+            current one.
+          </>
+        }
+      />
+
+      <div className="space-y-4">
+        <Card>
+          <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">
+            Existing users
+          </h2>
+          <UserList users={rows} />
+        </Card>
+
+        <Card>
+          <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">
+            Add user
+          </h2>
+          <AddUserForm />
+        </Card>
       </div>
-
-      <Card>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
-          Existing users
-        </h2>
-        <UserList users={rows} />
-      </Card>
-
-      <Card>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
-          Add user
-        </h2>
-        <AddUserForm />
-      </Card>
     </div>
   );
 }

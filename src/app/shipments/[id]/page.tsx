@@ -4,10 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
 import { dateShort } from "@/lib/format";
+import { BackLink, Card, StatusChip } from "@/components/ui";
 import {
   STATUS_LABELS,
   STATUS_TIMELINE,
-  statusColor,
   etaHint,
   type ShipmentStatus,
   type EtaTone,
@@ -17,11 +17,11 @@ import ShipmentControls from "./ShipmentControls";
 export const dynamic = "force-dynamic";
 
 const ETA_TONE_CLASS: Record<EtaTone, string> = {
-  muted: "text-slate-400 dark:text-slate-500",
-  info: "text-cyan-700 dark:text-cyan-400",
-  warn: "text-amber-600 dark:text-amber-400",
-  danger: "text-red-600 dark:text-red-400",
-  good: "text-emerald-600 dark:text-emerald-400",
+  muted: "text-faint",
+  info: "text-accent",
+  warn: "text-warn",
+  danger: "text-neg",
+  good: "text-pos",
 };
 
 function dateTime(d: Date): string {
@@ -71,47 +71,41 @@ export default async function ShipmentDetailPage({
           : -1; // cancelled
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/shipments"
-            className="text-sm text-slate-500 hover:text-cyan-700 dark:text-slate-400 dark:hover:text-cyan-400"
-          >
-            ← Shipments
-          </Link>
-          <h1 className="text-xl font-semibold">
+    <div className="animate-rise space-y-5">
+      <div>
+        <BackLink href="/shipments">← Shipments</BackLink>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="font-serif text-[28px] font-semibold leading-tight text-ink">
             {shipment.reference ?? `Shipment ${shipment.id.slice(0, 8)}`}
           </h1>
+          <span data-testid="ship-detail-status">
+            <StatusChip status={shipment.status} label={statusLabel} />
+          </span>
         </div>
-        <span
-          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(shipment.status)}`}
-          data-testid="ship-detail-status"
-        >
-          {statusLabel}
-        </span>
       </div>
 
       {/* Route summary */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-wrap items-center gap-3 text-lg font-medium">
+      <Card className="p-[18px]">
+        <div className="flex flex-wrap items-center gap-4">
           <div>
-            <div className="text-sm text-slate-500 dark:text-slate-400">{shipment.originName}</div>
-            <div>{shipment.originCity ?? "—"}</div>
-          </div>
-          <span className="text-slate-400 dark:text-slate-500">→</span>
-          <div>
-            <div className="text-sm text-slate-500 dark:text-slate-400">
-              {shipment.destinationName ?? " "}
+            <div className="text-[12px] text-muted">{shipment.originName}</div>
+            <div className="font-serif text-[20px] font-semibold text-ink">
+              {shipment.originCity ?? "—"}
             </div>
-            <div>{shipment.destinationCity}</div>
+          </div>
+          <span className="font-serif text-2xl text-faint">→</span>
+          <div>
+            <div className="text-[12px] text-muted">{shipment.destinationName ?? " "}</div>
+            <div className="font-serif text-[20px] font-semibold text-ink">
+              {shipment.destinationCity}
+            </div>
           </div>
         </div>
-      </section>
+      </Card>
 
       {/* Visual timeline: preparing → in_transit → delivered */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-200">Progress</h2>
+      <Card className="p-[18px]">
+        <h2 className="mb-4 font-serif text-[17px] font-semibold text-ink">Progress</h2>
         <ol className="flex items-center" data-testid="ship-timeline">
           {STATUS_TIMELINE.map((step, i) => {
             const done = reachedIndex >= i;
@@ -124,23 +118,40 @@ export default async function ShipmentDetailPage({
                 <div className="flex flex-col items-center">
                   <span
                     data-testid={`ship-timeline-${step}`}
-                    className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold ${
+                    className="flex h-8 w-8 items-center justify-center rounded-full border font-mono text-xs font-semibold"
+                    style={
                       cancelled
-                        ? "border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
+                        ? {
+                            borderColor: "var(--hair)",
+                            background: "var(--card2)",
+                            color: "var(--faint)",
+                          }
                         : stuck
-                          ? "border-red-500 bg-red-500 text-white dark:border-red-500 dark:bg-red-600"
+                          ? {
+                              borderColor: "var(--neg)",
+                              background: "var(--neg)",
+                              color: "var(--card)",
+                            }
                           : done
-                            ? "border-cyan-700 bg-cyan-700 text-white dark:border-cyan-500 dark:bg-cyan-600"
-                            : "border-slate-300 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500"
-                    }`}
+                            ? {
+                                borderColor: "var(--accent)",
+                                background: "var(--accent)",
+                                color: "#F6F2E6",
+                              }
+                            : {
+                                borderColor: "var(--hair)",
+                                background: "var(--card)",
+                                color: "var(--faint)",
+                              }
+                    }
                   >
                     {i + 1}
                   </span>
                   <span
                     className={`mt-1 text-xs ${
                       isCurrent && !cancelled
-                        ? "font-medium text-cyan-700 dark:text-cyan-400"
-                        : "text-slate-400 dark:text-slate-500"
+                        ? "font-semibold text-accent"
+                        : "text-faint"
                     }`}
                   >
                     {STATUS_LABELS[step]}
@@ -148,11 +159,11 @@ export default async function ShipmentDetailPage({
                 </div>
                 {i < STATUS_TIMELINE.length - 1 && (
                   <div
-                    className={`mx-2 h-0.5 flex-1 ${
-                      !cancelled && reachedIndex > i
-                        ? "bg-cyan-700 dark:bg-cyan-600"
-                        : "bg-slate-200 dark:bg-slate-700"
-                    }`}
+                    className="mx-2 h-0.5 flex-1"
+                    style={{
+                      background:
+                        !cancelled && reachedIndex > i ? "var(--accent)" : "var(--row)",
+                    }}
                   />
                 )}
               </li>
@@ -160,18 +171,18 @@ export default async function ShipmentDetailPage({
           })}
         </ol>
         {shipment.status === "delayed" && (
-          <p className="mt-3 text-xs font-medium text-red-600 dark:text-red-400">
+          <p className="mt-3 text-xs font-semibold text-neg">
             Marked delayed — in transit but behind schedule.
           </p>
         )}
         {shipment.status === "cancelled" && (
-          <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">This shipment was cancelled.</p>
+          <p className="mt-3 text-xs text-faint">This shipment was cancelled.</p>
         )}
-      </section>
+      </Card>
 
       {/* Facts grid */}
-      <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Details</h2>
+      <Card className="p-[18px]">
+        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">Details</h2>
         <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
           <Fact label="Departure">{shipment.departureAt ? dateTime(shipment.departureAt) : "—"}</Fact>
           <Fact label="ETA">
@@ -185,7 +196,7 @@ export default async function ShipmentDetailPage({
           <Fact label="Driver">
             {shipment.driverName ?? "—"}
             {shipment.driverPhone ? (
-              <span className="ml-1 text-slate-400 dark:text-slate-500">· {shipment.driverPhone}</span>
+              <span className="ml-1 text-faint">· {shipment.driverPhone}</span>
             ) : null}
           </Fact>
           <Fact label="Origin store">{shipment.originStore?.name ?? "—"}</Fact>
@@ -193,7 +204,7 @@ export default async function ShipmentDetailPage({
             {shipment.party ? (
               <Link
                 href={`/parties/${shipment.partyId}`}
-                className="text-cyan-700 hover:underline dark:text-cyan-400"
+                className="text-accent hover:underline"
               >
                 {shipment.party.name}
               </Link>
@@ -205,7 +216,7 @@ export default async function ShipmentDetailPage({
             {shipment.invoice ? (
               <Link
                 href={`/invoices/${shipment.invoiceId}`}
-                className="font-mono text-cyan-700 hover:underline dark:text-cyan-400"
+                className="font-mono text-accent hover:underline"
               >
                 #{shipment.invoice.invoiceNumber}
               </Link>
@@ -215,12 +226,12 @@ export default async function ShipmentDetailPage({
           </Fact>
         </dl>
         {shipment.notes && (
-          <div className="mt-4 border-t border-slate-100 pt-3 dark:border-slate-800">
-            <div className="text-xs font-medium text-slate-500 dark:text-slate-400">Notes</div>
-            <p className="mt-1 whitespace-pre-wrap text-sm">{shipment.notes}</p>
+          <div className="mt-4 border-t border-row pt-3">
+            <div className="text-xs font-medium text-muted">Notes</div>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-text">{shipment.notes}</p>
           </div>
         )}
-      </section>
+      </Card>
 
       {/* Status + ETA controls (client) */}
       <ShipmentControls
@@ -235,8 +246,8 @@ export default async function ShipmentDetailPage({
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</dt>
-      <dd className="mt-0.5 text-sm">{children}</dd>
+      <dt className="text-xs font-medium text-muted">{label}</dt>
+      <dd className="mt-0.5 text-sm text-text">{children}</dd>
     </div>
   );
 }
