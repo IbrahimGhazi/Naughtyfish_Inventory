@@ -53,20 +53,26 @@ export async function buildPartyLedger(
       balance: 0,
       meta: inv.channel,
     })),
-    ...payments.map((p) => ({
-      date: p.date,
-      kind: "payment" as const,
-      ref:
+    ...payments.map((p) => {
+      const amt = Number(p.amount);
+      const baseRef =
         p.type === "cheque" && p.cheque
           ? `Cheque ${p.cheque.chequeNumber}`
           : p.type === "cash"
             ? `Cash${p.promiseOfCheque ? " (promise of cheque)" : ""}`
-            : "Transfer",
-      debit: 0,
-      credit: Number(p.amount),
-      balance: 0,
-      meta: p.note ?? undefined,
-    })),
+            : "Transfer";
+      return {
+        date: p.date,
+        kind: "payment" as const,
+        // Negative payments are append-only reversals (e.g. a bounced cheque):
+        // shown as a debit so the running balance visibly climbs back up.
+        ref: amt < 0 ? `Reversal — ${baseRef}` : baseRef,
+        debit: amt < 0 ? -amt : 0,
+        credit: amt > 0 ? amt : 0,
+        balance: 0,
+        meta: p.note ?? undefined,
+      };
+    }),
   ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
   const opening = Number(party.openingBalance);

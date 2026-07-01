@@ -27,7 +27,10 @@ export async function updateChequeStatus(input: z.infer<typeof StatusSchema>) {
   const parsed = StatusSchema.parse(input);
   const scope = entityScope(ctx);
 
-  const cheque = await prisma.cheque.findFirst({ where: { id: parsed.chequeId, ...scope } });
+  const cheque = await prisma.cheque.findFirst({
+    where: { id: parsed.chequeId, ...scope },
+    include: { payments: true },
+  });
   if (!cheque) throw new Error("Cheque is not in the active book.");
 
   if (cheque.status === "cleared") {
@@ -38,9 +41,58 @@ export async function updateChequeStatus(input: z.infer<typeof StatusSchema>) {
     throw new Error(`Cannot move a cheque from "${cheque.status}" to "${parsed.status}".`);
   }
 
-  await prisma.cheque.update({
-    where: { id: cheque.id },
-    data: { status: parsed.status },
+  // A bounced cheque's money never arrived — the linked payment must stop
+  // crediting the party's ledger (otherwise the app itself produces the
+  // "we already paid you" dispute it exists to defend). Append-only: we add
+  // offsetting reversal rows, never delete. Un-bouncing (re-presented and
+  // honored) appends a re-instatement row. `net` guards idempotency.
+  const net = cheque.payments.reduce((s, p) => s + Number(p.amount), 0);
+  const positives = cheque.payments.filter((p) => Number(p.amount) > 0);
+  const first = positives[0];
+
+  await prisma.$transaction(async (tx) => {
+    if (parsed.status === "bounced" && net > 0 && first) {
+      const invoiceIds = new Set(positives.map((p) => p.invoiceId ?? null));
+      await tx.payment.create({
+        data: {
+          type: "cheque",
+          amount: -net,
+          partyId: first.partyId,
+          invoiceId: invoiceIds.size === 1 ? first.invoiceId : null,
+          chequeId: cheque.id,
+          entityId: ctx.entityId,
+          note: `Reversal — cheque ${cheque.chequeNumber} bounced`,
+        },
+      });
+    } else if (
+      cheque.status === "bounced" &&
+      parsed.status !== "bounced" &&
+      net <= 0 &&
+      first
+    ) {
+      // Target: the party ends up credited exactly the cheque amount once,
+      // regardless of how many bounce/re-present cycles happened before.
+      const reinstate = Number(cheque.amount) - net;
+      if (reinstate > 0) {
+        const invoiceIds = new Set(positives.map((p) => p.invoiceId ?? null));
+        await tx.payment.create({
+          data: {
+            type: "cheque",
+            amount: reinstate,
+            partyId: first.partyId,
+            invoiceId: invoiceIds.size === 1 ? first.invoiceId : null,
+            chequeId: cheque.id,
+            entityId: ctx.entityId,
+            note: `Cheque ${cheque.chequeNumber} re-presented and honored`,
+          },
+        });
+      }
+    }
+
+    await tx.cheque.update({
+      where: { id: cheque.id },
+      data: { status: parsed.status },
+    });
   });
 
   revalidatePath("/cheques");

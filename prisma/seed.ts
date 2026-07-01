@@ -11,6 +11,22 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
+  // GUARD: this seed WIPES every table. If real business data exists (any
+  // invoice or payment), refuse unless explicitly forced — one accidental
+  // `npm run db:seed` must not destroy the dispute-defense evidence base.
+  const [invoiceCount, paymentCount] = await Promise.all([
+    prisma.invoice.count(),
+    prisma.payment.count(),
+  ]);
+  if ((invoiceCount > 0 || paymentCount > 0) && process.env.FORCE_SEED !== "1") {
+    console.error(
+      `REFUSING to seed: database already has ${invoiceCount} invoice(s) and ` +
+        `${paymentCount} payment(s). This command wipes ALL data.\n` +
+        `Back up first (npm run db:backup), then re-run with FORCE_SEED=1 if you really mean it.`,
+    );
+    process.exit(1);
+  }
+
   // Clean (dev only) — order respects FKs.
   await prisma.deliveryLineItem.deleteMany();
   await prisma.deliveryRecord.deleteMany();

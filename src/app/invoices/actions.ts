@@ -141,6 +141,21 @@ export async function createInvoice(input: CreateInvoiceInput) {
 
   const parsed = InvoiceSchema.parse(input);
 
+  // Two-book isolation: the party (and source store, if any) must belong to the
+  // active book — same guarantee createPayment enforces. Never trust client ids.
+  const party = await prisma.party.findFirst({
+    where: { id: parsed.partyId, entityId: ctx.entityId },
+    select: { id: true },
+  });
+  if (!party) throw new Error("Party is not in the active book.");
+  if (parsed.sourceStoreId) {
+    const store = await prisma.store.findFirst({
+      where: { id: parsed.sourceStoreId, entityId: ctx.entityId },
+      select: { id: true },
+    });
+    if (!store) throw new Error("Source store is not in the active book.");
+  }
+
   // Load items (scoped) + per-item/party glazing baselines for the variance alert.
   const itemIds = [...new Set(parsed.lines.map((l) => l.itemId))];
   const items = await prisma.item.findMany({

@@ -92,14 +92,18 @@ export default async function Dashboard() {
     .filter((p) => p.party.partyType === "supplier")
     .reduce((s, p) => s + Number(p.amount), 0);
 
-  // Receivables (net) = Σ customer invoice totals − Σ payments from customers.
-  const customerIds = new Set(parties.filter((p) => p.partyType === "customer").map((p) => p.id));
+  // Receivables (net) = Σ customer opening balances + Σ customer invoice totals
+  // − Σ payments from customers. Opening balances MUST be included so this KPI
+  // agrees with buildPartyLedger (party pages + weekly statement).
+  const customers = parties.filter((p) => p.partyType === "customer");
+  const customerIds = new Set(customers.map((p) => p.id));
+  const customerOpening = customers.reduce((s, p) => s + Number(p.openingBalance), 0);
   const customerInvoiceAgg = await prisma.invoice.aggregate({
     where: { ...scope, partyId: { in: [...customerIds] } },
     _sum: { totalAmount: true },
   });
   const customerInvoiceTotal = Number(customerInvoiceAgg._sum.totalAmount ?? 0);
-  const receivablesNet = round2(customerInvoiceTotal - paymentsFromCustomers);
+  const receivablesNet = round2(customerOpening + customerInvoiceTotal - paymentsFromCustomers);
 
   // Supplier payables = Σ supplier opening balances − Σ payments made to suppliers.
   const supplierOpening = parties
