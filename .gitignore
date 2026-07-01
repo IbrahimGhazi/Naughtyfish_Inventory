@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local database + backups (never commit business data)
+prisma/dev.db*
+*.db
+*.db-journal
+/backups/

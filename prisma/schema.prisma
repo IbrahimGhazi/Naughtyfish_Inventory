@@ -1,0 +1,465 @@
+// NaughtyFish — data model (IMPLEMENTATION-PLAN.md §3)
+// Dev uses SQLite for zero-infra local runs; production target is PostgreSQL
+// (swap `provider` to "postgresql"). Enum-like fields are stored as String for
+// SQLite portability, with allowed values documented inline and validated in app
+// code (src/lib/enums.ts). Money & weights use Decimal.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// A book/entity. Everything below is scoped to exactly one Entity.
+/// name: "C-Star" | "NF"      book_type: "white" | "black"
+model Entity {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  bookType  String // white | black
+  createdAt DateTime @default(now())
+
+  users            User[]
+  parties          Party[]
+  items            Item[]
+  glazingSettings  GlazingSetting[]
+  stores           Store[]
+  referenceSeries  ReferenceSeries[]
+  bankAccounts     BankAccount[]
+  cheques          Cheque[]
+  invoices         Invoice[]
+  payments         Payment[]
+  deliveryRecords  DeliveryRecord[]
+  expenseCats      ExpenseCategory[]
+  expenseEntries   ExpenseEntry[]
+  badDebts         BadDebtEntry[]
+  stockMovements   StockMovement[]
+  shipments        Shipment[]
+}
+
+/// role: "admin" | "accountant" | "north_employee" | "store_keeper" | "delivery"
+/// entityAccess: "cstar" | "nf" | "both"   regionScope: "north" | "south" | "all"
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  loginId      String   @unique
+  passwordHash String
+  role         String
+  entityAccess String   @default("cstar")
+  regionScope  String   @default("all")
+  createdAt    DateTime @default(now())
+
+  entity   Entity  @relation(fields: [entityId], references: [id])
+  entityId String
+  storeScopes StoreScope[]
+
+  deliveryRecords DeliveryRecord[] @relation("DeliveredBy")
+  invoicesCreated Invoice[]        @relation("CreatedBy")
+  expenseEntries  ExpenseEntry[]
+}
+
+/// Join: which stores a (store-scoped) user may see.
+model StoreScope {
+  id      String @id @default(cuid())
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String
+  store   Store  @relation(fields: [storeId], references: [id])
+  storeId String
+
+  @@unique([userId, storeId])
+}
+
+/// partyType: "customer" | "supplier"    subType: "corporate" | "local"
+/// channel:   "north" | "local"
+model Party {
+  id             String   @id @default(cuid())
+  name           String
+  partyType      String   @default("customer")
+  subType        String? // corporate | local (customers)
+  channel        String? // north | local
+  address        String?
+  ntn            String? // local parties are name-only (null)
+  openingBalance Decimal  @default(0)
+  createdAt      DateTime @default(now())
+
+  entity   Entity @relation(fields: [entityId], references: [id])
+  entityId String
+
+  invoices        Invoice[]
+  payments        Payment[]
+  deliveryRecords DeliveryRecord[]
+  glazingSettings GlazingSetting[]
+  shipments       Shipment[]
+  badDebts        BadDebtEntry[]
+
+  @@index([entityId, partyType])
+}
+
+/// category: "fish_fillet" | "prawn"
+model Item {
+  id                   String   @id @default(cuid())
+  name                 String
+  category             String   @default("fish_fillet")
+  cartonWeightKg       Decimal  @default(20) // per-item; 20/15/13/10
+  packetsPerCarton     Int      @default(10) // prawn ~50 (confirm)
+  isPrawn              Boolean  @default(false)
+  fixedRate            Decimal? // per kg of NET weight — CONFIRM with owner
+  defaultGlazingPct    Decimal? // baseline expected % — CONFIRM with owner
+  active               Boolean  @default(true)
+
+  entity   Entity @relation(fields: [entityId], references: [id])
+  entityId String
+
+  glazingSettings  GlazingSetting[]
+  invoiceLines     InvoiceLineItem[]
+  inventoryLines   StoreInventoryLine[]
+  stockMovements   StockMovement[]
+
+  @@index([entityId])
+}
+
+/// Expected glazing % per item, optionally per party — drives the variance alert.
+model GlazingSetting {
+  id                    String  @id @default(cuid())
+  expectedGlazingPct    Decimal
+  varianceTolerancePct  Decimal @default(0)
+
+  item     Item    @relation(fields: [itemId], references: [id])
+  itemId   String
+  party    Party?  @relation(fields: [partyId], references: [id])
+  partyId  String?
+  entity   Entity  @relation(fields: [entityId], references: [id])
+  entityId String
+
+  @@unique([itemId, partyId])
+}
+
+/// ownershipType: "own" | "rented"
+model Store {
+  id            String   @id @default(cuid())
+  name          String
+  city          String?
+  region        String? // north | south
+  ownershipType String   @default("own")
+  createdAt     DateTime @default(now())
+
+  entity   Entity @relation(fields: [entityId], references: [id])
+  entityId String
+
+  inventoryLines StoreInventoryLine[]
+  invoices       Invoice[]
+  deliveryRecords DeliveryRecord[]
+  storeScopes    StoreScope[]
+  stockMovementsFrom StockMovement[] @relation("StockFrom")
+  stockMovementsTo   StockMovement[] @relation("StockTo")
+  originShipments Shipment[] @relation("ShipmentOrigin")
+
+  @@index([entityId])
+}
+
+model StoreInventoryLine {
+  id          String  @id @default(cuid())
+  cartonCount Int     @default(0)
+  packetCount Int     @default(0)
+  kgPerCarton Decimal @default(0)
+  totalKg     Decimal @default(0)
+
+  store   Store  @relation(fields: [storeId], references: [id])
+  storeId String
+  item    Item   @relation(fields: [itemId], references: [id])
+  itemId  String
+
+  @@unique([storeId, itemId])
+}
+
+/// Append-only stock ledger (plan §3). Records every inventory movement so the
+/// on-hand StoreInventoryLine numbers can always be explained.
+/// type: "issue" | "receive" | "adjust" | "direct-delivery"
+///   issue   — dispatched out of fromStore (invoice created)
+///   receive — stock received into toStore
+///   adjust  — manual correction (toStore) or invoice-edit delta (fromStore)
+/// (In-transit / net-zero / center-point variants are Parked — plan §8/§9.)
+model StockMovement {
+  id        String   @id @default(cuid())
+  type      String
+  cartons   Int      @default(0)
+  packets   Int      @default(0)
+  kg        Decimal  @default(0)
+  status    String   @default("posted")
+  note      String?
+  createdAt DateTime @default(now())
+
+  fromStore   Store?   @relation("StockFrom", fields: [fromStoreId], references: [id])
+  fromStoreId String?
+  toStore     Store?   @relation("StockTo", fields: [toStoreId], references: [id])
+  toStoreId   String?
+  item        Item     @relation(fields: [itemId], references: [id])
+  itemId      String
+  invoice     Invoice? @relation(fields: [invoiceId], references: [id])
+  invoiceId   String?
+  entity      Entity   @relation(fields: [entityId], references: [id])
+  entityId    String
+
+  @@index([entityId, itemId])
+  @@index([invoiceId])
+}
+
+/// Per-book/region manual invoice reference series (e.g. SSI-000001).
+/// Live start numbers are unknown to the owner — must be collected (plan §8).
+model ReferenceSeries {
+  id            String @id @default(cuid())
+  prefix        String @default("SSI-")
+  bookRegion    String // Punjab | Lahore | Karachi | Islamabad ...
+  currentNumber Int    @default(0)
+  digitWidth    Int    @default(6)
+
+  entity   Entity @relation(fields: [entityId], references: [id])
+  entityId String
+
+  @@unique([entityId, bookRegion])
+}
+
+model BankAccount {
+  id               String  @id @default(cuid())
+  bankName         String
+  accountName      String // C-Star
+  estimatedBalance Decimal @default(0) // MANUAL — owner updates; never auto-decremented
+
+  entity   Entity @relation(fields: [entityId], references: [id])
+  entityId String
+
+  cheques Cheque[]
+
+  @@index([entityId])
+}
+
+/// direction: "incoming" | "outgoing"
+/// status: "issued" | "cleared" | "pending" | "held" | "bounced"
+model Cheque {
+  id             String   @id @default(cuid())
+  chequeNumber   String
+  amount         Decimal
+  issueDate      DateTime?
+  clearingDue    DateTime?
+  reminderDate   DateTime? // 1 day before clearingDue
+  direction      String   @default("incoming")
+  status         String   @default("issued")
+  recipientName  String?
+  note           String?
+  createdAt      DateTime @default(now())
+
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
+  bankAccountId String
+  entity        Entity      @relation(fields: [entityId], references: [id])
+  entityId      String
+  payments      Payment[]
+
+  @@index([entityId, status])
+  @@index([reminderDate])
+}
+
+/// channel: "north" | "local"   status: "draft" | "submitted" | "edited" | "printed"
+model Invoice {
+  id              String   @id @default(cuid())
+  invoiceNumber   Int      @unique // auto, immutable, single global series
+  referenceNumber String? // manual, editable, per-book/region series
+  channel         String
+  status          String   @default("draft")
+  notes           String?
+  totalAmount     Decimal  @default(0)
+  version         Int      @default(1)
+  date            DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  party        Party   @relation(fields: [partyId], references: [id])
+  partyId      String
+  entity       Entity  @relation(fields: [entityId], references: [id])
+  entityId     String
+  sourceStore  Store?  @relation(fields: [sourceStoreId], references: [id])
+  sourceStoreId String?
+  createdBy    User?   @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById  String?
+
+  lineItems       InvoiceLineItem[]
+  payments        Payment[]
+  deliveryRecords DeliveryRecord[]
+  stockMovements  StockMovement[]
+  shipments       Shipment[]
+  badDebts        BadDebtEntry[]
+
+  @@index([entityId, partyId])
+}
+
+model InvoiceLineItem {
+  id             String  @id @default(cuid())
+  grossWeightKg  Decimal
+  finalWeightKg  Decimal? // buyer's defrosted weight (North primary path)
+  glazingPct     Decimal  @default(0) // derived (north) or entered (local secondary)
+  netWeightKg    Decimal
+  ratePerKg      Decimal
+  amount         Decimal
+  cartonCount    Int?
+  packetCount    Int?
+  cartonWeightKg Decimal?
+
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId String
+  item      Item    @relation(fields: [itemId], references: [id])
+  itemId    String
+}
+
+/// Immutable, append-only dispute-defense record (plan §4.1). Edits create a
+/// NEW version row (supersedesId points at the prior one); rows are never updated.
+model DeliveryRecord {
+  id             String   @id @default(cuid())
+  deliveredAt    DateTime @default(now()) // server timestamp, immutable
+  channel        String
+  totalAmount    Decimal  @default(0)
+  notes          String?
+  optionalPhoto  String? // convenience only — NOT required (plan §4.1)
+  version        Int      @default(1)
+  supersedesId   String? // prior version, if this is an edit
+
+  party         Party    @relation(fields: [partyId], references: [id])
+  partyId       String
+  storeFrom     Store?   @relation(fields: [storeFromId], references: [id])
+  storeFromId   String?
+  deliveredBy   User?    @relation("DeliveredBy", fields: [deliveredById], references: [id])
+  deliveredById String?
+  entity        Entity   @relation(fields: [entityId], references: [id])
+  entityId      String
+  invoice       Invoice? @relation(fields: [invoiceId], references: [id])
+  invoiceId     String?
+
+  lineItems DeliveryLineItem[]
+
+  @@index([entityId, partyId, deliveredAt])
+  @@index([invoiceId])
+}
+
+model DeliveryLineItem {
+  id            String  @id @default(cuid())
+  itemName      String // denormalized snapshot (immutability)
+  grossWeightKg Decimal
+  finalWeightKg Decimal?
+  glazingPct    Decimal @default(0)
+  netWeightKg   Decimal
+  ratePerKg     Decimal
+  amount        Decimal
+  cartonCount   Int?
+  packetCount   Int?
+
+  record   DeliveryRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  recordId String
+}
+
+/// type: "cheque" | "transfer" | "cash"
+model Payment {
+  id                 String   @id @default(cuid())
+  type               String
+  amount             Decimal
+  date               DateTime @default(now())
+  isPartial          Boolean  @default(false)
+  isPrecautionaryCash Boolean @default(false) // cash recorded as proof
+  promiseOfCheque    Boolean  @default(false)
+  note               String?
+
+  party     Party    @relation(fields: [partyId], references: [id])
+  partyId   String
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id])
+  invoiceId String?
+  cheque    Cheque?  @relation(fields: [chequeId], references: [id])
+  chequeId  String?
+  entity    Entity   @relation(fields: [entityId], references: [id])
+  entityId  String
+
+  @@index([entityId, partyId])
+}
+
+/// subCategory: "bad_debt" | "dispute"
+/// Optionally linked to a real party/invoice (dispute defense — plan §3), or a
+/// free-text personName when the counterparty isn't a tracked party.
+model BadDebtEntry {
+  id          String   @id @default(cuid())
+  personName  String
+  amount      Decimal
+  subCategory String   @default("bad_debt")
+  note        String?
+  date        DateTime @default(now())
+
+  entity   Entity @relation(fields: [entityId], references: [id])
+  entityId String
+  party    Party?   @relation(fields: [partyId], references: [id])
+  partyId  String?
+  invoice  Invoice? @relation(fields: [invoiceId], references: [id])
+  invoiceId String?
+
+  @@index([entityId, subCategory])
+}
+
+/// Flat, owner-editable category list (nested trees are Parked, plan §9).
+model ExpenseCategory {
+  id          String  @id @default(cuid())
+  name        String
+  isOwnerAdded Boolean @default(false)
+
+  entity   Entity @relation(fields: [entityId], references: [id])
+  entityId String
+  entries  ExpenseEntry[]
+
+  @@unique([entityId, name])
+}
+
+model ExpenseEntry {
+  id     String   @id @default(cuid())
+  amount Decimal
+  date   DateTime @default(now())
+  note   String?
+
+  category   ExpenseCategory @relation(fields: [categoryId], references: [id])
+  categoryId String
+  entity     Entity          @relation(fields: [entityId], references: [id])
+  entityId   String
+  enteredBy  User?           @relation(fields: [enteredById], references: [id])
+  enteredById String?
+
+  @@index([entityId, categoryId])
+}
+
+/// A shipment/parcel in transit from an origin to a destination city.
+/// status: "preparing" | "in_transit" | "delivered" | "delayed" | "cancelled"
+/// originCity / destinationCity are city NAMES matched to src/lib/geo.ts CITIES
+/// for map placement (GPS lat/long can be added later without a schema change of
+/// meaning — just populate the same projection).
+model Shipment {
+  id                 String    @id @default(cuid())
+  reference          String? // optional human-friendly label
+  status             String    @default("preparing")
+  originName         String // free text, e.g. "Karachi — Own Store"
+  originCity         String? // for map lookup, e.g. "Karachi"
+  destinationName    String? // free text detail
+  destinationCity    String // for map lookup, e.g. "Lahore"
+  departureAt        DateTime?
+  estimatedArrivalAt DateTime?
+  deliveredAt        DateTime?
+  carrier            String? // truck / transport company
+  driverName         String?
+  driverPhone        String?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  entity        Entity   @relation(fields: [entityId], references: [id])
+  entityId      String
+  party         Party?   @relation(fields: [partyId], references: [id])
+  partyId       String?
+  invoice       Invoice? @relation(fields: [invoiceId], references: [id])
+  invoiceId     String?
+  originStore   Store?   @relation("ShipmentOrigin", fields: [originStoreId], references: [id])
+  originStoreId String?
+
+  @@index([entityId, status])
+}
