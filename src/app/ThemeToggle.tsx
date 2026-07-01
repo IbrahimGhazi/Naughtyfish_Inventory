@@ -26,7 +26,7 @@ export default function ThemeToggle({ initialDark }: { initialDark: boolean }) {
       data-testid="theme-toggle"
       aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
       title={dark ? "Light mode" : "Dark mode"}
-      className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+      className="flex h-8 w-8 items-center justify-center rounded-lg border border-hair bg-card text-sm hover:bg-card2"
     >
       {dark ? "☀️" : "🌙"}
     </button>

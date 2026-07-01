@@ -1,41 +1,43 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Newsreader, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
+import AppShell from "./AppShell";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const newsreader = Newsreader({
+  variable: "--font-newsreader",
   subsets: ["latin"],
+  style: ["normal", "italic"],
+  weight: ["400", "500", "600", "700"],
 });
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-plex-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
-
-import Header from "./Header";
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
 
 export const metadata: Metadata = {
   title: "NaughtyFish",
-  description: "Seafood trading, invoicing & ledger",
+  description: "Seafood trade ledger — Karachi",
 };
 
 export default async function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  // Read the theme cookie server-side so the correct theme renders with no flash.
+}: Readonly<{ children: React.ReactNode }>) {
   const isDark = (await cookies()).get("nf_theme")?.value === "dark";
 
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased${isDark ? " dark" : ""}`}
+      className={`${newsreader.variable} ${plexSans.variable} ${plexMono.variable} h-full${isDark ? " dark" : ""}`}
     >
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-        <Header />
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">{children}</main>
+      <body className="h-full">
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

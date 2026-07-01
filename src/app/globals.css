@@ -1,56 +1,213 @@
 @import "tailwindcss";
 
-/* Class-based dark mode: toggle `.dark` on <html>. */
+/* Class-based dark mode: toggle `.dark` on <html>. Dark mode is a pure
+   variable swap — the semantic tokens below flip, and every utility built on
+   them follows automatically (no per-element dark: needed). */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ============================================================
+   Design tokens — "paper ledger" aesthetic (Claude Design handoff)
+   Light values in :root, dark overrides in .dark.
+   ============================================================ */
+:root {
+  --paper: #f1ebdd;
+  --paper-2: #f4efe3;
+  --card: #fdfbf4;
+  --card-2: #faf6ea;
+  --hair: #e4dbc5;
+  --hair-2: #eae2ce;
+  --row: #f0ead9;
+  --ink: #16262e;
+  --text: #22333b;
+  --muted: #7a8578;
+  --faint: #98937e;
+  --faint-2: #9aa39a;
+  --accent: #0e7c7b;
+  --accent-deep: #0a5f5e;
+  --accent-tint: rgba(14, 124, 123, 0.13);
+  --accent-tint-2: rgba(14, 124, 123, 0.22);
+  --gold: #8c6a1f;
+  --pos: #337a54;
+  --pos-bg: #e4efe2;
+  --neg: #c2492f;
+  --neg-bg: #f6e3db;
+  --warn: #a16a1b;
+  --warn-bg: #f4e8ce;
+  --info: #3e5d7a;
+  --info-bg: #e4e9f0;
+  --neutral: #7a6e4f;
+  --neutral-bg: #efe9d9;
+  --side-bg: #0d1f26;
+  --side-fg: #f2ebd9;
+  --side-dim: #7e938e;
+  --side-hair: rgba(242, 235, 217, 0.1);
+  --side-active: rgba(14, 124, 123, 0.28);
+  --shadow-card: 0 6px 18px -10px rgba(22, 38, 46, 0.18);
+  --shadow-pop: 0 18px 40px -18px rgba(22, 38, 46, 0.25);
+}
+
+.dark {
+  --paper: #0d1317;
+  --paper-2: #0f161b;
+  --card: #161d24;
+  --card-2: #1b232b;
+  --hair: #27323c;
+  --hair-2: #2b3742;
+  --row: #222c35;
+  --ink: #f2ebd9;
+  --text: #e2dccb;
+  --muted: #9fb0a9;
+  --faint: #86928b;
+  --faint-2: #7c887f;
+  --accent: #2bb0ad;
+  --accent-deep: #23928f;
+  --accent-tint: rgba(43, 176, 173, 0.16);
+  --accent-tint-2: rgba(43, 176, 173, 0.26);
+  --gold: #c9a24e;
+  --pos: #6fbf8f;
+  --pos-bg: rgba(111, 191, 143, 0.14);
+  --neg: #e0795f;
+  --neg-bg: rgba(224, 121, 95, 0.15);
+  --warn: #d6a24e;
+  --warn-bg: rgba(214, 162, 78, 0.15);
+  --info: #86a6c8;
+  --info-bg: rgba(134, 166, 200, 0.15);
+  --neutral: #b4a988;
+  --neutral-bg: rgba(180, 169, 136, 0.13);
+  --side-bg: #0a1216;
+  --side-fg: #f2ebd9;
+  --side-dim: #7e938e;
+  --side-hair: rgba(242, 235, 217, 0.08);
+  --side-active: rgba(43, 176, 173, 0.24);
+  --shadow-card: 0 6px 18px -10px rgba(0, 0, 0, 0.5);
+  --shadow-pop: 0 18px 40px -18px rgba(0, 0, 0, 0.6);
+}
+
+/* Expose tokens + fonts as Tailwind utilities (bg-card, text-ink, text-accent,
+   border-hair, font-serif, font-mono, …). */
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--paper);
+  --color-paper2: var(--paper-2);
+  --color-card: var(--card);
+  --color-card2: var(--card-2);
+  --color-hair: var(--hair);
+  --color-hair2: var(--hair-2);
+  --color-row: var(--row);
+  --color-ink: var(--ink);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-faint2: var(--faint-2);
+  --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-gold: var(--gold);
+  --color-pos: var(--pos);
+  --color-neg: var(--neg);
+  --color-warn: var(--warn);
+  --color-info: var(--info);
+  --color-side-bg: var(--side-bg);
+  --color-side-fg: var(--side-fg);
+  --color-side-dim: var(--side-dim);
+
+  --font-serif: var(--font-newsreader), Georgia, serif;
+  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 
+html,
 body {
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  height: 100%;
+}
+body {
+  background: var(--paper-2);
+  color: var(--text);
+  font-family: var(--font-plex-sans), system-ui, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Shared form control styling used across the app (light + dark). */
+::selection {
+  background: var(--accent-tint-2);
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--hair);
+  border-radius: 8px;
+  border: 3px solid var(--paper-2);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Shared form control — tokenised so it flips with dark mode. */
 .input {
   width: 100%;
-  border-radius: 0.375rem;
-  border: 1px solid #e2e8f0; /* slate-200 */
-  background: #fff;
-  padding: 0.375rem 0.625rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--hair);
+  background: var(--card);
+  padding: 0.5rem 0.625rem;
   font-size: 0.875rem;
-  color: #0f172a; /* slate-900 */
+  color: var(--text);
+  outline: none;
 }
 .input:focus {
-  outline: 2px solid #0e7490; /* cyan-700 */
-  outline-offset: -1px;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
 }
 .input:disabled {
-  background: #f8fafc;
-  color: #94a3b8;
+  background: var(--card-2);
+  color: var(--faint);
 }
-.dark .input {
-  border-color: #334155; /* slate-700 */
-  background: #0f172a; /* slate-900 */
-  color: #e2e8f0; /* slate-200 */
-}
-.dark .input:focus {
-  outline-color: #22d3ee; /* cyan-400 */
-}
-.dark .input:disabled {
-  background: #1e293b; /* slate-800 */
-  color: #64748b; /* slate-500 */
-}
-/* Native date/time pickers legible in dark mode. */
 .dark input[type="date"],
 .dark input[type="datetime-local"],
 .dark input[type="time"] {
   color-scheme: dark;
 }
 
-/* Printable invoice — hide app chrome and anything marked .no-print. */
+/* Motion (from the design). */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.94) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes growV {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@keyframes growH {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes swim {
+  0% { transform: translateX(0) rotate(0deg); }
+  30% { transform: translateX(4px) rotate(2.5deg); }
+  70% { transform: translateX(-3px) rotate(-2deg); }
+  100% { transform: translateX(0) rotate(0deg); }
+}
+@keyframes pulseRed {
+  0% { box-shadow: 0 0 0 0 rgba(194, 73, 47, 0.45); }
+  70% { box-shadow: 0 0 0 7px rgba(194, 73, 47, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(194, 73, 47, 0); }
+}
+.animate-rise { animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-pop { animation: popIn 0.4s ease both; }
+
+/* Printable documents stay light paper regardless of theme. */
 @media print {
+  aside,
   header,
   .no-print {
     display: none !important;
@@ -62,5 +219,6 @@ body {
   main {
     max-width: none !important;
     padding: 0 !important;
+    overflow: visible !important;
   }
 }
