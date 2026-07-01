@@ -120,6 +120,13 @@ export default async function SettingsPage() {
           >
             Expense categories →
           </Link>
+          <Link
+            href="/settings/password"
+            data-testid="hub-link-password"
+            className="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-cyan-700 hover:bg-slate-50 dark:border-slate-700 dark:text-cyan-400 dark:hover:bg-slate-800"
+          >
+            Change my password →
+          </Link>
         </div>
       </div>
     </div>
