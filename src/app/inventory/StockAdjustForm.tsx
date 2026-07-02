@@ -153,7 +153,7 @@ export default function StockAdjustForm({
 
       <div className="flex items-center gap-3">
         <button onClick={submit} disabled={!canSubmit} data-testid="adj-submit"
-          className="rounded-lg px-4 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          className="rounded-lg px-4 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}>
           {isPending ? "Saving…" : type === "receive" ? "Receive stock" : "Adjust stock"}
         </button>

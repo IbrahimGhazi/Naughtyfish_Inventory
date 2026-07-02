@@ -64,7 +64,7 @@ export function BalanceEditor({
         data-testid={`bank-${id}-save`}
         disabled={isPending}
         onClick={save}
-        className="rounded-lg px-3 py-1.5 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+        className="rounded-lg px-3 py-1.5 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
         style={{ background: "var(--accent)" }}
       >
         {isPending ? "…" : "Save"}
@@ -129,7 +129,7 @@ export function AddBankForm() {
       </div>
       {error && <p className="text-sm text-neg">{error}</p>}
       <button onClick={submit} disabled={!canSubmit} data-testid="add-bank-submit"
-        className="rounded-lg px-4 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+        className="rounded-lg px-4 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
         style={{ background: "var(--accent)" }}>
         {isPending ? "Saving…" : "Add account"}
       </button>

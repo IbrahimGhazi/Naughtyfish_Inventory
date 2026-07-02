@@ -198,7 +198,7 @@ export function AddPartyForm() {
           onClick={submit}
           disabled={!canSubmit}
           data-testid="party-add-submit"
-          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
           {isPending ? "Adding…" : "+ Add party"}
@@ -250,7 +250,7 @@ function EditPartyForm({ party, onDone }: { party: PartyRow; onDone: () => void 
           onClick={submit}
           disabled={!canSubmit}
           data-testid={`party-edit-save-${party.id}`}
-          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
           {isPending ? "Saving…" : "Save"}

@@ -94,7 +94,7 @@ export default function PaymentForm({
                 onClick={() => setType(t)}
                 className={`rounded-lg border px-3 py-1.5 text-sm font-semibold capitalize transition-colors ${
                   type === t
-                    ? "border-transparent text-[#F6F2E6]"
+                    ? "border-transparent text-on-accent"
                     : "border-hair bg-card text-text hover:bg-card2"
                 }`}
                 style={type === t ? { background: "var(--accent)" } : undefined}
@@ -239,7 +239,7 @@ export default function PaymentForm({
         onClick={submit}
         disabled={!canSubmit}
         data-testid="submit-payment"
-        className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+        className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
         style={{ background: "var(--accent)" }}
       >
         {isPending ? "Recording…" : "Record payment"}

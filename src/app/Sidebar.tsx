@@ -129,7 +129,7 @@ export default async function Sidebar({
       <div className="border-t p-3.5" style={{ borderColor: "var(--side-hair)" }}>
         <div className="flex items-center gap-2.5">
           <div
-            className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-[#F6F2E6]"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-on-accent"
             style={{ background: "var(--accent)" }}
           >
             {initials || "U"}

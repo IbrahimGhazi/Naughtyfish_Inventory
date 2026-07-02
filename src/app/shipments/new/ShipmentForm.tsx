@@ -351,7 +351,7 @@ export default function ShipmentForm({
           onClick={submit}
           disabled={!canSubmit}
           data-testid="ship-submit"
-          className="rounded-lg px-4 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          className="rounded-lg px-4 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
           {isPending ? "Creating…" : "Create shipment"}

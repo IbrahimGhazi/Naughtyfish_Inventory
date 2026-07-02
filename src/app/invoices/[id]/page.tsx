@@ -267,7 +267,7 @@ export default async function InvoiceDetailPage({
           </div>
           <Link
             href={`/parties/${invoice.partyId}`}
-            className="mt-4 block rounded-lg py-2.5 text-center text-sm font-semibold text-[#F6F2E6]"
+            className="mt-4 block rounded-lg py-2.5 text-center text-sm font-semibold text-on-accent"
             style={{ background: "var(--accent)" }}
           >
             Record payment

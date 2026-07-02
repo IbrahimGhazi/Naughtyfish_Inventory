@@ -136,7 +136,7 @@ export default async function ShipmentDetailPage({
                             ? {
                                 borderColor: "var(--accent)",
                                 background: "var(--accent)",
-                                color: "#F6F2E6",
+                                color: "var(--on-accent)",
                               }
                             : {
                                 borderColor: "var(--hair)",

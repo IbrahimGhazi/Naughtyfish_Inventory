@@ -132,7 +132,7 @@ export default function ShipmentControls({
             onClick={saveEta}
             disabled={isPending}
             data-testid="ship-eta-save"
-            className="rounded-lg px-3 py-1.5 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+            className="rounded-lg px-3 py-1.5 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
             style={{ background: "var(--accent)" }}
           >
             {isPending ? "Saving…" : "Save ETA"}

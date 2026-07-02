@@ -26,6 +26,7 @@
   --accent-deep: #0a5f5e;
   --accent-tint: rgba(14, 124, 123, 0.13);
   --accent-tint-2: rgba(14, 124, 123, 0.22);
+  --on-accent: #f6f2e6; /* text/icon colour on accent + accent-deep surfaces */
   --gold: #8c6a1f;
   --pos: #337a54;
   --pos-bg: #e4efe2;
@@ -64,6 +65,7 @@
   --accent-deep: #23928f;
   --accent-tint: rgba(43, 176, 173, 0.16);
   --accent-tint-2: rgba(43, 176, 173, 0.26);
+  --on-accent: #041a17; /* dark ink: ≥4.5:1 on the brighter dark-mode accent(-deep) */
   --gold: #c9a24e;
   --pos: #6fbf8f;
   --pos-bg: rgba(111, 191, 143, 0.14);
@@ -102,6 +104,7 @@
   --color-faint2: var(--faint-2);
   --color-accent: var(--accent);
   --color-accent-deep: var(--accent-deep);
+  --color-on-accent: var(--on-accent);
   --color-gold: var(--gold);
   --color-pos: var(--pos);
   --color-neg: var(--neg);

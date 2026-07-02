@@ -140,7 +140,7 @@ export function AddSeriesForm() {
           onClick={submit}
           disabled={!canSubmit}
           data-testid="series-add-submit"
-          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
           {isPending ? "Adding…" : "+ Add series"}
@@ -188,7 +188,7 @@ function EditSeriesForm({ series, onDone }: { series: SeriesRow; onDone: () => v
           onClick={submit}
           disabled={!canSubmit}
           data-testid={`series-edit-save-${series.id}`}
-          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
           {isPending ? "Saving…" : "Save"}

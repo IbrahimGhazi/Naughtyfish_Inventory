@@ -154,7 +154,7 @@ export default async function BadDebtsPage({
               data-testid={`bd-tab-${t.key}`}
               className={`rounded-full px-3 py-1 font-semibold transition-colors ${
                 active
-                  ? "text-[#F6F2E6]"
+                  ? "text-on-accent"
                   : "border border-hair bg-card text-muted hover:bg-card2"
               }`}
               style={active ? { background: "var(--accent)" } : undefined}

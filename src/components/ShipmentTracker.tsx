@@ -385,7 +385,7 @@ export default function ShipmentTracker({ shipments }: { shipments: TrackedShipm
                 onClick={() => setFilter(f.key)}
                 data-testid={`ship-filter-${f.key}`}
                 className={`rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors ${
-                  on ? "border-transparent text-[#f6f2e6]" : "border-hair bg-card text-muted hover:bg-card2"
+                  on ? "border-transparent text-on-accent" : "border-hair bg-card text-muted hover:bg-card2"
                 }`}
                 style={on ? { background: "var(--accent)" } : undefined}
               >

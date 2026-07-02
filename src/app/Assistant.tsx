@@ -160,7 +160,7 @@ export default function Assistant({ book }: { book: string }) {
               m.role === "user" ? (
                 <div key={i} className="flex justify-end">
                   <div
-                    className="max-w-[85%] rounded-2xl rounded-br-sm px-3.5 py-2 text-[13px] text-[#F6F2E6]"
+                    className="max-w-[85%] rounded-2xl rounded-br-sm px-3.5 py-2 text-[13px] text-on-accent"
                     style={{ background: "var(--accent-deep)" }}
                   >
                     {m.content}
@@ -208,7 +208,7 @@ export default function Assistant({ book }: { book: string }) {
               type="submit"
               disabled={busy || !input.trim()}
               data-testid="assistant-send"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#F6F2E6] disabled:opacity-40"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-on-accent disabled:opacity-40"
               style={{ background: "var(--accent)" }}
               aria-label="Send"
             >
@@ -226,7 +226,7 @@ export default function Assistant({ book }: { book: string }) {
         onClick={() => setOpen((o) => !o)}
         data-testid="assistant-toggle"
         aria-label={open ? "Close assistant" : "Ask the ledger"}
-        className="fixed z-[71] flex items-center justify-center rounded-full text-[#F6F2E6] transition-transform hover:scale-105"
+        className="fixed z-[71] flex items-center justify-center rounded-full text-on-accent transition-transform hover:scale-105"
         style={{ right: 20, bottom: 20, height: 54, width: 54, background: "var(--accent)", boxShadow: "var(--shadow-pop)" }}
       >
         {open ? (

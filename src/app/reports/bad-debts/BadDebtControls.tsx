@@ -104,7 +104,7 @@ export function AddBadDebtForm({
         type="button"
         data-testid="bd-open-add"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors"
+        className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-on-accent transition-colors"
         style={{ background: "var(--accent)" }}
       >
         + Add entry
@@ -254,7 +254,7 @@ export function AddBadDebtForm({
           onClick={submit}
           disabled={!canSubmit}
           data-testid="bd-submit"
-          className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
           {isPending ? "Saving…" : "Add entry"}

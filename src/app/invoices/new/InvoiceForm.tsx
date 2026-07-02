@@ -406,7 +406,7 @@ export default function InvoiceForm({
         <button
           onClick={submit}
           disabled={!canSubmit}
-          className="mt-4 w-full rounded-[10px] py-3 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          className="mt-4 w-full rounded-[10px] py-3 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
           {isPending ? "Saving…" : "Save invoice"}

@@ -47,7 +47,7 @@ export function AddCategoryForm() {
         onClick={submit}
         disabled={!canSubmit}
         data-testid="exp-cat-add"
-        className="rounded-lg px-3 py-1.5 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+        className="rounded-lg px-3 py-1.5 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
         style={{ background: "var(--accent)" }}
       >
         {isPending ? "Adding…" : "+ Add category"}
@@ -118,7 +118,7 @@ export function AddEntryForm({ categories }: { categories: FormCategory[] }) {
       </div>
       <div className="flex items-center gap-3">
         <button onClick={submit} disabled={!canSubmit} data-testid="exp-entry-add"
-          className="rounded-lg px-4 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          className="rounded-lg px-4 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}>
           {isPending ? "Saving…" : "Add expense"}
         </button>

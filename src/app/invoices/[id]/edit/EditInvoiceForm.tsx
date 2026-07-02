@@ -315,7 +315,7 @@ export default function EditInvoiceForm({
           onClick={submit}
           disabled={!canSubmit}
           data-testid="edit-save"
-          className="mt-4 w-full rounded-[10px] py-3 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+          className="mt-4 w-full rounded-[10px] py-3 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
           {isPending ? "Saving…" : `Save changes to #${invoiceNumber}`}

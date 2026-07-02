@@ -45,7 +45,7 @@ export default function LoginForm() {
         type="submit"
         disabled={isPending}
         data-testid="login-submit"
-        className="w-full rounded-lg px-4 py-3 text-[14.5px] font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+        className="w-full rounded-lg px-4 py-3 text-[14.5px] font-semibold text-on-accent transition-colors disabled:opacity-40"
         style={{ background: "var(--accent)" }}
       >
         {isPending ? "Signing in…" : "Enter the ledger →"}

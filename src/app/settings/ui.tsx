@@ -94,7 +94,7 @@ export function PrimaryButton({
       onClick={onClick}
       disabled={disabled}
       data-testid={testId}
-      className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-[#F6F2E6] transition-colors disabled:opacity-40"
+      className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
       style={{ background: "var(--accent)" }}
     >
       {children}

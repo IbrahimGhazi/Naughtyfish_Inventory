@@ -137,7 +137,7 @@ export function PrimaryButton({
   href?: string;
   className?: string;
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  const cls = `inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-[#F6F2E6] transition-colors ${className}`;
+  const cls = `inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-on-accent transition-colors ${className}`;
   const style: CSSProperties = { background: "var(--accent)" };
   if (href) {
     return (
