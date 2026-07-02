@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getActiveContext } from "@/lib/session";
 import { assertRole } from "@/lib/roles";
-import { persistConfig, FONT_PRESETS, SURFACE_PRESETS, type AppConfig } from "@/lib/config";
+import { persistConfig, FONT_PRESETS, SURFACE_PRESETS, sanitizeCopyOverrides, type AppConfig } from "@/lib/config";
 import { cityByName } from "@/lib/geo";
 
 /**
@@ -76,6 +76,9 @@ const ConfigSchema = z.object({
     subtitle: z.string().trim().min(1).max(120),
     showContextCities: z.boolean(),
   }),
+  // Sparse wording overrides (copy-key → text). Loosely typed here; keys are
+  // validated against the registry and stored sparsely by sanitizeCopyOverrides.
+  copy: z.record(z.string(), z.string()).optional(),
 });
 
 export async function savePlatformConfig(input: AppConfig): Promise<{ ok: true }> {
@@ -100,7 +103,11 @@ export async function savePlatformConfig(input: AppConfig): Promise<{ ok: true }
     );
   }
 
-  await persistConfig(parsed);
+  // Keep only real overrides for known keys (drops stale keys, empties, and
+  // values equal to the default — the stored row stays sparse).
+  const clean: AppConfig = { ...parsed, copy: sanitizeCopyOverrides(parsed.copy) };
+
+  await persistConfig(clean);
   revalidatePath("/", "layout");
   return { ok: true };
 }

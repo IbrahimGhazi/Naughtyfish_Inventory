@@ -4,6 +4,8 @@
  * client components and unit tests. Server loading/saving lives in config.ts.
  */
 
+import { COPY_KEY_SET, COPY_MAX_LEN, type CopyMap } from "./copy";
+
 /* ============================== Types ============================== */
 
 export interface BrandingConfig {
@@ -101,6 +103,8 @@ export interface AppConfig {
   terminology: TerminologyConfig;
   features: FeatureFlags;
   map: MapConfig;
+  /** Sparse per-deployment wording overrides: copy-key → replacement text. */
+  copy: CopyMap;
 }
 
 /* ============================= Defaults ============================= */
@@ -160,6 +164,7 @@ export const DEFAULT_CONFIG: AppConfig = {
     subtitle: "Karachi cold-chain dispatches heading north.",
     showContextCities: true,
   },
+  copy: {},
 };
 
 /** Just the color half of ThemeConfig (what a palette preset supplies). */
@@ -260,6 +265,7 @@ export function mergeConfig(stored: unknown): AppConfig {
     terminology: { ...DEFAULT_CONFIG.terminology },
     features: { ...DEFAULT_CONFIG.features },
     map: { ...DEFAULT_CONFIG.map },
+    copy: {},
   };
   // Theme section guard: preset pickers must exist in their tables, every
   // other theme key is a color and must be hex.
@@ -287,6 +293,17 @@ export function mergeConfig(stored: unknown): AppConfig {
       const logo = src.logoDataUrl;
       out.branding.logoDataUrl =
         typeof logo === "string" && logo.startsWith("data:image/") ? logo : null;
+    }
+  }
+  // Copy overrides are a sparse map (not fixed keys). Keep only known keys with
+  // non-empty, capped string values — a stale/oversized override is dropped so
+  // it can never blank out or bloat a string.
+  const rawCopy = (s as { copy?: unknown }).copy;
+  if (rawCopy && typeof rawCopy === "object") {
+    for (const [k, v] of Object.entries(rawCopy as Record<string, unknown>)) {
+      if (COPY_KEY_SET.has(k) && typeof v === "string" && v.length > 0 && v.length <= COPY_MAX_LEN) {
+        out.copy[k] = v;
+      }
     }
   }
   return out;

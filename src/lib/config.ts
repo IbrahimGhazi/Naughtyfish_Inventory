@@ -7,8 +7,10 @@
 import { cache } from "react";
 import { prisma } from "./prisma";
 import { mergeConfig, DEFAULT_CONFIG, type AppConfig, type FeatureFlags } from "./config-shared";
+import { makeT, resolveCopy, type TFn } from "./copy";
 
 export * from "./config-shared";
+export * from "./copy";
 
 /* ======================= Load / merge / save ======================= */
 
@@ -26,6 +28,16 @@ export const getAppConfig = cache(async (): Promise<AppConfig> => {
   } catch {
     return DEFAULT_CONFIG;
   }
+});
+
+/**
+ * Editable-copy translator for SERVER components: `const t = await getCopy()`.
+ * Resolves this deployment's overrides over the defaults, cached per request.
+ * Client components use useCopy() from "@/lib/copy/CopyProvider" instead.
+ */
+export const getCopy = cache(async (): Promise<TFn> => {
+  const cfg = await getAppConfig();
+  return makeT(resolveCopy(cfg.copy));
 });
 
 /**

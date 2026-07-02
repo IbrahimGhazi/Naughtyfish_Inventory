@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
-import { getAppConfig } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import { pkr, dateShort } from "@/lib/format";
 import { monthlyPnL, agingBuckets, topDebtors } from "@/lib/analytics";
 import { cityByName, project } from "@/lib/geo";
@@ -20,6 +20,7 @@ export default async function Dashboard() {
   requirePage(ctx, "dashboard");
   const scope = entityScope(ctx);
   const cfg = await getAppConfig();
+  const t = await getCopy();
   const f = cfg.features;
 
   const now = new Date();
@@ -479,7 +480,7 @@ export default async function Dashboard() {
         {/* Recent invoices. */}
         <Card className="p-[18px]">
           <div className="mb-2 flex items-center justify-between">
-            <div className="font-serif text-[17px] font-semibold text-ink">Recent invoices</div>
+            <div className="font-serif text-[17px] font-semibold text-ink">{t("dashboard.recentInvoices")}</div>
             <Link
               href="/invoices"
               className="p-1 text-[12px] font-semibold text-accent hover:text-accent-deep"
@@ -523,7 +524,7 @@ export default async function Dashboard() {
         {f.shipments && (
           <Card className="p-[18px]">
             <div className="mb-2 flex items-center justify-between">
-              <div className="font-serif text-[17px] font-semibold text-ink">On the road</div>
+              <div className="font-serif text-[17px] font-semibold text-ink">{t("dashboard.onTheRoad")}</div>
               <Link
                 href="/shipments"
                 className="p-1 text-[12px] font-semibold text-accent hover:text-accent-deep"

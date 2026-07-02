@@ -10,6 +10,7 @@ import {
   type FeatureFlags,
   type TerminologyConfig,
 } from "@/lib/config-shared";
+import { COPY_GROUPS, COPY_DEFAULTS } from "@/lib/copy";
 import { CITY_NAMES } from "@/lib/geo";
 import { savePlatformConfig } from "./actions";
 
@@ -76,6 +77,17 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
   const patch = <K extends keyof AppConfig>(section: K, p: Partial<AppConfig[K]>) => {
     setSaved(false);
     setCfg((c) => ({ ...c, [section]: { ...c[section], ...p } }));
+  };
+
+  // Copy overrides: set a wording override, or clear it (empty → use default).
+  const patchCopy = (key: string, value: string) => {
+    setSaved(false);
+    setCfg((c) => {
+      const copy = { ...c.copy };
+      if (value.trim().length === 0) delete copy[key];
+      else copy[key] = value;
+      return { ...c, copy };
+    });
   };
 
   function save() {
@@ -457,6 +469,15 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
         </Card>
       )}
 
+      {/* ============================== Wording ============================== */}
+      <Card className="p-5">
+        <SectionTitle
+          title="Wording"
+          sub="Rewrite any text in the app — screen titles, buttons, labels, empty-state messages. Leave a field blank to keep the default. Grouped by screen; use search to jump to a phrase."
+        />
+        <CopyEditor copy={cfg.copy} onChange={patchCopy} />
+      </Card>
+
       {/* ========================== New customer runbook ========================== */}
       <Card className="p-5">
         <SectionTitle
@@ -530,6 +551,113 @@ ASSISTANT_MODEL=…            # optional`}</pre>
 }
 
 /* ------------------------------ helpers ------------------------------ */
+
+/**
+ * Copy editor — auto-generated from the copy registry (COPY_GROUPS). Every
+ * registered string appears under its screen group with its default as the
+ * placeholder; typing sets an override, clearing restores the default. A search
+ * box filters across key, label, default and current value; groups with no
+ * matches collapse away. New registry entries show up here with zero UI work.
+ */
+function CopyEditor({
+  copy,
+  onChange,
+}: {
+  copy: Record<string, string>;
+  onChange: (key: string, value: string) => void;
+}) {
+  const [q, setQ] = useState("");
+  const needle = q.trim().toLowerCase();
+  const overrideCount = Object.keys(copy).length;
+
+  const groups = useMemo(() => {
+    if (!needle) return COPY_GROUPS;
+    return COPY_GROUPS.map((g) => ({
+      group: g.group,
+      entries: g.entries.filter((e) =>
+        [e.key, e.label, e.default, copy[e.key] ?? ""].some((s) =>
+          s.toLowerCase().includes(needle),
+        ),
+      ),
+    })).filter((g) => g.entries.length > 0);
+  }, [needle, copy]);
+
+  const totalMatches = groups.reduce((n, g) => n + g.entries.length, 0);
+
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <input
+          className="input max-w-xs"
+          placeholder="Search all wording…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <span className="text-[12px] text-faint">
+          {needle ? `${totalMatches} match${totalMatches === 1 ? "" : "es"}` : `${COPY_GROUPS.length} screens`}
+          {overrideCount > 0 && ` · ${overrideCount} overridden`}
+        </span>
+      </div>
+
+      {groups.length === 0 && (
+        <p className="text-[13px] text-faint">No wording matches “{q}”.</p>
+      )}
+
+      <div className="space-y-4">
+        {groups.map((g) => (
+          <details key={g.group} open={!!needle} className="rounded-lg border border-hair bg-card2">
+            <summary className="cursor-pointer list-none px-3.5 py-2.5 text-[13px] font-semibold text-ink">
+              {g.group}
+              <span className="ml-2 font-normal text-faint">{g.entries.length}</span>
+            </summary>
+            <div className="space-y-3 border-t border-hair px-3.5 py-3">
+              {g.entries.map((e) => {
+                const overridden = copy[e.key] !== undefined;
+                const long = e.multiline || (COPY_DEFAULTS[e.key]?.length ?? 0) > 60;
+                return (
+                  <div key={e.key}>
+                    <div className="mb-1 flex items-baseline gap-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-faint2">
+                        {e.label}
+                      </span>
+                      {overridden && (
+                        <button
+                          type="button"
+                          onClick={() => onChange(e.key, "")}
+                          className="text-[11px] font-semibold text-accent-deep hover:underline"
+                        >
+                          reset
+                        </button>
+                      )}
+                    </div>
+                    {long ? (
+                      <textarea
+                        className="input min-h-[2.4rem]"
+                        rows={2}
+                        maxLength={600}
+                        placeholder={COPY_DEFAULTS[e.key]}
+                        value={copy[e.key] ?? ""}
+                        onChange={(ev) => onChange(e.key, ev.target.value)}
+                      />
+                    ) : (
+                      <input
+                        className="input"
+                        maxLength={600}
+                        placeholder={COPY_DEFAULTS[e.key]}
+                        value={copy[e.key] ?? ""}
+                        onChange={(ev) => onChange(e.key, ev.target.value)}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </details>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function SectionTitle({ title, sub }: { title: string; sub: string }) {
   return (

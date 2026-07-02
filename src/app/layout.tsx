@@ -8,7 +8,8 @@ import {
 import { cookies } from "next/headers";
 import "./globals.css";
 import AppShell from "./AppShell";
-import { getAppConfig, themeCss, unitsScript } from "@/lib/config";
+import { getAppConfig, themeCss, unitsScript, resolveCopy } from "@/lib/config";
+import { CopyProvider } from "@/lib/copy/CopyProvider";
 
 /*
  * White-label font trios. next/font requires MODULE-SCOPE declarations, so all
@@ -143,7 +144,9 @@ export default async function RootLayout({
         {/* Mirror currency/weight units to the browser BEFORE hydration so
             client components (forms, live totals) format like the server. */}
         <script dangerouslySetInnerHTML={{ __html: unitsScript(cfg) }} />
-        <AppShell>{children}</AppShell>
+        <CopyProvider map={resolveCopy(cfg.copy)}>
+          <AppShell>{children}</AppShell>
+        </CopyProvider>
       </body>
     </html>
   );
