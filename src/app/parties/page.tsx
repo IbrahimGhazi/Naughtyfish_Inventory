@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { Card, PageHeader } from "@/components/ui";
 
@@ -23,6 +24,7 @@ function initials(name: string): string {
 
 export default async function PartiesPage() {
   const ctx = await getActiveContext();
+  requirePage(ctx, "parties");
   const parties = await prisma.party.findMany({
     where: entityScope(ctx),
     orderBy: [{ partyType: "asc" }, { name: "asc" }],

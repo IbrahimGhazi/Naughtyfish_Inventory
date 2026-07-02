@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { CHEQUE_STATUSES } from "@/lib/enums";
 import { pkr, dateShort } from "@/lib/format";
@@ -22,6 +23,7 @@ export default async function ChequesPage({
 }) {
   const { status } = await searchParams;
   const ctx = await getActiveContext();
+  requirePage(ctx, "cheques");
   const scope = entityScope(ctx);
 
   const activeStatus =

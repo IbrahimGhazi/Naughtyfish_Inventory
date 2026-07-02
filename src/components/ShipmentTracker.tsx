@@ -81,7 +81,16 @@ const Pill = ({ status, label }: { status: string; label: string }) => (
   </span>
 );
 
-export default function ShipmentTracker({ shipments }: { shipments: TrackedShipment[] }) {
+export default function ShipmentTracker({
+  shipments,
+  originCity = "Karachi",
+  showContextCities = true,
+}: {
+  shipments: TrackedShipment[];
+  /** White-label: dispatch origin (platform config). */
+  originCity?: string;
+  showContextCities?: boolean;
+}) {
   const [filter, setFilter] = useState<Filter>("active");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -101,6 +110,8 @@ export default function ShipmentTracker({ shipments }: { shipments: TrackedShipm
 
   const d = borderPath();
   const destCitySet = new Set(filtered.map((s) => s.destCity));
+  const originGeo = CITIES.find((c) => c.name === originCity);
+  const originXY = originGeo ? project(originGeo.lng, originGeo.lat) : KARACHI_XY;
   const selColor = sel ? mapColor(sel.status) : null;
 
   return (
@@ -128,7 +139,7 @@ export default function ShipmentTracker({ shipments }: { shipments: TrackedShipm
           />
 
           {/* Context cities (non-destinations) as faint reference dots. */}
-          {CITIES.filter((c) => c.name !== "Karachi" && !destCitySet.has(c.name)).map((c) => {
+          {showContextCities && CITIES.filter((c) => c.name !== originCity && !destCitySet.has(c.name)).map((c) => {
             const p = project(c.lng, c.lat);
             return (
               <g key={`ctx-${c.name}`}>
@@ -268,11 +279,11 @@ export default function ShipmentTracker({ shipments }: { shipments: TrackedShipm
             );
           })}
 
-          {/* Karachi origin */}
+          {/* Origin (config-driven) */}
           <g>
             <circle
-              cx={KARACHI_XY.x}
-              cy={KARACHI_XY.y}
+              cx={originXY.x}
+              cy={originXY.y}
               r={10}
               fill="none"
               stroke="#16262e"
@@ -280,10 +291,10 @@ export default function ShipmentTracker({ shipments }: { shipments: TrackedShipm
               strokeWidth={1.2}
               opacity={0.35}
             />
-            <circle cx={KARACHI_XY.x} cy={KARACHI_XY.y} r={5} fill="#16262e" className="fill-[var(--ink)]" />
+            <circle cx={originXY.x} cy={originXY.y} r={5} fill="#16262e" className="fill-[var(--ink)]" />
             <text
-              x={KARACHI_XY.x}
-              y={KARACHI_XY.y + 26}
+              x={originXY.x}
+              y={originXY.y + 26}
               textAnchor="middle"
               fill="#16262e"
               className="fill-[var(--ink)]"
@@ -291,7 +302,7 @@ export default function ShipmentTracker({ shipments }: { shipments: TrackedShipm
               fontWeight={700}
               style={{ paintOrder: "stroke", stroke: "var(--card)", strokeWidth: 3 }}
             >
-              Karachi
+              {originCity}
             </text>
           </g>
         </svg>
@@ -315,7 +326,7 @@ export default function ShipmentTracker({ shipments }: { shipments: TrackedShipm
               <div className="flex-1" />
               <Pill status={sel.status} label={sel.statusLabel} />
             </div>
-            <div className="mt-1.5 font-serif text-[18px] font-semibold">Karachi → {sel.destCity}</div>
+            <div className="mt-1.5 font-serif text-[18px] font-semibold">{originCity} → {sel.destCity}</div>
             <div className="mt-0.5 text-[11.5px]" style={{ color: "var(--side-dim)" }}>
               {[sel.carrier, sel.consignee].filter(Boolean).join(" · ") || "—"}
             </div>
@@ -419,7 +430,7 @@ export default function ShipmentTracker({ shipments }: { shipments: TrackedShipm
                   <div className="flex-1" />
                   <Pill status={s.status} label={s.statusLabel} />
                 </div>
-                <div className="mt-1.5 text-[13.5px] font-semibold text-text">Karachi → {s.destCity}</div>
+                <div className="mt-1.5 text-[13.5px] font-semibold text-text">{originCity} → {s.destCity}</div>
                 <div className="mt-2 flex items-center gap-2.5">
                   <div className="h-[3px] flex-1 overflow-hidden rounded-full bg-row">
                     <div

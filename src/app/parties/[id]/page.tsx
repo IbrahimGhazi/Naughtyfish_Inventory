@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { buildPartyLedger } from "@/lib/ledger";
 import { pkr, dateShort } from "@/lib/format";
@@ -19,6 +20,7 @@ export default async function PartyLedgerPage({
   const { id } = await params;
   const { asOf } = await searchParams;
   const ctx = await getActiveContext();
+  requirePage(ctx, "parties");
 
   const party = await prisma.party.findFirst({ where: { id, ...entityScope(ctx) } });
   if (!party) notFound();

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { assertEntityAccess } from "@/lib/scope";
+import { assertRole, OFFICE_ROLES } from "@/lib/roles";
 import { computeLine, computeInvoiceTotal, type LineInput } from "@/lib/billing";
 import { formatReference } from "@/lib/reference";
 import { aggregateByItem, computeStockDelta, round3, type StockLineQty } from "@/lib/inventory";
@@ -138,6 +139,13 @@ export type CreateInvoiceInput = z.infer<typeof InvoiceSchema>;
 export async function createInvoice(input: CreateInvoiceInput) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
+  assertRole(ctx, [...OFFICE_ROLES, "north_employee", "delivery"]);
+
+  // Roadmap M3.2: a delivery login's invoice lands as a DRAFT the office
+  // reviews before it counts as final. Stock + the immutable delivery record
+  // still post immediately — the goods physically left; only the paperwork
+  // awaits review (office fixes mistakes via the versioned edit flow).
+  const isDeliveryDraft = ctx.user.role === "delivery";
 
   const parsed = InvoiceSchema.parse(input);
 
@@ -225,7 +233,7 @@ export async function createInvoice(input: CreateInvoiceInput) {
         invoiceNumber,
         referenceNumber,
         channel: parsed.channel,
-        status: "submitted",
+        status: isDeliveryDraft ? "draft" : "submitted",
         notes: parsed.notes,
         totalAmount: total,
         date: new Date(),
@@ -317,6 +325,8 @@ export type UpdateInvoiceInput = z.infer<typeof UpdateInvoiceSchema>;
 export async function updateInvoice(input: UpdateInvoiceInput) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
+  // Edits rewrite amounts + append delivery-record versions — office only.
+  assertRole(ctx, OFFICE_ROLES);
 
   const parsed = UpdateInvoiceSchema.parse(input);
 
@@ -468,4 +478,83 @@ export async function updateInvoice(input: UpdateInvoiceInput) {
   revalidatePath(`/invoices/${invoice.id}`);
   revalidatePath(`/parties/${partyId}`);
   return { id: invoice.id, invoiceNumber: invoice.invoiceNumber, referenceNumber: invoice.referenceNumber, total };
+}
+
+/* ----------------------- Delivery-draft review flow ----------------------- */
+
+/**
+ * Approve a delivery-entered draft: head office reviewed the numbers, the
+ * invoice becomes a normal "submitted" one. (To fix figures first, use the
+ * regular edit flow, then approve.)
+ */
+export async function approveInvoice(invoiceId: string) {
+  const ctx = await getActiveContext();
+  await assertEntityAccess(ctx);
+  assertRole(ctx, OFFICE_ROLES);
+
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: invoiceId, entityId: ctx.entityId },
+    select: { id: true, status: true, partyId: true },
+  });
+  if (!invoice) throw new Error("Invoice not found in this book.");
+  if (invoice.status !== "draft") throw new Error("Only draft invoices can be approved.");
+
+  await prisma.invoice.update({
+    where: { id: invoice.id },
+    data: { status: "submitted" },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/invoices");
+  revalidatePath(`/invoices/${invoice.id}`);
+  revalidatePath(`/parties/${invoice.partyId}`);
+}
+
+/* ------------------------- Delivery-confirmation photo ------------------------- */
+
+const PhotoSchema = z.object({
+  invoiceId: z.string().min(1),
+  /** Compressed client-side (canvas → JPEG); hard cap keeps rows small. */
+  photoDataUrl: z
+    .string()
+    .regex(/^data:image\/(jpeg|png|webp);base64,/)
+    .max(900_000, "Photo too large — try again (it is compressed automatically)."),
+});
+
+/**
+ * Attach the "package delivered" confirmation photo to the invoice's LATEST
+ * delivery record (plan §4.1: optional convenience, never a submit gate).
+ * Append-only discipline: once a record carries a photo it can't be replaced —
+ * an edit creates a new record version which can then carry a fresh photo.
+ * The delivery role may only attach to invoices it created.
+ */
+export async function attachDeliveryPhoto(input: z.infer<typeof PhotoSchema>) {
+  const ctx = await getActiveContext();
+  await assertEntityAccess(ctx);
+  assertRole(ctx, [...OFFICE_ROLES, "delivery"]);
+
+  const parsed = PhotoSchema.parse(input);
+
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: parsed.invoiceId, entityId: ctx.entityId },
+    include: { deliveryRecords: { orderBy: { version: "desc" }, take: 1 } },
+  });
+  if (!invoice) throw new Error("Invoice not found in this book.");
+  if (ctx.user.role === "delivery" && invoice.createdById !== ctx.user.id) {
+    throw new Error("You can only add photos to invoices you created.");
+  }
+
+  const latest = invoice.deliveryRecords[0];
+  if (!latest) throw new Error("No delivery record exists for this invoice yet.");
+  if (latest.optionalPhoto) {
+    throw new Error("This delivery already has a photo. Edits create a new version that can take a fresh one.");
+  }
+
+  await prisma.deliveryRecord.update({
+    where: { id: latest.id },
+    data: { optionalPhoto: parsed.photoDataUrl },
+  });
+
+  revalidatePath(`/invoices/${invoice.id}`);
+  revalidatePath("/delivery");
 }

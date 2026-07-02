@@ -66,6 +66,20 @@ async function main() {
     },
   });
 
+  // --- Platform owner (hidden white-label operator — YOUR login, not the
+  //     client's). Sees everything incl. /platform. CHANGE THE PASSWORD. ------
+  await prisma.user.create({
+    data: {
+      name: "Platform Owner",
+      loginId: "platform",
+      passwordHash: await bcrypt.hash(process.env.PLATFORM_PASSWORD ?? "platform123", 10),
+      role: "platform_admin",
+      entityAccess: "both",
+      regionScope: "all",
+      entityId: cstar.id,
+    },
+  });
+
   // --- Accountant + Delivery users (C-Star only) ----------------------------
   await prisma.user.create({
     data: {

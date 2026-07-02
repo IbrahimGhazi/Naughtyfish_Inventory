@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { pkr, dateShort } from "@/lib/format";
 import { Card, Chip, PageHeader, Th } from "@/components/ui";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ExpensesPage() {
   const ctx = await getActiveContext();
+  requirePage(ctx, "expenses");
   const scope = entityScope(ctx);
 
   const now = new Date();

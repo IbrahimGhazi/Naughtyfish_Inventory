@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import BackLink from "../BackLink";
 import { Card } from "../ui";
@@ -11,9 +12,11 @@ export const dynamic = "force-dynamic";
 
 export default async function UsersSettingsPage() {
   const ctx = await getActiveContext();
+  requirePage(ctx, "settings");
 
   // Guard: only admins may manage staff logins. Non-admins bounce to the hub.
-  if (ctx.user.role !== "admin") {
+  const isPlatform = ctx.user.role === "platform_admin";
+  if (ctx.user.role !== "admin" && !isPlatform) {
     redirect("/settings");
   }
 
@@ -31,14 +34,18 @@ export default async function UsersSettingsPage() {
     orderBy: [{ role: "asc" }, { name: "asc" }],
   });
 
-  const rows: UserRow[] = users.map((u) => ({
-    id: u.id,
-    name: u.name,
-    loginId: u.loginId,
-    role: u.role,
-    entityAccess: u.entityAccess,
-    regionScope: u.regionScope,
-  }));
+  // The platform owner's account is invisible to client admins — it's the
+  // white-label operator's login, not part of the customer's staff.
+  const rows: UserRow[] = users
+    .filter((u) => isPlatform || u.role !== "platform_admin")
+    .map((u) => ({
+      id: u.id,
+      name: u.name,
+      loginId: u.loginId,
+      role: u.role,
+      entityAccess: u.entityAccess,
+      regionScope: u.regionScope,
+    }));
 
   return (
     <div className="mx-auto max-w-[1000px] animate-rise px-8 pb-14 pt-7">

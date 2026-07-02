@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ const REPORTS = [
 
 export default async function ReportsHub() {
   const ctx = await getActiveContext();
+  requirePage(ctx, "reports");
 
   return (
     <div className="animate-rise space-y-5">

@@ -11,6 +11,7 @@ import {
   signSession,
 } from "@/lib/auth";
 import { allowedBookNames } from "@/lib/session";
+import { roleHome } from "@/lib/roles";
 
 const LoginSchema = z.object({
   loginId: z.string().min(1),
@@ -86,5 +87,5 @@ export async function login(
   const store = await cookies();
   store.set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS);
 
-  redirect("/");
+  redirect(roleHome(user.role));
 }

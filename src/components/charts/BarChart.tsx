@@ -103,6 +103,7 @@ export function BarChart({ data }: { data: BarDatum[] }) {
           const expY = yBar(d.expenses);
           return (
             <g key={d.label}>
+              {/* <title> = native browser tooltip with the exact figures. */}
               <rect
                 x={revX}
                 y={revY}
@@ -111,7 +112,9 @@ export function BarChart({ data }: { data: BarDatum[] }) {
                 rx={2}
                 fill="#0e7c7b"
                 className="fill-[var(--accent)]"
-              />
+              >
+                <title>{`${d.label} — revenue ${fullPkr(d.revenue)}`}</title>
+              </rect>
               <rect
                 x={expX}
                 y={expY}
@@ -120,7 +123,9 @@ export function BarChart({ data }: { data: BarDatum[] }) {
                 rx={2}
                 fill="#d9b98a"
                 className="fill-[#D9B98A]"
-              />
+              >
+                <title>{`${d.label} — expenses ${fullPkr(d.expenses)}`}</title>
+              </rect>
               <text
                 x={padL + slot * i + slot / 2}
                 y={H - padB + 16}
@@ -164,7 +169,9 @@ export function BarChart({ data }: { data: BarDatum[] }) {
                   r={3.5}
                   fill={p.profit < 0 ? "#c2492f" : "#337a54"}
                   className={p.profit < 0 ? "fill-[var(--neg)]" : "fill-[var(--pos)]"}
-                />
+                >
+                  <title>{`profit ${fullPkr(p.profit)}`}</title>
+                </circle>
                 <text
                   x={p.cx}
                   y={p.cy - 8}

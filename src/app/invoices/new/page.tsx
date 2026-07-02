@@ -1,14 +1,23 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope, storeScope } from "@/lib/scope";
-import InvoiceForm, { type FormItem, type FormParty, type FormStore } from "./InvoiceForm";
+import { getAppConfig } from "@/lib/config";
+import InvoiceForm, {
+  type FormItem,
+  type FormLabels,
+  type FormParty,
+  type FormStore,
+} from "./InvoiceForm";
 import { PageHeader, BackLink } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewInvoicePage() {
   const ctx = await getActiveContext();
+  requirePage(ctx, "invoices");
   const scope = entityScope(ctx);
+  const cfg = await getAppConfig();
 
   const [parties, items, stores, series, glazing] = await Promise.all([
     prisma.party.findMany({ where: { ...scope, partyType: "customer" }, orderBy: { name: "asc" } }),
@@ -43,6 +52,16 @@ export default async function NewInvoicePage() {
   const formStores: FormStore[] = stores.map((s) => ({ id: s.id, name: s.name }));
   const regions = series.map((s) => s.bookRegion);
 
+  const t = cfg.terminology;
+  const labels: FormLabels = {
+    packagePlural: t.packagePlural,
+    subUnitPlural: t.subUnitPlural,
+    weightUnit: t.weightUnit,
+    glazingLabel: t.glazingLabel,
+    channelNorth: t.channelNorthLabel,
+    channelLocal: t.channelLocalLabel,
+  };
+
   return (
     <div className="animate-rise space-y-4">
       <div>
@@ -51,12 +70,17 @@ export default async function NewInvoicePage() {
           eyebrow="Sales"
           title="New invoice"
           subtitle={
-            <>
-              North (frozen) bills on <strong>net</strong> weight after glazing;
-              enter gross + the buyer&apos;s final weight and the % is derived.
-              Local (Karachi, fresh) has no glazing. Every amount is recomputed on
-              the server through the shared billing engine.
-            </>
+            cfg.features.glazing ? (
+              <>
+                {t.channelNorthLabel} bills on <strong>net</strong> weight after{" "}
+                {t.glazingLabel.toLowerCase()}; enter gross + the buyer&apos;s final weight
+                and the % is derived. {t.channelLocalLabel} has no{" "}
+                {t.glazingLabel.toLowerCase()}. Every amount is recomputed on the server
+                through the shared billing engine.
+              </>
+            ) : (
+              <>Every amount is recomputed on the server through the shared billing engine.</>
+            )
           }
         />
       </div>
@@ -65,6 +89,9 @@ export default async function NewInvoicePage() {
         items={formItems}
         stores={formStores}
         regions={regions}
+        labels={labels}
+        showGlazing={cfg.features.glazing}
+        showPackaging={cfg.features.packaging}
       />
     </div>
   );

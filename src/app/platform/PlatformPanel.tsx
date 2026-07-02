@@ -1,0 +1,627 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Card, Chip, PrimaryButton, GhostButton } from "@/components/ui";
+import {
+  THEME_PRESETS,
+  FONT_PRESETS,
+  SURFACE_PRESETS,
+  type AppConfig,
+  type FeatureFlags,
+  type TerminologyConfig,
+} from "@/lib/config-shared";
+import { CITY_NAMES } from "@/lib/geo";
+import { savePlatformConfig } from "./actions";
+
+/* Terminology starter packs per business type — a head start, all editable. */
+const BUSINESS_PRESETS: Record<string, Partial<TerminologyConfig> & { businessType: string }> = {
+  "Seafood trading": {
+    businessType: "Seafood trading",
+    itemSingular: "Item", itemPlural: "Items",
+    packageSingular: "Carton", packagePlural: "Cartons",
+    subUnitSingular: "Packet", subUnitPlural: "Packets",
+    weightUnit: "kg", glazingLabel: "Glazing",
+  },
+  "Meat & poultry": {
+    businessType: "Meat & poultry",
+    itemSingular: "Cut", itemPlural: "Cuts",
+    packageSingular: "Crate", packagePlural: "Crates",
+    subUnitSingular: "Pack", subUnitPlural: "Packs",
+    weightUnit: "kg", glazingLabel: "Trim loss",
+  },
+  "Fruits & vegetables": {
+    businessType: "Fruits & vegetables",
+    itemSingular: "Produce", itemPlural: "Produce",
+    packageSingular: "Crate", packagePlural: "Crates",
+    subUnitSingular: "Bag", subUnitPlural: "Bags",
+    weightUnit: "kg", glazingLabel: "Wastage",
+  },
+  "Textiles": {
+    businessType: "Textiles",
+    itemSingular: "Fabric", itemPlural: "Fabrics",
+    packageSingular: "Bale", packagePlural: "Bales",
+    subUnitSingular: "Roll", subUnitPlural: "Rolls",
+    weightUnit: "m", glazingLabel: "Shrinkage",
+  },
+  "General goods": {
+    businessType: "General goods",
+    itemSingular: "Product", itemPlural: "Products",
+    packageSingular: "Box", packagePlural: "Boxes",
+    subUnitSingular: "Unit", subUnitPlural: "Units",
+    weightUnit: "kg", glazingLabel: "Adjustment",
+  },
+};
+
+const FEATURE_LABELS: Record<keyof FeatureFlags, [string, string]> = {
+  glazing: ["Glazing / weight adjustment", "Per-line % fields + over-deduction alerts on invoices"],
+  packaging: ["Packaging counts", "Carton/packet fields + short-count alerts"],
+  shipments: ["Shipments", "Shipment tracking page, dashboard map and 'on the road' card"],
+  cheques: ["Cheques", "Cheque registry, due-soon reminders"],
+  banks: ["Banks", "Bank accounts + estimated balance KPI"],
+  expenses: ["Expenses", "Expense categories/entries + P&L expense series"],
+  reports: ["Reports", "Bad debts, weekly statement and future reports"],
+  processes: ["Processes", "Optional production/processing tracker with costs"],
+  secondBook: ["Second book (NF)", "The white/black two-book switcher in the top bar"],
+  assistant: ["AI assistant", "The ask-the-ledger chat bubble"],
+};
+
+export default function PlatformPanel({ initial }: { initial: AppConfig }) {
+  const router = useRouter();
+  const [cfg, setCfg] = useState<AppConfig>(initial);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const dirty = useMemo(() => JSON.stringify(cfg) !== JSON.stringify(initial), [cfg, initial]);
+
+  const patch = <K extends keyof AppConfig>(section: K, p: Partial<AppConfig[K]>) => {
+    setSaved(false);
+    setCfg((c) => ({ ...c, [section]: { ...c[section], ...p } }));
+  };
+
+  function save() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await savePlatformConfig(cfg);
+        setSaved(true);
+        router.refresh();
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    });
+  }
+
+  async function onLogoFile(file: File | undefined) {
+    if (!file) return;
+    try {
+      const dataUrl = await resizeImage(file, 192, 0.85);
+      patch("branding", { logoDataUrl: dataUrl });
+    } catch {
+      setError("Could not read that image — try a PNG or JPG.");
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* ============================== Branding ============================== */}
+      <Card className="p-5">
+        <SectionTitle
+          title="Branding"
+          sub="Name, logo and tagline shown on the login screen, sidebar and browser tab."
+        />
+        <div className="grid gap-3.5 sm:grid-cols-2">
+          <Field label="App name">
+            <input className="input" value={cfg.branding.appName} maxLength={40}
+              onChange={(e) => patch("branding", { appName: e.target.value })} />
+          </Field>
+          <Field label="Tagline">
+            <input className="input" value={cfg.branding.tagline} maxLength={60}
+              onChange={(e) => patch("branding", { tagline: e.target.value })} />
+          </Field>
+          <Field label="Business type" hint="drives terminology suggestions below">
+            <select className="input" value={cfg.branding.businessType}
+              onChange={(e) => {
+                const preset = BUSINESS_PRESETS[e.target.value];
+                patch("branding", { businessType: e.target.value });
+                if (preset) {
+                  const terms = { ...preset } as Partial<TerminologyConfig> & { businessType?: string };
+                  delete terms.businessType;
+                  patch("terminology", terms);
+                }
+              }}>
+              {Object.keys(BUSINESS_PRESETS).map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+              {!BUSINESS_PRESETS[cfg.branding.businessType] && (
+                <option value={cfg.branding.businessType}>{cfg.branding.businessType}</option>
+              )}
+            </select>
+          </Field>
+          <Field label="Logo" hint="square PNG/JPG, replaces the fish mark">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-hair"
+                style={{ background: "var(--side-bg)" }}>
+                {cfg.branding.logoDataUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={cfg.branding.logoDataUrl} alt="logo" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-[10px]" style={{ color: "var(--side-dim)" }}>fish</span>
+                )}
+              </div>
+              <label className="cursor-pointer text-[13px] font-semibold text-accent hover:text-accent-deep">
+                Upload…
+                <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+                  onChange={(e) => onLogoFile(e.target.files?.[0])} />
+              </label>
+              {cfg.branding.logoDataUrl && (
+                <button type="button" className="text-[13px] font-semibold text-neg"
+                  onClick={() => patch("branding", { logoDataUrl: null })}>
+                  Remove
+                </button>
+              )}
+            </div>
+          </Field>
+        </div>
+      </Card>
+
+      {/* ================================ Theme ================================ */}
+      <Card className="p-5">
+        <SectionTitle
+          title="Theme"
+          sub="Pick a preset or fine-tune the tokens. Every screen retints instantly on save — light and dark mode both."
+        />
+        <div className="mb-4 flex flex-wrap gap-2">
+          {Object.entries(THEME_PRESETS).map(([name, t]) => (
+            <button key={name} type="button"
+              onClick={() => patch("theme", { ...t, preset: name })}
+              className="flex items-center gap-2 rounded-lg border px-3 py-2 text-[12.5px] font-semibold capitalize transition-colors"
+              style={
+                cfg.theme.preset === name
+                  ? { borderColor: t.accent, background: "var(--accent-tint)", color: "var(--ink)" }
+                  : { borderColor: "var(--hair)", color: "var(--muted)" }
+              }>
+              <span className="flex overflow-hidden rounded-full border border-hair">
+                <span className="h-4 w-4" style={{ background: t.accent }} />
+                <span className="h-4 w-4" style={{ background: t.sideBg }} />
+                <span className="h-4 w-4" style={{ background: t.gold }} />
+              </span>
+              {name.replace(/-/g, " ")}
+            </button>
+          ))}
+        </div>
+        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+          <ColorField label="Accent" value={cfg.theme.accent}
+            onChange={(v) => patch("theme", { accent: v, preset: "custom" })} />
+          <ColorField label="Accent (deep)" value={cfg.theme.accentDeep}
+            onChange={(v) => patch("theme", { accentDeep: v, preset: "custom" })} />
+          <ColorField label="Gold / highlight" value={cfg.theme.gold}
+            onChange={(v) => patch("theme", { gold: v, preset: "custom" })} />
+          <ColorField label="Sidebar" value={cfg.theme.sideBg}
+            onChange={(v) => patch("theme", { sideBg: v, preset: "custom" })} />
+          <ColorField label="Dark · accent" value={cfg.theme.darkAccent}
+            onChange={(v) => patch("theme", { darkAccent: v, preset: "custom" })} />
+          <ColorField label="Dark · accent deep" value={cfg.theme.darkAccentDeep}
+            onChange={(v) => patch("theme", { darkAccentDeep: v, preset: "custom" })} />
+          <ColorField label="Dark · gold" value={cfg.theme.darkGold}
+            onChange={(v) => patch("theme", { darkGold: v, preset: "custom" })} />
+          <ColorField label="Dark · sidebar" value={cfg.theme.darkSideBg}
+            onChange={(v) => patch("theme", { darkSideBg: v, preset: "custom" })} />
+        </div>
+
+        {/* Typefaces — trio presets (serif headings / sans UI / mono figures). */}
+        <div className="mt-5">
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-faint2">
+            Typefaces
+          </div>
+          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+            {Object.entries(FONT_PRESETS).map(([key, fp]) => {
+              const on = cfg.theme.fontPreset === key;
+              return (
+                <button key={key} type="button"
+                  onClick={() => patch("theme", { fontPreset: key })}
+                  className="rounded-xl border px-3.5 py-3 text-left transition-colors"
+                  style={on
+                    ? { borderColor: "var(--accent)", background: "var(--accent-tint)" }
+                    : { borderColor: "var(--hair)" }}>
+                  <span className="block text-[13px] font-semibold text-ink">{fp.label}</span>
+                  <span className="mt-1 block text-[11.5px] leading-relaxed text-faint">
+                    {fp.serif} · {fp.sans}
+                    <br />
+                    <span className="font-mono">{fp.mono}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Paper & surface tone (light mode neutrals). */}
+        <div className="mt-5">
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-faint2">
+            Paper &amp; surfaces
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(SURFACE_PRESETS).map(([key, sp]) => {
+              const on = cfg.theme.surface === key;
+              return (
+                <button key={key} type="button"
+                  onClick={() => patch("theme", { surface: key })}
+                  className="flex items-center gap-2 rounded-lg border px-3 py-2 text-[12.5px] font-semibold transition-colors"
+                  style={on
+                    ? { borderColor: "var(--accent)", background: "var(--accent-tint)", color: "var(--ink)" }
+                    : { borderColor: "var(--hair)", color: "var(--muted)" }}>
+                  <span className="flex overflow-hidden rounded-md border border-hair">
+                    <span className="h-5 w-5" style={{ background: sp.paper }} />
+                    <span className="h-5 w-5" style={{ background: sp.card }} />
+                    <span className="h-5 w-5" style={{ background: sp.hair }} />
+                  </span>
+                  {sp.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1.5 text-[11.5px] text-faint">
+            Light mode only — dark mode keeps its tuned neutrals.
+          </p>
+        </div>
+
+        {/* Status & alert colors. */}
+        <div className="mt-5">
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-faint2">
+            Status &amp; alert colors
+          </div>
+          <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+            <ColorField label="Positive · paid, delivered" value={cfg.theme.statusPos}
+              onChange={(v) => patch("theme", { statusPos: v })} />
+            <ColorField label="Warning · pending, edited" value={cfg.theme.statusWarn}
+              onChange={(v) => patch("theme", { statusWarn: v })} />
+            <ColorField label="Negative · overdue, bounced" value={cfg.theme.statusNeg}
+              onChange={(v) => patch("theme", { statusNeg: v })} />
+            <ColorField label="Info · issued, in transit" value={cfg.theme.statusInfo}
+              onChange={(v) => patch("theme", { statusInfo: v })} />
+          </div>
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            {([
+              ["paid", cfg.theme.statusPos],
+              ["pending", cfg.theme.statusWarn],
+              ["overdue", cfg.theme.statusNeg],
+              ["in transit", cfg.theme.statusInfo],
+            ] as const).map(([label, color]) => (
+              <span key={label}
+                className="inline-flex items-center rounded-full px-2.5 py-[3px] text-[11px] font-semibold"
+                style={{ background: hexTint(color, 0.14), color }}>
+                {label}
+              </span>
+            ))}
+            <span className="self-center text-[11.5px] text-faint">
+              dark mode derives lighter shades automatically
+            </span>
+          </div>
+        </div>
+
+        {/* Live mini-preview */}
+        <div className="mt-4 overflow-hidden rounded-xl border border-hair">
+          <div className="flex">
+            <div className="w-32 shrink-0 p-3" style={{ background: cfg.theme.sideBg }}>
+              <div className="font-serif text-[13px] font-semibold italic" style={{ color: "#f2ebd9" }}>
+                {cfg.branding.appName}
+              </div>
+              <div className="mt-2 space-y-1">
+                <div className="rounded px-2 py-1 text-[10px] font-semibold"
+                  style={{ background: hexTint(cfg.theme.accent, 0.28), color: "#f2ebd9" }}>
+                  Dashboard
+                </div>
+                <div className="px-2 py-1 text-[10px]" style={{ color: "#7e938e" }}>Invoices</div>
+                <div className="px-2 py-1 text-[10px]" style={{ color: "#7e938e" }}>Parties</div>
+              </div>
+            </div>
+            <div className="flex-1 bg-paper2 p-3">
+              <div className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: cfg.theme.accent }}>
+                Preview
+              </div>
+              <div className="mt-1 font-serif text-[15px] font-semibold text-ink">
+                {cfg.branding.tagline}
+              </div>
+              <div className="mt-2 flex gap-2">
+                <span className="rounded-lg px-3 py-1.5 text-[11px] font-semibold"
+                  style={{ background: cfg.theme.accent, color: "#f6f2e6" }}>
+                  + New invoice
+                </span>
+                <span className="rounded-lg border border-hair bg-card px-3 py-1.5 font-mono text-[11px]"
+                  style={{ color: cfg.theme.gold }}>
+                  SSI-000123
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* ============================ Terminology ============================ */}
+      <Card className="p-5">
+        <SectionTitle
+          title="Terminology"
+          sub="What things are called across the app — so a crate of mangoes never reads like a carton of fish. Schema and math are untouched."
+        />
+        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+          <Field label="Sellable unit (singular / plural)">
+            <div className="flex gap-2">
+              <input className="input" value={cfg.terminology.itemSingular}
+                onChange={(e) => patch("terminology", { itemSingular: e.target.value })} />
+              <input className="input" value={cfg.terminology.itemPlural}
+                onChange={(e) => patch("terminology", { itemPlural: e.target.value })} />
+            </div>
+          </Field>
+          <Field label="Outer package (singular / plural)">
+            <div className="flex gap-2">
+              <input className="input" value={cfg.terminology.packageSingular}
+                onChange={(e) => patch("terminology", { packageSingular: e.target.value })} />
+              <input className="input" value={cfg.terminology.packagePlural}
+                onChange={(e) => patch("terminology", { packagePlural: e.target.value })} />
+            </div>
+          </Field>
+          <Field label="Inner package (singular / plural)">
+            <div className="flex gap-2">
+              <input className="input" value={cfg.terminology.subUnitSingular}
+                onChange={(e) => patch("terminology", { subUnitSingular: e.target.value })} />
+              <input className="input" value={cfg.terminology.subUnitPlural}
+                onChange={(e) => patch("terminology", { subUnitPlural: e.target.value })} />
+            </div>
+          </Field>
+          <Field label="Weight/measure unit">
+            <input className="input" value={cfg.terminology.weightUnit}
+              onChange={(e) => patch("terminology", { weightUnit: e.target.value })} />
+          </Field>
+          <Field label="Deduction concept" hint="glazing for seafood; wastage, trim…">
+            <input className="input" value={cfg.terminology.glazingLabel}
+              onChange={(e) => patch("terminology", { glazingLabel: e.target.value })} />
+          </Field>
+          <Field label="Channels (north / local)" hint="display names only">
+            <div className="flex gap-2">
+              <input className="input" value={cfg.terminology.channelNorthLabel}
+                onChange={(e) => patch("terminology", { channelNorthLabel: e.target.value })} />
+              <input className="input" value={cfg.terminology.channelLocalLabel}
+                onChange={(e) => patch("terminology", { channelLocalLabel: e.target.value })} />
+            </div>
+          </Field>
+          <Field label="Currency (ISO code)" hint="PKR, AED, USD…">
+            <input className="input font-mono uppercase" maxLength={3} value={cfg.terminology.currencyCode}
+              onChange={(e) => patch("terminology", { currencyCode: e.target.value.toUpperCase() })} />
+          </Field>
+          <Field label="Number locale" hint="en-PK, en-AE, en-US…">
+            <input className="input font-mono" value={cfg.terminology.currencyLocale}
+              onChange={(e) => patch("terminology", { currencyLocale: e.target.value })} />
+          </Field>
+          <div className="self-end pb-1 text-[12.5px] text-faint">
+            Preview:{" "}
+            <span className="font-mono text-text">{currencyPreview(cfg)}</span>
+          </div>
+        </div>
+      </Card>
+
+      {/* ============================== Features ============================== */}
+      <Card className="p-5">
+        <SectionTitle
+          title="Modules"
+          sub="Switch off what this customer doesn't need — nav entries, dashboard cards and form fields disappear together."
+        />
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          {(Object.keys(FEATURE_LABELS) as (keyof FeatureFlags)[]).map((key) => (
+            <label key={key}
+              className="flex cursor-pointer items-start gap-3 rounded-xl border border-hair bg-card2 px-3.5 py-3 transition-colors hover:bg-card">
+              <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
+                checked={cfg.features[key]}
+                onChange={(e) => patch("features", { [key]: e.target.checked } as Partial<FeatureFlags>)} />
+              <span>
+                <span className="block text-[13.5px] font-semibold text-text">
+                  {FEATURE_LABELS[key][0]}
+                </span>
+                <span className="block text-[12px] text-faint">{FEATURE_LABELS[key][1]}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </Card>
+
+      {/* ========================== Map & shipments ========================== */}
+      {cfg.features.shipments && (
+        <Card className="p-5">
+          <SectionTitle
+            title="Map & shipments"
+            sub="Where this customer dispatches FROM — the map, dashboard routes and shipment labels all follow it. (Not everyone ships out of Karachi.)"
+          />
+          <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+            <Field label="Origin city" hint="must be on the Pakistan map">
+              <select className="input" value={cfg.map.originCity}
+                onChange={(e) => patch("map", { originCity: e.target.value })}>
+                {CITY_NAMES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Shipments page subtitle">
+              <input className="input" value={cfg.map.subtitle} maxLength={120}
+                onChange={(e) => patch("map", { subtitle: e.target.value })} />
+            </Field>
+            <label className="flex cursor-pointer items-center gap-2.5 self-end pb-2 text-[13px] text-text">
+              <input type="checkbox" className="h-4 w-4 accent-[var(--accent)]"
+                checked={cfg.map.showContextCities}
+                onChange={(e) => patch("map", { showContextCities: e.target.checked })} />
+              Show faded context cities on the map
+            </label>
+          </div>
+        </Card>
+      )}
+
+      {/* ========================== New customer runbook ========================== */}
+      <Card className="p-5">
+        <SectionTitle
+          title="New customer runbook"
+          sub="One codebase, one deployment per customer — on THEIR Supabase and Vercel accounts, signed up with their Gmail."
+        />
+        <ol className="space-y-3 text-[13.5px] leading-relaxed text-text">
+          <Step n={1} title="Accounts (customer's Gmail)">
+            Sign in to <Mono>supabase.com</Mono> and <Mono>vercel.com</Mono> with the customer&apos;s
+            Google account (&quot;Continue with Google&quot;). Creating the accounts is a manual
+            signup — everything after it is repeatable.
+          </Step>
+          <Step n={2} title="Supabase project (the database)">
+            New project → copy the <Mono>Session pooler</Mono> connection string. In{" "}
+            <Mono>prisma/schema.prisma</Mono> set <Mono>provider = &quot;postgresql&quot;</Mono>, then run{" "}
+            <Mono>npx prisma migrate deploy</Mono> followed by <Mono>npm run db:seed</Mono> against it.
+          </Step>
+          <Step n={3} title="Vercel project (the app)">
+            Push the customer&apos;s copy of this repo to a private GitHub repo → Vercel &quot;Import
+            Project&quot;. Set env vars: <Mono>DATABASE_URL</Mono> (from step 2), a fresh 32+ char{" "}
+            <Mono>JWT_SECRET</Mono>, and optionally the <Mono>ASSISTANT_*</Mono> keys.{" "}
+            <Mono>postinstall</Mono> already runs <Mono>prisma generate</Mono> on deploy.
+          </Step>
+          <Step n={4} title="Make it theirs (this panel)">
+            Log in as <Mono>platform</Mono> (change the seeded password immediately in Settings →
+            Password) → open <Mono>/platform</Mono> → set branding, theme, terminology and switch
+            off unused modules. Then create the customer&apos;s admin login in Settings → Users.
+          </Step>
+          <Step n={5} title="Handover checklist">
+            Real items + rates entered · opening balances loaded · reference series start numbers
+            set · seeded demo logins removed/re-passworded · backup schedule confirmed.
+          </Step>
+        </ol>
+        <div className="mt-4 rounded-xl border border-hair bg-card2 p-3.5">
+          <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-faint2">
+            Env template (Vercel → Settings → Environment Variables)
+          </div>
+          <pre className="overflow-x-auto font-mono text-[12px] leading-relaxed text-muted">{`DATABASE_URL=postgresql://…  # Supabase session pooler
+JWT_SECRET=…                 # openssl rand -base64 48
+ASSISTANT_BASE_URL=…         # optional
+ASSISTANT_API_KEY=…          # optional
+ASSISTANT_MODEL=…            # optional`}</pre>
+        </div>
+      </Card>
+
+      {/* ============================== Save bar ============================== */}
+      <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-2xl border border-hair bg-card p-3.5"
+        style={{ boxShadow: "var(--shadow-pop)" }}>
+        <div className="flex items-center gap-2 text-[13px]">
+          {error ? (
+            <span className="text-neg">⚠ {error}</span>
+          ) : saved && !dirty ? (
+            <Chip tone="pos">Saved — every screen retinted</Chip>
+          ) : dirty ? (
+            <Chip tone="warn">Unsaved changes</Chip>
+          ) : (
+            <span className="text-faint">No changes yet.</span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <GhostButton type="button" onClick={() => { setCfg(initial); setError(null); }} disabled={!dirty || isPending}>
+            Revert
+          </GhostButton>
+          <PrimaryButton type="button" onClick={save} disabled={!dirty || isPending}>
+            {isPending ? "Saving…" : "Save configuration"}
+          </PrimaryButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------ helpers ------------------------------ */
+
+function SectionTitle({ title, sub }: { title: string; sub: string }) {
+  return (
+    <div className="mb-4">
+      <div className="font-serif text-[17px] font-semibold text-ink">{title}</div>
+      <div className="mt-0.5 text-[12.5px] text-muted">{sub}</div>
+    </div>
+  );
+}
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <label className="block text-sm">
+      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.06em] text-faint2">
+        {label}
+        {hint && <span className="ml-1 font-normal normal-case tracking-normal text-faint">· {hint}</span>}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <Field label={label}>
+      <div className="flex items-center gap-2">
+        <input type="color" value={value} onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-10 shrink-0 cursor-pointer rounded-md border border-hair bg-card p-0.5" />
+        <input className="input font-mono" value={value} maxLength={7}
+          onChange={(e) => onChange(e.target.value)} />
+      </div>
+    </Field>
+  );
+}
+
+function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+  return (
+    <li className="flex gap-3">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[11.5px] font-bold text-on-accent"
+        style={{ background: "var(--accent)" }}>
+        {n}
+      </span>
+      <span>
+        <span className="block font-semibold text-ink">{title}</span>
+        <span className="text-muted">{children}</span>
+      </span>
+    </li>
+  );
+}
+
+function Mono({ children }: { children: React.ReactNode }) {
+  return <code className="rounded bg-card2 px-1 py-0.5 font-mono text-[12px] text-gold">{children}</code>;
+}
+
+function hexTint(hex: string, a: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return `rgba(14,124,123,${a})`;
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+}
+
+function currencyPreview(cfg: AppConfig): string {
+  try {
+    return new Intl.NumberFormat(cfg.terminology.currencyLocale, {
+      style: "currency",
+      currency: cfg.terminology.currencyCode,
+      maximumFractionDigits: 2,
+    }).format(1234567.89);
+  } catch {
+    return "invalid currency/locale";
+  }
+}
+
+/** Downscale an image file to a square-ish data URL (max `size` px, JPEG/PNG kept). */
+async function resizeImage(file: File, size: number, quality: number): Promise<string> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = url;
+    });
+    const scale = Math.min(1, size / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+    // PNG keeps transparency for logos; small enough at 192px.
+    return canvas.toDataURL("image/png");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+  void quality;
+}

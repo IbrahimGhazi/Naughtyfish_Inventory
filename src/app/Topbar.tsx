@@ -14,6 +14,7 @@ const TITLES: [string, string, string][] = [
   ["/parties", "Sales", "Parties"],
   ["/shipments", "Operations", "Shipments"],
   ["/inventory", "Operations", "Inventory"],
+  ["/processes", "Operations", "Processes"],
   ["/cheques", "Money", "Cheques"],
   ["/banks", "Money", "Banks"],
   ["/expenses", "Money", "Expenses"],
@@ -22,30 +23,36 @@ const TITLES: [string, string, string][] = [
   ["/reports", "Insight", "Reports"],
   ["/settings/password", "Admin", "Password"],
   ["/settings", "Admin", "Settings"],
+  ["/platform", "Product owner", "Platform"],
+  ["/delivery/new", "Delivery", "New invoice"],
+  ["/delivery/invoices", "Delivery", "My invoices"],
+  ["/delivery", "Delivery", "Home"],
   ["/", "Overview", "Dashboard"],
 ];
 
-function titleFor(pathname: string): { eyebrow: string; title: string } {
+function titleFor(pathname: string, appName: string): { eyebrow: string; title: string } {
   for (const [prefix, eyebrow, title] of TITLES) {
     if (prefix === "/" ? pathname === "/" : pathname.startsWith(prefix)) {
       return { eyebrow, title };
     }
   }
-  return { eyebrow: "", title: "NaughtyFish" };
+  return { eyebrow: "", title: appName };
 }
 
 export default function Topbar({
   activeBook,
   canSwitch,
   isDark,
+  appName = "NaughtyFish",
 }: {
   activeBook: string;
   canSwitch: boolean;
   isDark: boolean;
+  appName?: string;
 }) {
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
-  const { eyebrow, title } = titleFor(pathname);
+  const { eyebrow, title } = titleFor(pathname, appName);
 
   const seg = (book: string) => {
     const on = book === activeBook;

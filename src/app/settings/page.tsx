@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { PageHeader, Card, Chip } from "@/components/ui";
 
@@ -14,6 +15,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function SettingsPage() {
   const ctx = await getActiveContext();
+  requirePage(ctx, "settings");
   const scope = entityScope(ctx);
   const isAdmin = ctx.user.role === "admin";
 

@@ -92,6 +92,85 @@ export interface Slice {
   value: number;
 }
 
+/* ----------------------------- Receivables aging ----------------------------- */
+
+/** An invoice's outstanding amount + its date, for age-bucketing. */
+export interface OpenInvoice {
+  date: Date | string;
+  total: number;
+  paid: number;
+}
+
+export interface AgingBucket {
+  label: string;
+  /** Upper bound in days (inclusive); Infinity for the last bucket. */
+  maxDays: number;
+  amount: number;
+  count: number;
+}
+
+/**
+ * Bucket unpaid invoice balances by age (days since invoice date): 0–30,
+ * 31–60, 61–90, 90+. Payments are attributed per invoice (invoice-linked
+ * payments only — the app's payment form links them), so this is the honest
+ * per-invoice view rather than FIFO allocation. Fully-paid invoices drop out.
+ * Deterministic: caller supplies `now`.
+ */
+export function agingBuckets(invoices: OpenInvoice[], now: Date): AgingBucket[] {
+  const buckets: AgingBucket[] = [
+    { label: "0–30d", maxDays: 30, amount: 0, count: 0 },
+    { label: "31–60d", maxDays: 60, amount: 0, count: 0 },
+    { label: "61–90d", maxDays: 90, amount: 0, count: 0 },
+    { label: "90d+", maxDays: Infinity, amount: 0, count: 0 },
+  ];
+  const DAY = 24 * 60 * 60 * 1000;
+  for (const inv of invoices) {
+    const due = inv.total - inv.paid;
+    if (due <= 0.005) continue;
+    const age = Math.max(0, Math.floor((now.getTime() - new Date(inv.date).getTime()) / DAY));
+    const b = buckets.find((x) => age <= x.maxDays)!;
+    b.amount += due;
+    b.count += 1;
+  }
+  for (const b of buckets) b.amount = Math.round((b.amount + Number.EPSILON) * 100) / 100;
+  return buckets;
+}
+
+/* ------------------------------- Top debtors ------------------------------- */
+
+export interface DebtorRow {
+  partyId: string;
+  name: string;
+  balance: number;
+}
+
+/**
+ * Rank customer parties by outstanding balance (opening + invoiced − paid),
+ * descending; parties at/below zero are dropped. Pure + deterministic.
+ */
+export function topDebtors(
+  parties: { id: string; name: string; openingBalance: number }[],
+  invoicedByParty: Map<string, number>,
+  paidByParty: Map<string, number>,
+  limit = 5,
+): DebtorRow[] {
+  return parties
+    .map((p) => ({
+      partyId: p.id,
+      name: p.name,
+      balance:
+        Math.round(
+          (p.openingBalance +
+            (invoicedByParty.get(p.id) ?? 0) -
+            (paidByParty.get(p.id) ?? 0) +
+            Number.EPSILON) * 100,
+        ) / 100,
+    }))
+    .filter((d) => d.balance > 0)
+    .sort((a, b) => b.balance - a.balance)
+    .slice(0, limit);
+}
+
 /**
  * Tally rows into named buckets in a fixed, caller-supplied order (so empty
  * buckets still appear, and the color order is stable). Unknown keys are

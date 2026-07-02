@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
+import { getAppConfig } from "@/lib/config";
 import { pkr, dateShort } from "@/lib/format";
-import { monthlyPnL } from "@/lib/analytics";
+import { monthlyPnL, agingBuckets, topDebtors } from "@/lib/analytics";
 import { cityByName, project } from "@/lib/geo";
 import { KARACHI_XY, progressFor } from "@/lib/mapgeo";
 import { BarChart, type BarDatum } from "@/components/charts/BarChart";
+import { Donut, type DonutSlice } from "@/components/charts/Donut";
 import { PakistanMap, type MapRoute } from "@/components/PakistanMap";
 import { Card, Kpi, StatusChip, PrimaryButton } from "@/components/ui";
 
@@ -14,11 +17,15 @@ export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
   const ctx = await getActiveContext();
+  requirePage(ctx, "dashboard");
   const scope = entityScope(ctx);
+  const cfg = await getAppConfig();
+  const f = cfg.features;
 
   const now = new Date();
   const soon = new Date(now.getTime() + 24 * 60 * 60 * 1000); // next 24h
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+  const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
   const [
     parties,
@@ -26,55 +33,71 @@ export default async function Dashboard() {
     dueCheques,
     recent,
     banks,
-    invoicesForChart,
+    allInvoices,
     expensesForChart,
     activeShipments,
     channelCounts,
   ] = await Promise.all([
     prisma.party.findMany({ where: scope }),
-    // All payments in the book, tagged with their party's type so we can split
-    // customer receipts from supplier disbursements.
+    // All payments in the book, tagged with party type (customer receipts vs
+    // supplier disbursements) + partyId/type/date/invoiceId for the breakdowns.
     prisma.payment.findMany({
       where: scope,
-      select: { amount: true, party: { select: { partyType: true } } },
+      select: {
+        amount: true,
+        type: true,
+        date: true,
+        partyId: true,
+        invoiceId: true,
+        party: { select: { partyType: true } },
+      },
     }),
     // Reminder panel: a cheque is "due soon" when its clearingDue OR its
     // reminderDate (set 1 day before due) falls within the next 24h. Union both.
-    prisma.cheque.findMany({
-      where: {
-        ...scope,
-        status: { in: ["issued", "pending", "held"] },
-        OR: [{ clearingDue: { lte: soon } }, { reminderDate: { lte: soon } }],
-      },
-      include: { bankAccount: true },
-      orderBy: { clearingDue: "asc" },
-    }),
+    f.cheques
+      ? prisma.cheque.findMany({
+          where: {
+            ...scope,
+            status: { in: ["issued", "pending", "held"] },
+            OR: [{ clearingDue: { lte: soon } }, { reminderDate: { lte: soon } }],
+          },
+          include: { bankAccount: true },
+          orderBy: { clearingDue: "asc" },
+        })
+      : Promise.resolve([]),
     prisma.invoice.findMany({
       where: scope,
       include: { party: true },
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
-    prisma.bankAccount.findMany({ where: scope }),
-    // P/L chart source: invoices to CUSTOMER parties in the last 6 months.
+    f.banks ? prisma.bankAccount.findMany({ where: scope }) : Promise.resolve([]),
+    // ONE pass over all invoices feeds: P&L revenue, receivables, the aging
+    // buckets, top debtors and the drafts-to-review banner.
     prisma.invoice.findMany({
-      where: {
-        ...scope,
-        date: { gte: sixMonthsAgo },
-        party: { partyType: "customer" },
+      where: scope,
+      select: {
+        id: true,
+        date: true,
+        status: true,
+        partyId: true,
+        totalAmount: true,
       },
-      select: { date: true, totalAmount: true },
     }),
     // P/L chart source: expense entries in the last 6 months.
-    prisma.expenseEntry.findMany({
-      where: { ...scope, date: { gte: sixMonthsAgo } },
-      select: { date: true, amount: true },
-    }),
+    f.expenses
+      ? prisma.expenseEntry.findMany({
+          where: { ...scope, date: { gte: sixMonthsAgo } },
+          select: { date: true, amount: true },
+        })
+      : Promise.resolve([]),
     // Active shipments (not delivered/cancelled) for the map + in-transit list.
-    prisma.shipment.findMany({
-      where: { ...scope, status: { notIn: ["delivered", "cancelled"] } },
-      orderBy: [{ estimatedArrivalAt: "asc" }, { createdAt: "desc" }],
-    }),
+    f.shipments
+      ? prisma.shipment.findMany({
+          where: { ...scope, status: { notIn: ["delivered", "cancelled"] } },
+          orderBy: [{ estimatedArrivalAt: "asc" }, { createdAt: "desc" }],
+        })
+      : Promise.resolve([]),
     // Breakdown: customer invoices by channel (north vs local).
     prisma.invoice.groupBy({
       by: ["channel"],
@@ -97,11 +120,9 @@ export default async function Dashboard() {
   const customers = parties.filter((p) => p.partyType === "customer");
   const customerIds = new Set(customers.map((p) => p.id));
   const customerOpening = customers.reduce((s, p) => s + Number(p.openingBalance), 0);
-  const customerInvoiceAgg = await prisma.invoice.aggregate({
-    where: { ...scope, partyId: { in: [...customerIds] } },
-    _sum: { totalAmount: true },
-  });
-  const customerInvoiceTotal = Number(customerInvoiceAgg._sum.totalAmount ?? 0);
+  const customerInvoiceTotal = allInvoices
+    .filter((i) => customerIds.has(i.partyId))
+    .reduce((s, i) => s + Number(i.totalAmount), 0);
   const receivablesNet = round2(customerOpening + customerInvoiceTotal - paymentsFromCustomers);
 
   // Supplier payables = Σ supplier opening balances − Σ payments made to suppliers.
@@ -115,9 +136,14 @@ export default async function Dashboard() {
 
   const estBank = banks.reduce((s, b) => s + Number(b.estimatedBalance), 0);
 
+  // Field-entered drafts awaiting office review (delivery-portal flow).
+  const draftCount = allInvoices.filter((i) => i.status === "draft").length;
+
   // --- Profit / Loss chart data (last 6 months). Number()-cast Decimals. ---
   const pnl = monthlyPnL(
-    invoicesForChart.map((i) => ({ date: i.date, amount: Number(i.totalAmount) })),
+    allInvoices
+      .filter((i) => customerIds.has(i.partyId) && new Date(i.date) >= sixMonthsAgo)
+      .map((i) => ({ date: i.date, amount: Number(i.totalAmount) })),
     expensesForChart.map((e) => ({ date: e.date, amount: Number(e.amount) })),
     now,
     6,
@@ -129,6 +155,56 @@ export default async function Dashboard() {
     profit: round2(m.profit),
   }));
 
+  // --- Receivables aging: per-invoice outstanding bucketed by age. ---
+  const paidByInvoice = new Map<string, number>();
+  for (const p of payments) {
+    if (!p.invoiceId) continue;
+    paidByInvoice.set(p.invoiceId, (paidByInvoice.get(p.invoiceId) ?? 0) + Number(p.amount));
+  }
+  const aging = agingBuckets(
+    allInvoices.map((i) => ({
+      date: i.date,
+      total: Number(i.totalAmount),
+      paid: paidByInvoice.get(i.id) ?? 0,
+    })),
+    now,
+  );
+  const agingTotal = aging.reduce((s, b) => s + b.amount, 0);
+  const AGING_COLORS = ["var(--accent)", "var(--gold)", "var(--warn)", "var(--neg)"];
+
+  // --- Top debtors: opening + invoiced − paid, per customer party. ---
+  const invoicedByParty = new Map<string, number>();
+  for (const i of allInvoices) {
+    invoicedByParty.set(i.partyId, (invoicedByParty.get(i.partyId) ?? 0) + Number(i.totalAmount));
+  }
+  const paidByParty = new Map<string, number>();
+  for (const p of payments) {
+    paidByParty.set(p.partyId, (paidByParty.get(p.partyId) ?? 0) + Number(p.amount));
+  }
+  const debtors = topDebtors(
+    customers.map((c) => ({ id: c.id, name: c.name, openingBalance: Number(c.openingBalance) })),
+    invoicedByParty,
+    paidByParty,
+    5,
+  );
+  const maxDebt = Math.max(1, ...debtors.map((d) => d.balance));
+
+  // --- Payment mix (amounts received from customers, last 90 days). ---
+  const mix = { cash: 0, cheque: 0, transfer: 0 };
+  for (const p of payments) {
+    if (p.party.partyType !== "customer") continue;
+    if (new Date(p.date) < ninetyDaysAgo) continue;
+    if (p.type === "cash" || p.type === "cheque" || p.type === "transfer") {
+      mix[p.type] += Number(p.amount);
+    }
+  }
+  const mixTotal = round2(mix.cash + mix.cheque + mix.transfer);
+  const mixSlices: DonutSlice[] = [
+    { label: "Cheque", value: round2(mix.cheque), fill: "fill-[var(--accent)]", swatch: "bg-[var(--accent)]", hex: "#0e7c7b" },
+    { label: "Transfer", value: round2(mix.transfer), fill: "fill-[var(--info)]", swatch: "bg-[var(--info)]", hex: "#3e5d7a" },
+    { label: "Cash", value: round2(mix.cash), fill: "fill-[var(--gold)]", swatch: "bg-[var(--gold)]", hex: "#8c6a1f" },
+  ];
+
   // --- Invoices by channel (north vs local split bar). ---
   const channelMap = new Map(channelCounts.map((c) => [c.channel, c._count._all]));
   const northCount = channelMap.get("north") ?? 0;
@@ -138,7 +214,7 @@ export default async function Dashboard() {
 
   // --- Map routes: project origin/dest cities, serialize to plain props. ---
   const routes: MapRoute[] = activeShipments.map((s) => {
-    const origin = cityByName(s.originCity ?? "Karachi");
+    const origin = cityByName(s.originCity ?? cfg.map.originCity);
     const dest = cityByName(s.destinationCity);
     const destXY = dest
       ? project(dest.lng, dest.lat)
@@ -188,6 +264,18 @@ export default async function Dashboard() {
         </PrimaryButton>
       </div>
 
+      {/* Field drafts waiting for review (delivery-portal flow). */}
+      {draftCount > 0 && (
+        <Link
+          href="/invoices?status=draft"
+          className="block rounded-xl border px-4 py-3 text-[13px] transition-colors hover:brightness-[0.98]"
+          style={{ borderColor: "var(--warn)", background: "var(--warn-bg)", color: "var(--warn)" }}
+        >
+          <strong>{draftCount} field draft{draftCount === 1 ? "" : "s"}</strong> from the delivery
+          login {draftCount === 1 ? "needs" : "need"} review — tap to open the queue.
+        </Link>
+      )}
+
       {/* KPI row. */}
       <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
         <Kpi
@@ -207,7 +295,11 @@ export default async function Dashboard() {
           sub="receivables − payables"
           valueColor="var(--accent-deep)"
         />
-        <Kpi label="Est. bank balance" value={pkr(estBank)} sub={`manual · ${banks.length} accounts`} />
+        {f.banks ? (
+          <Kpi label="Est. bank balance" value={pkr(estBank)} sub={`manual · ${banks.length} accounts`} />
+        ) : (
+          <Kpi label="Drafts to review" value={String(draftCount)} sub="from the delivery login" />
+        )}
       </div>
 
       {/* Row: Profit & loss (wide) + cheques-due / channel column. */}
@@ -215,52 +307,56 @@ export default async function Dashboard() {
         <Card className="p-5">
           <div className="mb-4 flex items-baseline justify-between">
             <div className="font-serif text-[17px] font-semibold text-ink">Profit &amp; loss</div>
-            <div className="text-[11.5px] text-faint2">last 6 months · revenue vs expenses</div>
+            <div className="text-[11.5px] text-faint2">
+              last 6 months · revenue{f.expenses ? " vs expenses" : ""} · hover for exact figures
+            </div>
           </div>
           <BarChart data={barData} />
         </Card>
 
         <div className="flex flex-col gap-3.5">
           {/* Cheques due (next 24h). */}
-          <Card className="flex-1 p-[18px]">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="font-serif text-[17px] font-semibold text-ink">Cheques due</div>
-              <span
-                className="inline-flex rounded-full px-2.5 py-[3px] text-[11px] font-semibold"
-                style={{ background: "var(--neg-bg)", color: "var(--neg)" }}
-              >
-                next 24h
-              </span>
-            </div>
-            {dueCheques.length === 0 ? (
-              <p className="text-[13px] text-faint">No cheques due soon.</p>
-            ) : (
-              <Link href="/cheques" className="block">
-                {dueCheques.map((c) => (
-                  <div
-                    key={c.id}
-                    className="flex items-center gap-2.5 border-b border-row px-0.5 py-2.5 last:border-0 hover:bg-card2"
-                  >
-                    <span
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ background: "var(--neg)", animation: "pulseRed 2s infinite" }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[13px] font-semibold text-text">
-                        {c.bankAccount.bankName}
+          {f.cheques && (
+            <Card className="flex-1 p-[18px]">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="font-serif text-[17px] font-semibold text-ink">Cheques due</div>
+                <span
+                  className="inline-flex rounded-full px-2.5 py-[3px] text-[11px] font-semibold"
+                  style={{ background: "var(--neg-bg)", color: "var(--neg)" }}
+                >
+                  next 24h
+                </span>
+              </div>
+              {dueCheques.length === 0 ? (
+                <p className="text-[13px] text-faint">No cheques due soon.</p>
+              ) : (
+                <Link href="/cheques" className="block">
+                  {dueCheques.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex items-center gap-2.5 border-b border-row px-0.5 py-2.5 last:border-0 hover:bg-card2"
+                    >
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ background: "var(--neg)", animation: "pulseRed 2s infinite" }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-semibold text-text">
+                          {c.bankAccount.bankName}
+                        </div>
+                        <div className="text-[11.5px] text-faint">
+                          #{c.chequeNumber} · due {c.clearingDue ? dateShort(c.clearingDue) : "—"}
+                        </div>
                       </div>
-                      <div className="text-[11.5px] text-faint">
-                        #{c.chequeNumber} · due {c.clearingDue ? dateShort(c.clearingDue) : "—"}
+                      <div className="font-mono text-[13px] font-semibold text-text">
+                        {pkr(Number(c.amount))}
                       </div>
                     </div>
-                    <div className="font-mono text-[13px] font-semibold text-text">
-                      {pkr(Number(c.amount))}
-                    </div>
-                  </div>
-                ))}
-              </Link>
-            )}
-          </Card>
+                  ))}
+                </Link>
+              )}
+            </Card>
+          )}
 
           {/* Invoices by channel (thin split bar). */}
           <Card className="p-[18px]">
@@ -280,18 +376,102 @@ export default async function Dashboard() {
                   className="h-[9px] w-[9px] rounded-sm"
                   style={{ background: "var(--accent)" }}
                 />{" "}
-                North · <span className="font-mono">{northCount}</span>
+                {cfg.terminology.channelNorthLabel} · <span className="font-mono">{northCount}</span>
               </span>
               <span className="flex items-center gap-1.5">
                 <span
                   className="h-[9px] w-[9px] rounded-sm"
                   style={{ background: "var(--gold)" }}
                 />{" "}
-                Local · <span className="font-mono">{localCount}</span>
+                {cfg.terminology.channelLocalLabel} · <span className="font-mono">{localCount}</span>
               </span>
             </div>
           </Card>
         </div>
+      </div>
+
+      {/* Row: money insight — aging, top debtors, payment mix. */}
+      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-3">
+        {/* Receivables aging. */}
+        <Card className="p-[18px]">
+          <div className="mb-1 font-serif text-[17px] font-semibold text-ink">
+            Receivables aging
+          </div>
+          <div className="mb-3 text-[11.5px] text-faint2">unpaid invoices by age</div>
+          {agingTotal <= 0 ? (
+            <p className="text-[13px] text-faint">Nothing outstanding — fully collected.</p>
+          ) : (
+            <>
+              <div className="flex h-3 overflow-hidden rounded-full" style={{ background: "var(--row)" }}>
+                {aging.map((b, i) =>
+                  b.amount > 0 ? (
+                    <div
+                      key={b.label}
+                      title={`${b.label}: ${pkr(b.amount)}`}
+                      style={{ width: `${(b.amount / agingTotal) * 100}%`, background: AGING_COLORS[i] }}
+                    />
+                  ) : null,
+                )}
+              </div>
+              <div className="mt-3 space-y-1.5">
+                {aging.map((b, i) => (
+                  <div key={b.label} className="flex items-center justify-between text-[12.5px]">
+                    <span className="flex items-center gap-1.5 text-text">
+                      <span className="h-[9px] w-[9px] rounded-sm" style={{ background: AGING_COLORS[i] }} />
+                      {b.label}
+                      <span className="text-faint">· {b.count} inv</span>
+                    </span>
+                    <span className="font-mono text-muted">{pkr(b.amount)}</span>
+                  </div>
+                ))}
+              </div>
+              {aging[2].amount + aging[3].amount > 0 && (
+                <div className="mt-2.5 text-[11.5px]" style={{ color: "var(--neg)" }}>
+                  {pkr(aging[2].amount + aging[3].amount)} is over 60 days old — chase first.
+                </div>
+              )}
+            </>
+          )}
+        </Card>
+
+        {/* Top debtors. */}
+        <Card className="p-[18px]">
+          <div className="mb-1 font-serif text-[17px] font-semibold text-ink">Top debtors</div>
+          <div className="mb-3 text-[11.5px] text-faint2">who owes the most right now</div>
+          {debtors.length === 0 ? (
+            <p className="text-[13px] text-faint">No customer owes anything.</p>
+          ) : (
+            <div className="space-y-2.5">
+              {debtors.map((d) => (
+                <Link key={d.partyId} href={`/parties/${d.partyId}`} className="block hover:opacity-80">
+                  <div className="flex items-baseline justify-between gap-2 text-[12.5px]">
+                    <span className="truncate font-semibold text-text">{d.name}</span>
+                    <span className="shrink-0 font-mono text-muted">{pkr(d.balance)}</span>
+                  </div>
+                  <div className="mt-1 h-[5px] overflow-hidden rounded-full" style={{ background: "var(--row)" }}>
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${Math.max(4, (d.balance / maxDebt) * 100)}%`, background: "var(--accent)" }}
+                    />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Payment mix. */}
+        <Card className="p-[18px]">
+          <div className="mb-1 font-serif text-[17px] font-semibold text-ink">Payment mix</div>
+          <div className="mb-3 text-[11.5px] text-faint2">customer receipts · last 90 days</div>
+          <Donut
+            slices={mixSlices}
+            centerLabel="received"
+            centerValue={compactMoney(mixTotal)}
+            formatValue={(n) => compactMoney(n)}
+            emptyLabel="No payments in the last 90 days."
+          />
+        </Card>
       </div>
 
       {/* Row: Recent invoices + On the road. */}
@@ -340,73 +520,89 @@ export default async function Dashboard() {
         </Card>
 
         {/* On the road (active shipments). */}
-        <Card className="p-[18px]">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="font-serif text-[17px] font-semibold text-ink">On the road</div>
-            <Link
-              href="/shipments"
-              className="p-1 text-[12px] font-semibold text-accent hover:text-accent-deep"
-            >
-              Shipments →
-            </Link>
-          </div>
-          {shipmentRows.length === 0 ? (
-            <p className="text-[13px] text-faint">
-              No active shipments.{" "}
-              <Link href="/shipments" className="text-gold underline hover:text-accent-deep">
-                Add one →
+        {f.shipments && (
+          <Card className="p-[18px]">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="font-serif text-[17px] font-semibold text-ink">On the road</div>
+              <Link
+                href="/shipments"
+                className="p-1 text-[12px] font-semibold text-accent hover:text-accent-deep"
+              >
+                Shipments →
               </Link>
-            </p>
-          ) : (
-            <div>
-              {shipmentRows.map((s) => (
-                <Link
-                  key={s.id}
-                  href="/shipments"
-                  className="block border-b border-row px-0.5 py-2.5 last:border-0 hover:bg-card2"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex-1 text-[13px] font-semibold text-text">
-                      Karachi → {s.destinationCity}
-                    </div>
-                    <StatusChip status={s.status} />
-                  </div>
-                  <div className="mt-2 flex items-center gap-2.5">
-                    <div
-                      className="h-[3px] flex-1 overflow-hidden rounded-full"
-                      style={{ background: "var(--row)" }}
-                    >
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${s.progress}%`, background: shipColor(s.status) }}
-                      />
-                    </div>
-                    <div className="shrink-0 text-[11px] text-faint">
-                      {s.eta ? `ETA ${s.eta}` : "ETA —"}
-                      {s.etaHint ? ` · ${s.etaHint}` : ""}
-                    </div>
-                  </div>
-                </Link>
-              ))}
             </div>
-          )}
-        </Card>
+            {shipmentRows.length === 0 ? (
+              <p className="text-[13px] text-faint">
+                No active shipments.{" "}
+                <Link href="/shipments" className="text-gold underline hover:text-accent-deep">
+                  Add one →
+                </Link>
+              </p>
+            ) : (
+              <div>
+                {shipmentRows.map((s) => (
+                  <Link
+                    key={s.id}
+                    href="/shipments"
+                    className="block border-b border-row px-0.5 py-2.5 last:border-0 hover:bg-card2"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex-1 text-[13px] font-semibold text-text">
+                        {cfg.map.originCity} → {s.destinationCity}
+                      </div>
+                      <StatusChip status={s.status} />
+                    </div>
+                    <div className="mt-2 flex items-center gap-2.5">
+                      <div
+                        className="h-[3px] flex-1 overflow-hidden rounded-full"
+                        style={{ background: "var(--row)" }}
+                      >
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${s.progress}%`, background: shipColor(s.status) }}
+                        />
+                      </div>
+                      <div className="shrink-0 text-[11px] text-faint">
+                        {s.eta ? `ETA ${s.eta}` : "ETA —"}
+                        {s.etaHint ? ` · ${s.etaHint}` : ""}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </Card>
+        )}
       </div>
 
       {/* Shipment tracker map (full width). */}
-      <Card className="p-[18px]">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="font-serif text-[17px] font-semibold text-ink">Shipment tracker</div>
-          <span className="text-[11.5px] text-faint2">{activeShipments.length} active</span>
-        </div>
-        <PakistanMap routes={routes} />
-      </Card>
+      {f.shipments && (
+        <Card className="p-[18px]">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="font-serif text-[17px] font-semibold text-ink">Shipment tracker</div>
+            <span className="text-[11.5px] text-faint2">{activeShipments.length} active</span>
+          </div>
+          <PakistanMap
+            routes={routes}
+            originCity={cfg.map.originCity}
+            showContextCities={cfg.map.showContextCities}
+          />
+        </Card>
+      )}
     </div>
   );
 }
 
 function round2(x: number): number {
   return Math.round((x + Number.EPSILON) * 100) / 100;
+}
+
+/** Compact money for the donut center/legend: 1.2M / 340K / full below 1000. */
+function compactMoney(n: number): string {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${Math.round(n / 1_000)}K`;
+  return pkr(n);
 }
 
 /** Human "in 3 days" / "overdue" hint from an ETA, using a supplied `now`. */

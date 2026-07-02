@@ -12,6 +12,10 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   const ctx = await getOptionalContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // The assistant's read-only tools expose book-wide figures — office roles only.
+  if (ctx.user.role === "delivery" || ctx.user.role === "store_keeper") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
 
   let body: { message?: string; history?: ChatMessage[] };
   try {

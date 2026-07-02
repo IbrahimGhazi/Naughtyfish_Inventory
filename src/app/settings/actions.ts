@@ -26,11 +26,11 @@ import { revalidatePath } from "next/cache";
  * client for entityId — it always comes from ctx.
  */
 
-/** Guard: only role "admin" may manage users (loginIds / password hashes). */
+/** Guard: only admin (or the hidden platform owner) may manage users. */
 async function assertAdmin() {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
-  if (ctx.user.role !== "admin") {
+  if (ctx.user.role !== "admin" && ctx.user.role !== "platform_admin") {
     throw new Error("Only an admin may manage users.");
   }
   return ctx;
@@ -364,11 +364,15 @@ const UserCreateSchema = z.object({
   regionScope: z.enum(REGION_SCOPES),
 });
 
-/** Add a user. Password is hashed with bcrypt (cost 10, matching the seed). */
+/** Add a user. Password is hashed with bcrypt (cost 10, matching the seed).
+ *  Only the platform owner may mint another platform_admin. */
 export async function createUser(input: z.infer<typeof UserCreateSchema>) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const ctx = await getActiveContext();
   const parsed = UserCreateSchema.parse(input);
+  if (parsed.role === "platform_admin" && admin.user.role !== "platform_admin") {
+    throw new Error("Only the platform owner may assign that role.");
+  }
 
   const dupe = await prisma.user.findUnique({
     where: { loginId: parsed.loginId },
@@ -405,11 +409,20 @@ const UserUpdateSchema = z.object({
 });
 
 export async function updateUser(input: z.infer<typeof UserUpdateSchema>) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const parsed = UserUpdateSchema.parse(input);
 
   const existing = await prisma.user.findUnique({ where: { id: parsed.id } });
   if (!existing) throw new Error("User not found.");
+
+  // A client admin can neither touch the platform owner's account nor
+  // escalate anyone to platform_admin. (The role is invisible in their UI,
+  // but UI hiding is not enforcement.)
+  if (admin.user.role !== "platform_admin") {
+    if (existing.role === "platform_admin" || parsed.role === "platform_admin") {
+      throw new Error("Only the platform owner may manage that account.");
+    }
+  }
 
   // loginId is globally unique — block a collision with a *different* user.
   if (parsed.loginId !== existing.loginId) {

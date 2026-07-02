@@ -22,10 +22,16 @@ export function Donut({
   slices,
   centerLabel,
   emptyLabel = "No data",
+  centerValue,
+  formatValue,
 }: {
   slices: DonutSlice[];
   centerLabel?: string;
   emptyLabel?: string;
+  /** Override the big center figure (default: raw total). Use for currency. */
+  centerValue?: string;
+  /** Format legend values (default: raw number). */
+  formatValue?: (n: number) => string;
 }) {
   const total = slices.reduce((s, x) => s + x.value, 0);
   const size = 180;
@@ -67,10 +73,10 @@ export function Donut({
           textAnchor="middle"
           fill="#16262e"
           className="fill-[var(--ink)] font-mono"
-          fontSize={22}
+          fontSize={centerValue && centerValue.length > 8 ? 15 : 22}
           fontWeight={700}
         >
-          {total}
+          {centerValue ?? total}
         </text>
         {centerLabel && (
           <text
@@ -97,7 +103,7 @@ export function Donut({
                 {s.label}
               </span>
               <span className="font-mono tabular-nums text-muted">
-                {s.value}
+                {formatValue ? formatValue(s.value) : s.value}
                 <span className="ml-1 text-xs text-faint">
                   {total > 0 ? `${Math.round((s.value / total) * 100)}%` : ""}
                 </span>

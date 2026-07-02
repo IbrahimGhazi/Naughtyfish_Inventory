@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { canAccessPage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { pkr, kg, pct, dateShort } from "@/lib/format";
 import PrintButton from "./PrintButton";
@@ -35,6 +36,13 @@ export default async function InvoicePrintPage({
     },
   });
   if (!invoice) notFound();
+
+  // Delivery may print ONLY invoices it created; other roles need the grant.
+  if (ctx.user.role === "delivery") {
+    if (invoice.createdById !== ctx.user.id) redirect("/delivery");
+  } else if (!canAccessPage(ctx.user.role, "invoices")) {
+    redirect("/");
+  }
 
   const total = Number(invoice.totalAmount);
 

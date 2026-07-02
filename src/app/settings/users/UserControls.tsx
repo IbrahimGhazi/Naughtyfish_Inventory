@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createUser, updateUser } from "../actions";
 import { Field, EditToggle } from "../ui";
 import {
-  ROLES,
+  ASSIGNABLE_ROLES,
   ENTITY_ACCESS,
   REGION_SCOPES,
   type Role,
@@ -78,7 +78,7 @@ function UserFields({
           value={v.role}
           onChange={(e) => set({ role: e.target.value })}
         >
-          {ROLES.map((r) => (
+          {ASSIGNABLE_ROLES.map((r) => (
             <option key={r} value={r}>
               {r}
             </option>

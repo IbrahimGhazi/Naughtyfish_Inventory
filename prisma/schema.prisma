@@ -37,9 +37,20 @@ model Entity {
   badDebts         BadDebtEntry[]
   stockMovements   StockMovement[]
   shipments        Shipment[]
+  processes        Process[]
 }
 
-/// role: "admin" | "accountant" | "north_employee" | "store_keeper" | "delivery"
+/// Per-deployment white-label configuration (platform panel). Exactly one row
+/// (id "main"); `data` holds the JSON-serialized AppConfig (src/lib/config.ts):
+/// branding (app name / logo / tagline), theme token overrides, business
+/// terminology, and feature toggles. Deployment-wide — NOT entity-scoped.
+model AppConfig {
+  id        String   @id @default("main")
+  data      String   @default("{}")
+  updatedAt DateTime @updatedAt
+}
+
+/// role: "platform_admin" | "admin" | "accountant" | "north_employee" | "store_keeper" | "delivery"
 /// entityAccess: "cstar" | "nf" | "both"   regionScope: "north" | "south" | "all"
 model User {
   id           String   @id @default(cuid())
@@ -116,6 +127,7 @@ model Item {
   invoiceLines     InvoiceLineItem[]
   inventoryLines   StoreInventoryLine[]
   stockMovements   StockMovement[]
+  processes        Process[]
 
   @@index([entityId])
 }
@@ -155,6 +167,7 @@ model Store {
   stockMovementsFrom StockMovement[] @relation("StockFrom")
   stockMovementsTo   StockMovement[] @relation("StockTo")
   originShipments Shipment[] @relation("ShipmentOrigin")
+  processes      Process[]
 
   @@index([entityId])
 }
@@ -425,6 +438,7 @@ model ExpenseEntry {
   entityId   String
   enteredBy  User?           @relation(fields: [enteredById], references: [id])
   enteredById String?
+  process    Process?
 
   @@index([entityId, categoryId])
 }
@@ -460,6 +474,41 @@ model Shipment {
   invoiceId     String?
   originStore   Store?   @relation("ShipmentOrigin", fields: [originStoreId], references: [id])
   originStoreId String?
+
+  @@index([entityId, status])
+}
+
+/// OPTIONAL production/processing step: raw material sent somewhere (a vendor,
+/// a facility, another site) to be worked on, with an expected turnaround and a
+/// cost estimate. Entirely optional — the rest of the app never requires one.
+/// status: "planned" | "in_progress" | "completed" | "cancelled"
+/// Cost flow (owner decision): estimated/actual cost live HERE; on completion
+/// the actual cost MAY be posted as an ExpenseEntry (expenseEntryId links it) —
+/// never automatic.
+model Process {
+  id              String    @id @default(cuid())
+  name            String // e.g. "Fillet cutting — Batch 12"
+  status          String    @default("planned")
+  materialNote    String? // free-text description of what was sent
+  quantityKg      Decimal? // optional weight sent out
+  destination     String // where it goes: vendor / facility name
+  startedAt       DateTime?
+  expectedReadyAt DateTime?
+  completedAt     DateTime?
+  estimatedCost   Decimal?
+  actualCost      Decimal?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  entity         Entity        @relation(fields: [entityId], references: [id])
+  entityId       String
+  item           Item?         @relation(fields: [itemId], references: [id])
+  itemId         String?
+  fromStore      Store?        @relation(fields: [fromStoreId], references: [id])
+  fromStoreId    String?
+  expenseEntry   ExpenseEntry? @relation(fields: [expenseEntryId], references: [id])
+  expenseEntryId String?       @unique
 
   @@index([entityId, status])
 }

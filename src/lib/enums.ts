@@ -9,6 +9,7 @@ export type BookType = (typeof BOOK_TYPES)[number];
 export const ENTITY_NAMES = ["C-Star", "NF"] as const;
 
 export const ROLES = [
+  "platform_admin",
   "admin",
   "accountant",
   "north_employee",
@@ -16,6 +17,16 @@ export const ROLES = [
   "delivery",
 ] as const;
 export type Role = (typeof ROLES)[number];
+
+/** Roles a CLIENT admin may assign from Settings → Users. platform_admin is
+ *  the product owner's hidden role — it never appears in client-facing UIs. */
+export const ASSIGNABLE_ROLES = [
+  "admin",
+  "accountant",
+  "north_employee",
+  "store_keeper",
+  "delivery",
+] as const;
 
 export const ENTITY_ACCESS = ["cstar", "nf", "both"] as const;
 export type EntityAccess = (typeof ENTITY_ACCESS)[number];
@@ -47,3 +58,6 @@ export type PaymentType = (typeof PAYMENT_TYPES)[number];
 export const BAD_DEBT_SUBCATEGORIES = ["bad_debt", "dispute"] as const;
 
 export const STORE_OWNERSHIP = ["own", "rented"] as const;
+
+export const PROCESS_STATUSES = ["planned", "in_progress", "completed", "cancelled"] as const;
+export type ProcessStatus = (typeof PROCESS_STATUSES)[number];

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader, BackLink } from "@/components/ui";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import type { Channel } from "@/lib/billing";
 import EditInvoiceForm, {
@@ -18,6 +19,7 @@ export default async function EditInvoicePage({
 }) {
   const { id } = await params;
   const ctx = await getActiveContext();
+  requirePage(ctx, "invoices");
   const scope = entityScope(ctx);
 
   const invoice = await prisma.invoice.findFirst({

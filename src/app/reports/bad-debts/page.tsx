@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { pkr, dateShort } from "@/lib/format";
 import { BAD_DEBT_SUBCATEGORIES } from "@/lib/enums";
@@ -48,6 +49,7 @@ export default async function BadDebtsPage({
   const { filter: rawFilter } = await searchParams;
   const filter = normalizeFilter(rawFilter);
   const ctx = await getActiveContext();
+  requirePage(ctx, "reports");
   const scope = entityScope(ctx);
 
   const subFilter =

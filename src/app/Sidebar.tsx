@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
-import SidebarNav, { type NavSection } from "./SidebarNav";
+import { getAppConfig } from "@/lib/config";
+import { canAccessPage, type PageKey } from "@/lib/roles";
+import SidebarNav, { type NavItem, type NavSection } from "./SidebarNav";
 import { logout } from "./session-actions";
 
 /** Icon paths (stroke, 24x24) keyed by nav item. */
@@ -11,11 +13,15 @@ const ICONS: Record<string, string> = {
   parties: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M15 3.13a4 4 0 0 1 0 7.75",
   shipments: "M1 4h14v12H1zM15 9h4l3 3v4h-7V9M5.5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4M17.5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4",
   inventory: "M21 16V8l-9-5-9 5v8l9 5 9-5zM3.3 7.3L12 12l8.7-4.7M12 22V12",
+  processes: "M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.2 2.2M16.2 16.2l2.2 2.2M5.6 18.4l2.2-2.2M16.2 7.8l2.2-2.2M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8",
   cheques: "M3 6h18v13H3zM3 10h18M7 15h5",
   banks: "M3 10l9-6 9 6M4 10v8M8 10v8M12 10v8M16 10v8M20 10v8M2 21h20",
   expenses: "M3 7h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7V6a2 2 0 0 1 2-2h11v3M16.5 13.5h.01",
   reports: "M18 20V10M12 20V4M6 20v-6",
   settings: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M2 14h4M10 8h4M18 16h4",
+  platform: "M12 2l9 5v10l-9 5-9-5V7l9-5zM12 22V12M3 7l9 5 9-5",
+  delivery: "M3 7h11v10H3zM14 10h4l3 3v4h-7v-7M6.5 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3M17.5 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3",
+  camera: "M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8",
 };
 
 export default async function Sidebar({
@@ -29,58 +35,88 @@ export default async function Sidebar({
 }) {
   const ctx = await getActiveContext();
   const scope = entityScope(ctx);
+  const cfg = await getAppConfig();
+  const f = cfg.features;
 
-  // Nav badges: unpaid invoices + cheques due soon.
-  const now = new Date();
-  const soon = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-  const [invoiceCount, dueCheques] = await Promise.all([
-    prisma.invoice.count({ where: scope }),
-    prisma.cheque.count({
-      where: {
-        ...scope,
-        status: { in: ["issued", "pending", "held"] },
-        OR: [{ clearingDue: { lte: soon } }, { reminderDate: { lte: soon } }],
+  const can = (page: PageKey) => canAccessPage(userRole, page);
+
+  let sections: NavSection[];
+
+  if (userRole === "delivery") {
+    // Restricted delivery portal: invoice entry + own invoices only.
+    sections = [
+      {
+        label: "Delivery",
+        items: [
+          { href: "/delivery", key: "delivery", label: "Home", d: ICONS.dashboard },
+          { href: "/delivery/new", key: "delivery-new", label: "New invoice", d: ICONS.invoices },
+          { href: "/delivery/invoices", key: "delivery-invoices", label: "My invoices", d: ICONS.delivery },
+        ],
       },
-    }),
-  ]);
+    ];
+  } else {
+    // Nav badges: invoice count, drafts awaiting review + cheques due soon.
+    const now = new Date();
+    const soon = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const [invoiceCount, dueCheques] = await Promise.all([
+      prisma.invoice.count({ where: scope }),
+      f.cheques
+        ? prisma.cheque.count({
+            where: {
+              ...scope,
+              status: { in: ["issued", "pending", "held"] },
+              OR: [{ clearingDue: { lte: soon } }, { reminderDate: { lte: soon } }],
+            },
+          })
+        : Promise.resolve(0),
+    ]);
 
-  const sections: NavSection[] = [
-    {
-      label: "Overview",
-      items: [{ href: "/", key: "dashboard", label: "Dashboard", d: ICONS.dashboard }],
-    },
-    {
-      label: "Sales",
-      items: [
-        { href: "/invoices", key: "invoices", label: "Invoices", d: ICONS.invoices, count: invoiceCount || undefined },
-        { href: "/parties", key: "parties", label: "Parties", d: ICONS.parties },
-      ],
-    },
-    {
-      label: "Operations",
-      items: [
-        { href: "/shipments", key: "shipments", label: "Shipments", d: ICONS.shipments },
-        { href: "/inventory", key: "inventory", label: "Inventory", d: ICONS.inventory },
-      ],
-    },
-    {
-      label: "Money",
-      items: [
-        { href: "/cheques", key: "cheques", label: "Cheques", d: ICONS.cheques, count: dueCheques || undefined },
-        { href: "/banks", key: "banks", label: "Banks", d: ICONS.banks },
-        { href: "/expenses", key: "expenses", label: "Expenses", d: ICONS.expenses },
-      ],
-    },
-    {
-      label: "Insight",
-      items: [
-        { href: "/reports", key: "reports", label: "Reports", d: ICONS.reports },
-        { href: "/settings", key: "settings", label: "Settings", d: ICONS.settings },
-      ],
-    },
-  ];
+    const sales: NavItem[] = [];
+    if (can("invoices"))
+      sales.push({ href: "/invoices", key: "invoices", label: "Invoices", d: ICONS.invoices, count: invoiceCount || undefined });
+    if (can("parties"))
+      sales.push({ href: "/parties", key: "parties", label: "Parties", d: ICONS.parties });
 
-  const bookTag = entityName === "NF" ? "Black book · Karachi" : "White book · Karachi";
+    const ops: NavItem[] = [];
+    if (f.shipments && can("shipments"))
+      ops.push({ href: "/shipments", key: "shipments", label: "Shipments", d: ICONS.shipments });
+    if (can("inventory"))
+      ops.push({ href: "/inventory", key: "inventory", label: "Inventory", d: ICONS.inventory });
+    if (f.processes && can("processes"))
+      ops.push({ href: "/processes", key: "processes", label: "Processes", d: ICONS.processes });
+
+    const money: NavItem[] = [];
+    if (f.cheques && can("cheques"))
+      money.push({ href: "/cheques", key: "cheques", label: "Cheques", d: ICONS.cheques, count: dueCheques || undefined });
+    if (f.banks && can("banks"))
+      money.push({ href: "/banks", key: "banks", label: "Banks", d: ICONS.banks });
+    if (f.expenses && can("expenses"))
+      money.push({ href: "/expenses", key: "expenses", label: "Expenses", d: ICONS.expenses });
+
+    const insight: NavItem[] = [];
+    if (f.reports && can("reports"))
+      insight.push({ href: "/reports", key: "reports", label: "Reports", d: ICONS.reports });
+    if (can("settings"))
+      insight.push({ href: "/settings", key: "settings", label: "Settings", d: ICONS.settings });
+
+    sections = [
+      {
+        label: "Overview",
+        items: [{ href: "/", key: "dashboard", label: "Dashboard", d: ICONS.dashboard }],
+      },
+      ...(sales.length ? [{ label: "Sales", items: sales }] : []),
+      ...(ops.length ? [{ label: "Operations", items: ops }] : []),
+      ...(money.length ? [{ label: "Money", items: money }] : []),
+      ...(insight.length ? [{ label: "Insight", items: insight }] : []),
+      // Product-owner panel — platform_admin only, invisible to client roles.
+      ...(can("platform")
+        ? [{ label: "Product owner", items: [{ href: "/platform", key: "platform", label: "Platform", d: ICONS.platform }] }]
+        : []),
+    ];
+  }
+
+  const bookTag =
+    entityName === "NF" ? "Black book · " + cfg.branding.tagline : cfg.branding.tagline;
   const initials = userName
     .split(/\s+/)
     .slice(0, 2)
@@ -96,23 +132,32 @@ export default async function Sidebar({
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-[18px] pb-4 pt-5">
         <div
-          className="flex h-[34px] w-[34px] items-center justify-center rounded-full"
+          className="flex h-[34px] w-[34px] items-center justify-center overflow-hidden rounded-full"
           style={{ background: "rgba(242,235,217,.1)", animation: "swim 4s ease-in-out infinite" }}
         >
-          <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-            <path
-              d="M3.5 16c4.8-5.4 12-5.4 17.2-.8l5.1-3.5c.9-.6 2 .3 1.6 1.3L25.9 16l1.5 3c.4 1-.7 1.9-1.6 1.3l-5.1-3.5C15.5 21.4 8.3 21.4 3.5 16z"
-              fill="var(--side-fg)"
+          {cfg.branding.logoDataUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={cfg.branding.logoDataUrl}
+              alt={cfg.branding.appName}
+              className="h-full w-full object-cover"
             />
-            <circle cx="8.4" cy="15.2" r="1.3" fill="var(--side-bg)" />
-          </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+              <path
+                d="M3.5 16c4.8-5.4 12-5.4 17.2-.8l5.1-3.5c.9-.6 2 .3 1.6 1.3L25.9 16l1.5 3c.4 1-.7 1.9-1.6 1.3l-5.1-3.5C15.5 21.4 8.3 21.4 3.5 16z"
+                fill="var(--side-fg)"
+              />
+              <circle cx="8.4" cy="15.2" r="1.3" fill="var(--side-bg)" />
+            </svg>
+          )}
         </div>
         <div>
           <div
             className="font-serif text-[19px] font-semibold italic leading-none"
             style={{ color: "var(--side-fg)" }}
           >
-            naughtyfish
+            {cfg.branding.appName}
           </div>
           <div
             className="mt-1 text-[9.5px] font-semibold uppercase tracking-[0.18em]"
@@ -142,7 +187,7 @@ export default async function Sidebar({
               {userName}
             </div>
             <div className="text-[10.5px] capitalize" style={{ color: "var(--side-dim)" }}>
-              {userRole}
+              {userRole.replace(/_/g, " ")}
             </div>
           </div>
           <LockButton />

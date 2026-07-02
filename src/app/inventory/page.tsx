@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope, storeScope } from "@/lib/scope";
 import { kg } from "@/lib/format";
 import { Card, Chip, PageHeader, Th } from "@/components/ui";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function InventoryPage() {
   const ctx = await getActiveContext();
+  requirePage(ctx, "inventory");
 
   // storeScope → store-scoped users see only their store(s); admin/accountant see all.
   const stores = await prisma.store.findMany({

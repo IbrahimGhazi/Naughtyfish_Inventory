@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { assertRole, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope, assertEntityAccess } from "@/lib/scope";
 import { revalidatePath } from "next/cache";
 
@@ -17,6 +18,7 @@ const CategorySchema = z.object({
  */
 export async function addExpenseCategory(input: z.infer<typeof CategorySchema>) {
   const ctx = await getActiveContext();
+  assertRole(ctx, OFFICE_ROLES);
   await assertEntityAccess(ctx);
   const parsed = CategorySchema.parse(input);
 
@@ -46,6 +48,7 @@ const EntrySchema = z.object({
 /** Record an expense entry against a category. */
 export async function addExpenseEntry(input: z.infer<typeof EntrySchema>) {
   const ctx = await getActiveContext();
+  assertRole(ctx, OFFICE_ROLES);
   await assertEntityAccess(ctx);
   const parsed = EntrySchema.parse(input);
 

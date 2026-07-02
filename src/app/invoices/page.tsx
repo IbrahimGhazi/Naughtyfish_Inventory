@@ -1,19 +1,31 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { pkr, dateShort } from "@/lib/format";
 import { PageHeader, PrimaryButton, Card, Chip, StatusChip, Th } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
-export default async function InvoicesPage() {
+export default async function InvoicesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
   const ctx = await getActiveContext();
-  const invoices = await prisma.invoice.findMany({
-    where: entityScope(ctx),
-    include: { party: true, payments: { select: { amount: true } } },
-    orderBy: { invoiceNumber: "desc" },
-  });
+  requirePage(ctx, "invoices");
+  const { status } = await searchParams;
+  const draftsOnly = status === "draft";
+
+  const [invoices, draftCount] = await Promise.all([
+    prisma.invoice.findMany({
+      where: { ...entityScope(ctx), ...(draftsOnly ? { status: "draft" } : {}) },
+      include: { party: true, payments: { select: { amount: true } } },
+      orderBy: { invoiceNumber: "desc" },
+    }),
+    prisma.invoice.count({ where: { ...entityScope(ctx), status: "draft" } }),
+  ]);
 
   const balanceOf = (inv: (typeof invoices)[number]) =>
     Number(inv.totalAmount) -
@@ -28,7 +40,7 @@ export default async function InvoicesPage() {
     <div className="animate-rise space-y-4">
       <PageHeader
         eyebrow="Sales"
-        title="Invoices"
+        title={draftsOnly ? "Invoices · drafts to review" : "Invoices"}
         action={
           <PrimaryButton href="/invoices/new">
             <span className="text-base leading-none">+</span> New invoice
@@ -36,8 +48,28 @@ export default async function InvoicesPage() {
         }
       />
 
+      {/* Field-entered drafts waiting for office approval. */}
+      {draftCount > 0 && !draftsOnly && (
+        <Link
+          href="/invoices?status=draft"
+          className="block rounded-xl border px-4 py-3 text-[13px] transition-colors hover:brightness-[0.98]"
+          style={{ borderColor: "var(--warn)", background: "var(--warn-bg)", color: "var(--warn)" }}
+        >
+          <strong>{draftCount} draft{draftCount === 1 ? "" : "s"}</strong> from the delivery login
+          {draftCount === 1 ? " is" : " are"} waiting for review — tap to see {draftCount === 1 ? "it" : "them"}.
+        </Link>
+      )}
+      {draftsOnly && (
+        <Link
+          href="/invoices"
+          className="inline-block text-[12.5px] font-semibold text-gold hover:text-accent-deep"
+        >
+          ← Show all invoices
+        </Link>
+      )}
+
       {invoices.length === 0 ? (
-        <p className="text-sm text-faint">No invoices yet.</p>
+        <p className="text-sm text-faint">{draftsOnly ? "No drafts awaiting review." : "No invoices yet."}</p>
       ) : (
         <Card className="overflow-hidden">
           <table className="w-full border-collapse">

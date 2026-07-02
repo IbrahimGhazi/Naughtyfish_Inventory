@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { assertRole, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope, assertEntityAccess, storeScope } from "@/lib/scope";
 import { round3 } from "@/lib/inventory";
 import { revalidatePath } from "next/cache";
@@ -29,6 +30,7 @@ export type AdjustStockInput = z.infer<typeof AdjustSchema>;
  */
 export async function adjustStock(input: AdjustStockInput) {
   const ctx = await getActiveContext();
+  assertRole(ctx, [...OFFICE_ROLES, "store_keeper", "north_employee"]);
   await assertEntityAccess(ctx);
   const parsed = AdjustSchema.parse(input);
 

@@ -51,18 +51,21 @@ export default function ShipmentForm({
   stores,
   parties,
   invoices,
+  defaultOriginCity = "Karachi",
 }: {
   cities: string[];
   stores: FormStore[];
   parties: FormParty[];
   invoices: FormInvoice[];
+  /** White-label: platform-config origin city. */
+  defaultOriginCity?: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const [reference, setReference] = useState("");
   const [originName, setOriginName] = useState("");
-  const [originCity, setOriginCity] = useState("Karachi");
+  const [originCity, setOriginCity] = useState(defaultOriginCity);
   const [originStoreId, setOriginStoreId] = useState("");
   const [destinationName, setDestinationName] = useState("");
   const [destinationCity, setDestinationCity] = useState("Lahore");

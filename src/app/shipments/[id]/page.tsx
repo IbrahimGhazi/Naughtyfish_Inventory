@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { dateShort } from "@/lib/format";
 import { BackLink, Card, StatusChip } from "@/components/ui";
@@ -44,6 +45,7 @@ export default async function ShipmentDetailPage({
 }) {
   const { id } = await params;
   const ctx = await getActiveContext();
+  requirePage(ctx, "shipments");
 
   const shipment = await prisma.shipment.findFirst({
     where: { id, ...entityScope(ctx) },

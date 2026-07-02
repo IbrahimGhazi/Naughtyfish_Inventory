@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { pkr, dateShort } from "@/lib/format";
 import {
   buildWeeklyStatement,
@@ -39,6 +40,7 @@ export default async function WeeklyStatementPrintPage({
 }) {
   const { from, to } = await searchParams;
   const ctx = await getActiveContext();
+  requirePage(ctx, "reports");
 
   // Default to the current week when the range params are absent/invalid.
   const now = new Date();

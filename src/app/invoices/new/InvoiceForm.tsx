@@ -48,16 +48,42 @@ const emptyLine: LineRow = {
   expectedPacketCount: "",
 };
 
+export interface FormLabels {
+  packagePlural: string;
+  subUnitPlural: string;
+  weightUnit: string;
+  glazingLabel: string;
+  channelNorth: string;
+  channelLocal: string;
+}
+const DEFAULT_LABELS: FormLabels = {
+  packagePlural: "Cartons",
+  subUnitPlural: "Packets",
+  weightUnit: "kg",
+  glazingLabel: "Glazing",
+  channelNorth: "North (frozen)",
+  channelLocal: "Local (fresh)",
+};
+
 export default function InvoiceForm({
   parties,
   items,
   stores,
   regions,
+  labels = DEFAULT_LABELS,
+  showGlazing = true,
+  showPackaging = true,
+  deliveryMode = false,
 }: {
   parties: FormParty[];
   items: FormItem[];
   stores: FormStore[];
   regions: string[];
+  labels?: FormLabels;
+  showGlazing?: boolean;
+  showPackaging?: boolean;
+  /** Delivery portal: submissions become drafts; success links stay in-portal. */
+  deliveryMode?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -68,7 +94,7 @@ export default function InvoiceForm({
   const [notes, setNotes] = useState("");
   const [rows, setRows] = useState<LineRow[]>([{ ...emptyLine }]);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ invoiceNumber: number; referenceNumber: string | null; total: number } | null>(null);
+  const [done, setDone] = useState<{ id: string; invoiceNumber: number; referenceNumber: string | null; total: number } | null>(null);
 
   const itemById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
 
@@ -156,17 +182,27 @@ export default function InvoiceForm({
         style={{ borderColor: "var(--pos)", background: "var(--pos-bg)" }}
       >
         <h2 className="font-serif text-lg font-semibold text-pos">
-          ✓ Invoice #{done.invoiceNumber} saved
+          ✓ Invoice #{done.invoiceNumber} {deliveryMode ? "sent for review" : "saved"}
         </h2>
         <p className="mt-1 text-sm text-text">
           {done.referenceNumber ? `Reference ${done.referenceNumber} · ` : ""}
-          Total <span className="font-mono">{pkr(done.total)}</span>. An immutable
-          delivery record was created for dispute defense.
+          Total <span className="font-mono">{pkr(done.total)}</span>.{" "}
+          {deliveryMode
+            ? "It is saved as a draft — the office will review and approve it. You can open it to print or add a package photo."
+            : "An immutable delivery record was created for dispute defense."}
         </p>
         <div className="mt-4 flex gap-4 text-sm">
+          <a
+            href={`/invoices/${done.id}`}
+            className="font-semibold text-accent-deep underline"
+          >
+            Open invoice →
+          </a>
+          {!deliveryMode && (
           <a href={`/parties/${partyId}`} className="font-semibold text-accent-deep underline">
             View party ledger →
           </a>
+          )}
           <button
             onClick={() => {
               setDone(null);
@@ -229,7 +265,7 @@ export default function InvoiceForm({
                         : undefined
                     }
                   >
-                    {c === "north" ? "North (frozen)" : "Local (fresh)"}
+                    {c === "north" ? labels.channelNorth : labels.channelLocal}
                   </button>
                 ))}
               </div>
@@ -253,11 +289,11 @@ export default function InvoiceForm({
         <Card className="overflow-hidden">
           <div className="grid grid-cols-[1fr_76px_92px_84px_88px_90px_100px_30px] items-center gap-2 border-b border-hair2 bg-card2 px-3.5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-faint2">
             <span>Item</span>
-            <span>Cartons</span>
-            <span>Gross kg</span>
-            <span>{channel === "north" ? "Net kg in" : "Glaz %"}</span>
+            <span>{labels.packagePlural}</span>
+            <span>Gross {labels.weightUnit}</span>
+            <span>{channel === "north" ? `Net ${labels.weightUnit} in` : `${labels.glazingLabel.slice(0, 6)} %`}</span>
             <span>Rate</span>
-            <span className="text-right">Net kg</span>
+            <span className="text-right">Net {labels.weightUnit}</span>
             <span className="text-right">Amount</span>
             <span />
           </div>
@@ -280,7 +316,7 @@ export default function InvoiceForm({
                       onChange={(e) => updateRow(i, { grossWeightKg: e.target.value })} />
                     {channel === "north" ? (
                       <input className="input !py-1.5 font-mono text-[13px]" data-testid={`final-${i}`} inputMode="decimal" value={r.finalWeightKg}
-                        onChange={(e) => updateRow(i, { finalWeightKg: e.target.value })} placeholder="net kg" />
+                        onChange={(e) => updateRow(i, { finalWeightKg: e.target.value })} placeholder={`net ${labels.weightUnit}`} />
                     ) : (
                       <input className="input !py-1.5 font-mono text-[13px]" inputMode="decimal" value={r.glazingPercent} disabled placeholder="0" />
                     )}
@@ -303,20 +339,26 @@ export default function InvoiceForm({
 
                   {/* Live packets + alerts */}
                   <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <Field label="Packets">
+                    {showPackaging && (
+                    <Field label={labels.subUnitPlural}>
                       <input className="input !py-1.5 font-mono text-[13px]" data-testid={`packets-${i}`} inputMode="numeric" value={r.packetCount}
                         onChange={(e) => updateRow(i, { packetCount: e.target.value })} />
                     </Field>
-                    <Field label="Expected packets" hint="short-count alert">
+                    )}
+                    {showPackaging && (
+                    <Field label={`Expected ${labels.subUnitPlural.toLowerCase()}`} hint="short-count alert">
                       <input className="input !py-1.5 font-mono text-[13px]" data-testid={`expected-${i}`} inputMode="numeric" value={r.expectedPacketCount}
                         onChange={(e) => updateRow(i, { expectedPacketCount: e.target.value })}
                         placeholder={item ? String((Number(r.cartonCount) || 0) * item.packetsPerCarton || "") : ""} />
                     </Field>
+                    )}
                     <div className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] self-end sm:col-span-2">
                       {c?.error && <span className="text-warn">⚠ {c.error}</span>}
                       {c?.result && (
                         <>
-                          <span className="text-muted">Glazing: <strong className="font-mono text-text">{pct(c.result.glazingPercent)}</strong></span>
+                          {showGlazing && (
+                          <span className="text-muted">{labels.glazingLabel}: <strong className="font-mono text-text">{pct(c.result.glazingPercent)}</strong></span>
+                          )}
                           {c.result.varianceAlert && (
                             <Chip tone="neg">
                               ⚠ Over-deduction {pct(c.result.varianceAlert.actualPercent)} vs {pct(c.result.varianceAlert.expectedPercent)} (+{pct(c.result.varianceAlert.exceededByPercent)})
@@ -343,7 +385,7 @@ export default function InvoiceForm({
         </Card>
 
         <div className="px-0.5 text-[12px] text-faint">
-          Net weight and amounts recompute live — net = gross − glazing %, amount = net × rate.
+          Net weight and amounts recompute live — net = gross − {labels.glazingLabel.toLowerCase()} %, amount = net × rate.
         </div>
 
         {error && <p className="text-sm text-neg">{error}</p>}

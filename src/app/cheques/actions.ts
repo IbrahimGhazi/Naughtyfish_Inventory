@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { assertRole, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope, assertEntityAccess } from "@/lib/scope";
 import { CHEQUE_STATUSES } from "@/lib/enums";
 import { revalidatePath } from "next/cache";
@@ -23,6 +24,7 @@ const StatusSchema = z.object({
 
 export async function updateChequeStatus(input: z.infer<typeof StatusSchema>) {
   const ctx = await getActiveContext();
+  assertRole(ctx, OFFICE_ROLES);
   await assertEntityAccess(ctx);
   const parsed = StatusSchema.parse(input);
   const scope = entityScope(ctx);
@@ -110,6 +112,7 @@ const OutgoingSchema = z.object({
 
 export async function createOutgoingCheque(input: z.infer<typeof OutgoingSchema>) {
   const ctx = await getActiveContext();
+  assertRole(ctx, OFFICE_ROLES);
   await assertEntityAccess(ctx);
   const parsed = OutgoingSchema.parse(input);
   const scope = entityScope(ctx);

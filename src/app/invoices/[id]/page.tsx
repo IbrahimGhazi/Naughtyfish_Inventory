@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { canAccessPage, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { pkr, kg, pct, dateShort } from "@/lib/format";
 import {
@@ -12,6 +13,7 @@ import {
   GhostButton,
   Th,
 } from "@/components/ui";
+import { ApproveButton, PhotoSection } from "./ReviewControls";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +37,17 @@ export default async function InvoiceDetailPage({
   });
   if (!invoice) notFound();
 
+  // Per-record exception to the role matrix: a delivery user may open ONLY the
+  // invoices they created (view/print/photo) — everyone else needs the page grant.
+  const isDelivery = ctx.user.role === "delivery";
+  if (isDelivery) {
+    if (invoice.createdById !== ctx.user.id) redirect("/delivery");
+  } else if (!canAccessPage(ctx.user.role, "invoices")) {
+    redirect("/");
+  }
+  const isOffice = OFFICE_ROLES.includes(ctx.user.role);
+  const latestRecord = invoice.deliveryRecords[0] ?? null;
+
   const total = Number(invoice.totalAmount);
   const paid = invoice.payments.reduce((s, p) => s + Number(p.amount), 0);
   const balance = total - paid;
@@ -43,7 +56,9 @@ export default async function InvoiceDetailPage({
   return (
     <div className="animate-rise space-y-3.5">
       <div>
-        <BackLink href="/invoices">← All invoices</BackLink>
+        <BackLink href={isDelivery ? "/delivery/invoices" : "/invoices"}>
+          {isDelivery ? "← My invoices" : "← All invoices"}
+        </BackLink>
         <div className="flex items-end justify-between gap-4">
           <div>
             <h1 className="font-serif text-[30px] font-semibold leading-tight text-ink">
@@ -58,20 +73,29 @@ export default async function InvoiceDetailPage({
                   {" · "}
                 </>
               )}
-              <Link
-                href={`/parties/${invoice.partyId}`}
-                className="underline decoration-hair underline-offset-2 hover:text-accent-deep"
-              >
-                {invoice.party.name}
-              </Link>
+              {isDelivery ? (
+                <span>{invoice.party.name}</span>
+              ) : (
+                <Link
+                  href={`/parties/${invoice.partyId}`}
+                  className="underline decoration-hair underline-offset-2 hover:text-accent-deep"
+                >
+                  {invoice.party.name}
+                </Link>
+              )}
               {" · "}
               {dateShort(invoice.date)}
             </div>
           </div>
-          <div className="flex shrink-0 gap-2">
-            <GhostButton href={`/invoices/${invoice.id}/edit`}>
-              <span data-testid="edit-invoice">Edit</span>
-            </GhostButton>
+          <div className="flex shrink-0 items-start gap-2">
+            {isOffice && invoice.status === "draft" && (
+              <ApproveButton invoiceId={invoice.id} />
+            )}
+            {isOffice && (
+              <GhostButton href={`/invoices/${invoice.id}/edit`}>
+                <span data-testid="edit-invoice">Edit</span>
+              </GhostButton>
+            )}
             <Link
               href={`/invoices/${invoice.id}/print`}
               data-testid="print-invoice"
@@ -83,6 +107,26 @@ export default async function InvoiceDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Draft banner: entered in the field, awaiting head-office review. */}
+      {invoice.status === "draft" && (
+        <div
+          className="rounded-xl border px-4 py-3 text-[13px]"
+          style={{ borderColor: "var(--warn)", background: "var(--warn-bg)", color: "var(--warn)" }}
+        >
+          {isOffice ? (
+            <>
+              <strong>Draft from the field</strong> — entered by the delivery login. Review the
+              figures (use Edit to correct — it appends a versioned record), then approve.
+            </>
+          ) : (
+            <>
+              <strong>Awaiting office approval</strong> — you can still print it and attach the
+              package photo below.
+            </>
+          )}
+        </div>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -192,7 +236,15 @@ export default async function InvoiceDetailPage({
         </Card>
       )}
 
-      {/* Payments + balance-due panel */}
+      {/* Package-delivered confirmation photo (optional, latest record). */}
+      <PhotoSection
+        invoiceId={invoice.id}
+        photo={latestRecord?.optionalPhoto ?? null}
+        canUpload={Boolean(latestRecord) && (isOffice || isDelivery)}
+      />
+
+      {/* Payments + balance-due panel (money stays office-side). */}
+      {!isDelivery && (
       <div className="grid gap-3.5 lg:grid-cols-[1fr_300px]">
         <Card className="p-[18px]">
           <div className="mb-2.5 font-serif text-[17px] font-semibold text-ink">
@@ -274,6 +326,7 @@ export default async function InvoiceDetailPage({
           </Link>
         </div>
       </div>
+      )}
 
       {/* Delivery-record version history — the dispute-defense trail. */}
       <Card className="overflow-hidden">

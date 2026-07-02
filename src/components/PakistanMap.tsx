@@ -31,9 +31,20 @@ export interface MapRoute {
  *
  * The interactive sibling (selection, rail, detail card) is ShipmentTracker.
  */
-export function PakistanMap({ routes }: { routes: MapRoute[] }) {
+export function PakistanMap({
+  routes,
+  originCity = "Karachi",
+  showContextCities = true,
+}: {
+  routes: MapRoute[];
+  /** White-label: the dispatch origin (platform config), default Karachi. */
+  originCity?: string;
+  showContextCities?: boolean;
+}) {
   const d = borderPath();
   const destCitySet = new Set(routes.map((r) => r.destCity));
+  const originGeo = CITIES.find((c) => c.name === originCity);
+  const originXY: Pt = originGeo ? project(originGeo.lng, originGeo.lat) : KARACHI_XY;
 
   return (
     <div>
@@ -56,7 +67,7 @@ export function PakistanMap({ routes }: { routes: MapRoute[] }) {
           />
 
           {/* Context cities (non-destinations) as faint reference dots. */}
-          {CITIES.filter((c) => c.name !== "Karachi" && !destCitySet.has(c.name)).map((c) => {
+          {showContextCities && CITIES.filter((c) => c.name !== originCity && !destCitySet.has(c.name)).map((c) => {
             const p = project(c.lng, c.lat);
             return (
               <g key={`ctx-${c.name}`}>
@@ -154,11 +165,11 @@ export function PakistanMap({ routes }: { routes: MapRoute[] }) {
             );
           })}
 
-          {/* Karachi origin */}
+          {/* Origin (config-driven; not every customer ships out of Karachi) */}
           <g>
             <circle
-              cx={KARACHI_XY.x}
-              cy={KARACHI_XY.y}
+              cx={originXY.x}
+              cy={originXY.y}
               r={10}
               fill="none"
               stroke="#16262e"
@@ -166,10 +177,10 @@ export function PakistanMap({ routes }: { routes: MapRoute[] }) {
               strokeWidth={1.2}
               opacity={0.35}
             />
-            <circle cx={KARACHI_XY.x} cy={KARACHI_XY.y} r={5} fill="#16262e" className="fill-[var(--ink)]" />
+            <circle cx={originXY.x} cy={originXY.y} r={5} fill="#16262e" className="fill-[var(--ink)]" />
             <text
-              x={KARACHI_XY.x}
-              y={KARACHI_XY.y + 26}
+              x={originXY.x}
+              y={originXY.y + 26}
               textAnchor="middle"
               fill="#16262e"
               className="fill-[var(--ink)]"
@@ -177,7 +188,7 @@ export function PakistanMap({ routes }: { routes: MapRoute[] }) {
               fontWeight={700}
               style={{ paintOrder: "stroke", stroke: "var(--card)", strokeWidth: 3 }}
             >
-              Karachi
+              {originCity}
             </text>
           </g>
         </svg>

@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { dateShort } from "@/lib/format";
 import { PageHeader, PrimaryButton } from "@/components/ui";
 import { STATUS_LABELS, statusSortWeight, etaHint, isShipmentStatus } from "@/lib/shipments";
+import { getAppConfig } from "@/lib/config";
 import { cityByName, project } from "@/lib/geo";
 import { KARACHI_XY, progressFor } from "@/lib/mapgeo";
 import ShipmentTracker, { type TrackedShipment } from "@/components/ShipmentTracker";
@@ -13,6 +15,8 @@ export const dynamic = "force-dynamic";
 
 export default async function ShipmentsPage() {
   const ctx = await getActiveContext();
+  requirePage(ctx, "shipments");
+  const cfg = await getAppConfig();
 
   const shipments = await prisma.shipment.findMany({
     where: entityScope(ctx),
@@ -33,7 +37,7 @@ export default async function ShipmentsPage() {
   });
 
   const tracked: TrackedShipment[] = sorted.map((s) => {
-    const origin = cityByName(s.originCity ?? "Karachi");
+    const origin = cityByName(s.originCity ?? cfg.map.originCity);
     const dest = cityByName(s.destinationCity);
     const hint = etaHint(s.estimatedArrivalAt, s.status, now);
     return {
@@ -59,7 +63,7 @@ export default async function ShipmentsPage() {
       <PageHeader
         eyebrow="Operations"
         title="Shipments"
-        subtitle="Karachi cold-chain dispatches heading north."
+        subtitle={cfg.map.subtitle}
         action={
           <PrimaryButton href="/shipments/new" data-testid="ship-new-link">
             + New shipment
@@ -75,7 +79,11 @@ export default async function ShipmentsPage() {
           </Link>
         </p>
       ) : (
-        <ShipmentTracker shipments={tracked} />
+        <ShipmentTracker
+          shipments={tracked}
+          originCity={cfg.map.originCity}
+          showContextCities={cfg.map.showContextCities}
+        />
       )}
     </div>
   );

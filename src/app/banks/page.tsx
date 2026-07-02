@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { pkr } from "@/lib/format";
 import { Card, PageHeader } from "@/components/ui";
@@ -17,6 +18,7 @@ function initials(name: string): string {
 
 export default async function BanksPage() {
   const ctx = await getActiveContext();
+  requirePage(ctx, "banks");
   const scope = entityScope(ctx);
 
   const banks = await prisma.bankAccount.findMany({

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import BackLink from "../BackLink";
 import { Card } from "../ui";
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ReferencesSettingsPage() {
   const ctx = await getActiveContext();
+  requirePage(ctx, "settings");
   const series = await prisma.referenceSeries.findMany({
     where: entityScope(ctx),
     orderBy: { bookRegion: "asc" },

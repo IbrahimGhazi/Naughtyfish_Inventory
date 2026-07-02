@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { priorPaidAgainstInvoice, invoiceOutstanding } from "@/lib/payments";
 import { BackLink } from "@/components/ui";
@@ -15,6 +16,7 @@ export default async function RecordPaymentPage({
 }) {
   const { id } = await params;
   const ctx = await getActiveContext();
+  requirePage(ctx, "parties");
   const scope = entityScope(ctx);
 
   const party = await prisma.party.findFirst({ where: { id, ...scope } });

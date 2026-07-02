@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { getAppConfig } from "@/lib/config";
+import { requirePage } from "@/lib/roles";
 import { entityScope, storeScope } from "@/lib/scope";
 import { CITY_NAMES } from "@/lib/geo";
 import { BackLink, PageHeader } from "@/components/ui";
@@ -13,6 +15,8 @@ export const dynamic = "force-dynamic";
 
 export default async function NewShipmentPage() {
   const ctx = await getActiveContext();
+  requirePage(ctx, "shipments");
+  const cfg = await getAppConfig();
   const scope = entityScope(ctx);
 
   const [stores, parties, invoices] = await Promise.all([
@@ -58,6 +62,7 @@ export default async function NewShipmentPage() {
         />
       </div>
       <ShipmentForm
+        defaultOriginCity={cfg.map.originCity}
         cities={CITY_NAMES}
         stores={formStores}
         parties={formParties}
