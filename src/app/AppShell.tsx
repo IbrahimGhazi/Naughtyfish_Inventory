@@ -2,6 +2,8 @@ import { cookies } from "next/headers";
 import { getOptionalContext } from "@/lib/session";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import Assistant from "./Assistant";
+import { assistantConfigured } from "@/lib/assistant/llm";
 
 /**
  * The app frame. Logged out (login page) renders children full-bleed. Logged in
@@ -31,6 +33,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
         />
         {children}
       </main>
+      {assistantConfigured() && <Assistant book={ctx.entityName} />}
     </div>
   );
 }
