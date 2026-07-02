@@ -11,7 +11,7 @@ export const dashboardCopy: CopyFragment = [
 
   // Page header + new-invoice action.
   { key: "dashboard.newInvoice", default: "New invoice", group: "Dashboard", label: "‘New invoice’ header button" },
-  { key: "dashboard.header.subtitlePrefix", default: "— here’s where the", group: "Dashboard", label: "Header subtitle text before the entity name" },
+  { key: "dashboard.header.subtitlePrefix", default: "— here's where the", group: "Dashboard", label: "Header subtitle text before the entity name" },
   { key: "dashboard.header.subtitleSuffix", default: "book stands.", group: "Dashboard", label: "Header subtitle text after the entity name" },
 
   // KPI cards.

@@ -35,7 +35,7 @@ export const invoicesCopy: CopyFragment = [
   { key: "invoices.new.subtitleBills", default: "bills on", group: "New Invoice", label: "Subtitle: ‘bills on’ (before net)" },
   { key: "invoices.new.subtitleNet", default: "net", group: "New Invoice", label: "Subtitle: emphasised ‘net’" },
   { key: "invoices.new.subtitleWeightAfter", default: "weight after", group: "New Invoice", label: "Subtitle: ‘weight after’ (before glazing term)" },
-  { key: "invoices.new.subtitleEnterGross", default: "; enter gross + the buyer’s final weight and the % is derived.", group: "New Invoice", label: "Subtitle: enter-gross clause", multiline: true },
+  { key: "invoices.new.subtitleEnterGross", default: "; enter gross + the buyer's final weight and the % is derived.", group: "New Invoice", label: "Subtitle: enter-gross clause", multiline: true },
   { key: "invoices.new.subtitleHasNo", default: "has no", group: "New Invoice", label: "Subtitle: ‘has no’ (before glazing term)" },
   { key: "invoices.new.subtitleEngine", default: ". Every amount is recomputed on the server through the shared billing engine.", group: "New Invoice", label: "Subtitle: billing-engine clause", multiline: true },
 

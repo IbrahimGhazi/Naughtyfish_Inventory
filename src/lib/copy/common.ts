@@ -100,7 +100,7 @@ export const commonCopy: CopyFragment = [
   { key: "shell.assistant.subtitlePrefix", default: "Read-only · ", group: "Assistant", label: "Subtitle prefix (before book name)" },
   { key: "shell.assistant.subtitleSuffix", default: " book · answers from your data", group: "Assistant", label: "Subtitle suffix (after book name)" },
   { key: "shell.assistant.closeAria", default: "Close chat", group: "Assistant", label: "Close-panel aria-label" },
-  { key: "shell.assistant.intro", default: "Ask about balances, cheques, stock, shipments or profit — in English or Urdu. I read the live ledger; I can’t change anything.", group: "Assistant", label: "Empty-state intro paragraph", multiline: true },
+  { key: "shell.assistant.intro", default: "Ask about balances, cheques, stock, shipments or profit — in English or Urdu. I read the live ledger; I can't change anything.", group: "Assistant", label: "Empty-state intro paragraph", multiline: true },
   { key: "shell.assistant.fallbackReply", default: "Sorry, I couldn't answer that.", group: "Assistant", label: "Fallback reply when no answer" },
   { key: "shell.assistant.networkError", default: "Network error — please try again.", group: "Assistant", label: "Network-error reply" },
   { key: "shell.assistant.checkedPrefix", default: "checked: ", group: "Assistant", label: "Prefix before checked-tool list" },
