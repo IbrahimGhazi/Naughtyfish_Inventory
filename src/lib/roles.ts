@@ -39,7 +39,7 @@ const ROLE_PAGES: Record<string, PageKey[]> = {
   admin: ALL_CLIENT_PAGES,
   accountant: ALL_CLIENT_PAGES.filter((p) => p !== "settings"),
   north_employee: ["dashboard", "invoices", "parties", "shipments", "inventory"],
-  store_keeper: ["dashboard", "inventory", "shipments"],
+  store_keeper: ["dashboard", "inventory", "shipments", "processes"],
   delivery: ["delivery"],
 };
 

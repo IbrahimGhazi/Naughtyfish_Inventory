@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getOptionalContext } from "@/lib/session";
+import { OFFICE_ROLES } from "@/lib/roles";
 import { askLedger, type ChatMessage } from "@/lib/assistant/llm";
 
 export const dynamic = "force-dynamic";
@@ -12,8 +13,9 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   const ctx = await getOptionalContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  // The assistant's read-only tools expose book-wide figures — office roles only.
-  if (ctx.user.role === "delivery" || ctx.user.role === "store_keeper") {
+  // The assistant's read-only tools expose book-wide figures (cheques, P&L,
+  // payables) — allowlist the office roles whose page grants cover those.
+  if (!OFFICE_ROLES.includes(ctx.user.role)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 

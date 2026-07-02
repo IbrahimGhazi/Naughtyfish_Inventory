@@ -4,6 +4,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
+import { assertRole, ADMIN_ROLES } from "@/lib/roles";
 import { entityScope, assertEntityAccess } from "@/lib/scope";
 import {
   STORE_OWNERSHIP,
@@ -48,6 +49,7 @@ const StoreCreateSchema = z.object({
 export async function createStore(input: z.infer<typeof StoreCreateSchema>) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
+  assertRole(ctx, ADMIN_ROLES);
   const parsed = StoreCreateSchema.parse(input);
 
   await prisma.store.create({
@@ -76,6 +78,7 @@ const StoreUpdateSchema = StoreCreateSchema.extend({
 export async function updateStore(input: z.infer<typeof StoreUpdateSchema>) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
+  assertRole(ctx, ADMIN_ROLES);
   const parsed = StoreUpdateSchema.parse(input);
 
   // Scope the row to the active book before touching it.
@@ -132,6 +135,7 @@ function normalisePartyFields(p: {
 export async function createParty(input: z.input<typeof PartyCreateSchema>) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
+  assertRole(ctx, ADMIN_ROLES);
   const parsed = PartyCreateSchema.parse(input);
   const { subType, channel } = normalisePartyFields(parsed);
 
@@ -158,6 +162,7 @@ const PartyUpdateSchema = PartyCreateSchema.extend({ id: z.string().min(1) });
 export async function updateParty(input: z.input<typeof PartyUpdateSchema>) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
+  assertRole(ctx, ADMIN_ROLES);
   const parsed = PartyUpdateSchema.parse(input);
 
   const existing = await prisma.party.findFirst({
@@ -202,6 +207,7 @@ const ItemCreateSchema = z.object({
 export async function createItem(input: z.infer<typeof ItemCreateSchema>) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
+  assertRole(ctx, ADMIN_ROLES);
   const parsed = ItemCreateSchema.parse(input);
 
   await prisma.item.create({
@@ -227,6 +233,7 @@ const ItemUpdateSchema = ItemCreateSchema.extend({ id: z.string().min(1) });
 export async function updateItem(input: z.infer<typeof ItemUpdateSchema>) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
+  assertRole(ctx, ADMIN_ROLES);
   const parsed = ItemUpdateSchema.parse(input);
 
   const existing = await prisma.item.findFirst({
@@ -265,6 +272,7 @@ const ItemActiveSchema = z.object({
 export async function setItemActive(input: z.infer<typeof ItemActiveSchema>) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
+  assertRole(ctx, ADMIN_ROLES);
   const parsed = ItemActiveSchema.parse(input);
 
   const existing = await prisma.item.findFirst({
@@ -295,6 +303,7 @@ export async function createReferenceSeries(
 ) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
+  assertRole(ctx, ADMIN_ROLES);
   const parsed = SeriesCreateSchema.parse(input);
 
   // Unique per entity+bookRegion (matches the schema @@unique).
@@ -324,6 +333,7 @@ export async function updateReferenceSeries(
 ) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
+  assertRole(ctx, ADMIN_ROLES);
   const parsed = SeriesUpdateSchema.parse(input);
 
   const existing = await prisma.referenceSeries.findFirst({

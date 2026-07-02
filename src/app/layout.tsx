@@ -15,7 +15,14 @@ import { getAppConfig, themeCss, unitsScript } from "@/lib/config";
  * four trios are declared here and the platform config picks one at render
  * time. Every serif shares the variable name --font-newsreader (etc.) so
  * globals.css needs no changes — only the chosen trio's classes are applied to
- * <html>, and browsers only download fonts that rendered CSS actually uses.
+ * <html>.
+ *
+ * PRELOAD: next/font emits <link rel="preload" as="font"> for every declared
+ * font regardless of which classes render (~600 KB across 19 woff2 files if
+ * all twelve preload). So only the default "Ledger classic" trio keeps
+ * preload: true; the other nine set preload: false and load on demand via
+ * their @font-face rules when a deployment picks that preset (brief swap-in
+ * on first paint — acceptable).
  * Keys must stay in sync with FONT_PRESETS in src/lib/config-shared.ts.
  */
 const newsreader = Newsreader({
@@ -23,16 +30,19 @@ const newsreader = Newsreader({
   subsets: ["latin"],
   style: ["normal", "italic"],
   weight: ["400", "500", "600", "700"],
+  preload: true, // default trio — the only one preloaded
 });
 const plexSans = IBM_Plex_Sans({
   variable: "--font-plex-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  preload: true, // default trio — the only one preloaded
 });
 const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
+  preload: true, // default trio — the only one preloaded
 });
 
 const playfair = Playfair_Display({
@@ -40,16 +50,19 @@ const playfair = Playfair_Display({
   subsets: ["latin"],
   style: ["normal", "italic"],
   weight: ["400", "500", "600", "700"],
+  preload: false,
 });
 const inter = Inter({
   variable: "--font-plex-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  preload: false,
 });
 const jetbrains = JetBrains_Mono({
   variable: "--font-plex-mono",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
+  preload: false,
 });
 
 const fraunces = Fraunces({
@@ -57,16 +70,19 @@ const fraunces = Fraunces({
   subsets: ["latin"],
   style: ["normal", "italic"],
   weight: ["400", "500", "600", "700"],
+  preload: false,
 });
 const sourceSans = Source_Sans_3({
   variable: "--font-plex-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  preload: false,
 });
 const sourceCode = Source_Code_Pro({
   variable: "--font-plex-mono",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
+  preload: false,
 });
 
 const lora = Lora({
@@ -74,16 +90,19 @@ const lora = Lora({
   subsets: ["latin"],
   style: ["normal", "italic"],
   weight: ["400", "500", "600", "700"],
+  preload: false,
 });
 const karla = Karla({
   variable: "--font-plex-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  preload: false,
 });
 const spaceMono = Space_Mono({
   variable: "--font-plex-mono",
   subsets: ["latin"],
   weight: ["400", "700"], // Space Mono ships only 400/700
+  preload: false,
 });
 
 const FONT_TRIOS: Record<string, string> = {

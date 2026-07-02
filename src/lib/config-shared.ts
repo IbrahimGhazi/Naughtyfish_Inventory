@@ -238,7 +238,20 @@ export const SURFACE_PRESETS: Record<
 
 /* ==================== Merge + theme CSS builders ==================== */
 
-/** Deep-merge stored JSON over the defaults; unknown keys are dropped. */
+/** Colors allowed into themeCss on the read path (#rgb … #rrggbbaa). */
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{3,8}$/;
+
+/**
+ * Deep-merge stored JSON over the defaults; unknown keys are dropped.
+ *
+ * READ-SIDE hardening (defense-in-depth): the stored AppConfig row feeds two
+ * dangerouslySetInnerHTML sinks in the root layout (themeCss → <style>,
+ * unitsScript → <script>) and logoDataUrl is rendered as an <img src>. The
+ * only writer (savePlatformConfig) already zod-validates, but a hand-edited
+ * DB row must not reach those sinks unchecked, so theme values are
+ * re-validated here against the same tables/shape the write side uses.
+ * Tolerant by design: invalid values fall back to defaults, never throw.
+ */
 export function mergeConfig(stored: unknown): AppConfig {
   const s = (stored ?? {}) as Partial<Record<keyof AppConfig, Record<string, unknown>>>;
   const out: AppConfig = {
@@ -248,6 +261,15 @@ export function mergeConfig(stored: unknown): AppConfig {
     features: { ...DEFAULT_CONFIG.features },
     map: { ...DEFAULT_CONFIG.map },
   };
+  // Theme section guard: preset pickers must exist in their tables, every
+  // other theme key is a color and must be hex.
+  const themeValueOk = (key: string, v: unknown): boolean => {
+    if (typeof v !== "string") return false;
+    if (key === "preset") return true; // picker metadata only, never a CSS sink
+    if (key === "fontPreset") return Object.hasOwn(FONT_PRESETS, v);
+    if (key === "surface") return Object.hasOwn(SURFACE_PRESETS, v);
+    return HEX_COLOR_RE.test(v);
+  };
   for (const section of ["branding", "theme", "terminology", "features", "map"] as const) {
     const src = s[section];
     if (!src || typeof src !== "object") continue;
@@ -255,11 +277,16 @@ export function mergeConfig(stored: unknown): AppConfig {
     for (const key of Object.keys(dst)) {
       const v = src[key];
       if (v === undefined || v === null) continue;
-      if (typeof v === typeof dst[key] || dst[key] === null) dst[key] = v;
+      if (typeof v !== typeof dst[key]) continue;
+      if (section === "theme" && !themeValueOk(key, v)) continue;
+      dst[key] = v;
     }
-    // logoDataUrl defaults to null, so typeof-match above misses string values.
-    if (section === "branding" && typeof src.logoDataUrl === "string") {
-      out.branding.logoDataUrl = src.logoDataUrl;
+    // logoDataUrl defaults to null, so the typeof-match above misses it.
+    // Accept only image data URLs — anything else renders as the built-in mark.
+    if (section === "branding") {
+      const logo = src.logoDataUrl;
+      out.branding.logoDataUrl =
+        typeof logo === "string" && logo.startsWith("data:image/") ? logo : null;
     }
   }
   return out;
@@ -353,7 +380,10 @@ export function themeCss(t: ThemeConfig): string {
 /** Inline script for the root layout: mirrors the units to the browser so
  *  client components (forms, charts) format money/weights identically. */
 export function unitsScript(cfg: AppConfig): string {
-  const j = (s: string) => JSON.stringify(s);
+  // JSON.stringify escapes quotes/backslashes but NOT '<' — the HTML parser
+  // ends a <script> element at any literal "</script>", even inside a JS
+  // string. Escape '<' so no serialized value can terminate the inline script.
+  const j = (s: string) => JSON.stringify(s).replace(/</g, "\\u003c");
   return (
     `window.__APP_CURRENCY=${j(cfg.terminology.currencyCode)};` +
     `window.__APP_CURRENCY_LOCALE=${j(cfg.terminology.currencyLocale)};` +

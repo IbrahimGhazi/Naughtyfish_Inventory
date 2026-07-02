@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Card, Chip, PrimaryButton, GhostButton } from "@/components/ui";
 import {
   THEME_PRESETS,
@@ -67,7 +66,6 @@ const FEATURE_LABELS: Record<keyof FeatureFlags, [string, string]> = {
 };
 
 export default function PlatformPanel({ initial }: { initial: AppConfig }) {
-  const router = useRouter();
   const [cfg, setCfg] = useState<AppConfig>(initial);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +84,11 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
       try {
         await savePlatformConfig(cfg);
         setSaved(true);
-        router.refresh();
+        // Full reload, NOT router.refresh(): the inline units <script> in the
+        // root layout never re-executes on a soft refresh (innerHTML-swapped
+        // script content doesn't run), so client-side formatters would keep
+        // the old currency/units until a hard reload.
+        window.location.reload();
       } catch (e) {
         setError((e as Error).message);
       }

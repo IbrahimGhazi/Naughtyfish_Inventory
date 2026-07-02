@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
+import { getAppConfig } from "@/lib/config";
 import { pkr, dateShort } from "@/lib/format";
 import { BAD_DEBT_SUBCATEGORIES } from "@/lib/enums";
 import { BackLink, Card, Chip, Th } from "@/components/ui";
@@ -50,6 +52,8 @@ export default async function BadDebtsPage({
   const filter = normalizeFilter(rawFilter);
   const ctx = await getActiveContext();
   requirePage(ctx, "reports");
+  const cfg = await getAppConfig();
+  if (!cfg.features.reports) redirect("/");
   const scope = entityScope(ctx);
 
   const subFilter =

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { assertRole, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope, assertEntityAccess } from "@/lib/scope";
+import { requireFeature } from "@/lib/config";
 import { CHEQUE_STATUSES } from "@/lib/enums";
 import { revalidatePath } from "next/cache";
 
@@ -26,6 +27,7 @@ export async function updateChequeStatus(input: z.infer<typeof StatusSchema>) {
   const ctx = await getActiveContext();
   assertRole(ctx, OFFICE_ROLES);
   await assertEntityAccess(ctx);
+  await requireFeature("cheques");
   const parsed = StatusSchema.parse(input);
   const scope = entityScope(ctx);
 
@@ -114,6 +116,7 @@ export async function createOutgoingCheque(input: z.infer<typeof OutgoingSchema>
   const ctx = await getActiveContext();
   assertRole(ctx, OFFICE_ROLES);
   await assertEntityAccess(ctx);
+  await requireFeature("cheques");
   const parsed = OutgoingSchema.parse(input);
   const scope = entityScope(ctx);
 

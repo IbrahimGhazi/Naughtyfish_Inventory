@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
+import { getAppConfig } from "@/lib/config";
 import { pkr, dateShort } from "@/lib/format";
 import { BAD_DEBT_SUBCATEGORIES } from "@/lib/enums";
 import { groupForPrint, type BadDebtRow, type BadDebtSubCategory } from "../summary";
@@ -13,6 +15,8 @@ export const dynamic = "force-dynamic";
 export default async function BadDebtsPrintPage() {
   const ctx = await getActiveContext();
   requirePage(ctx, "reports");
+  const cfg = await getAppConfig();
+  if (!cfg.features.reports) redirect("/");
   const scope = entityScope(ctx);
 
   const entries = await prisma.badDebtEntry.findMany({

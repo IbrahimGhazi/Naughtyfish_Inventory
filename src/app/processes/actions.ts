@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { assertEntityAccess } from "@/lib/scope";
 import { assertRole, OFFICE_ROLES } from "@/lib/roles";
+import { requireFeature } from "@/lib/config";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -34,6 +35,7 @@ export async function createProcess(input: CreateProcessInput) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
   assertRole(ctx, [...OFFICE_ROLES, "store_keeper"]);
+  await requireFeature("processes");
 
   const parsed = CreateSchema.parse(input);
 
@@ -85,15 +87,18 @@ export async function startProcess(id: string) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
   assertRole(ctx, [...OFFICE_ROLES, "store_keeper"]);
+  await requireFeature("processes");
 
   const proc = await prisma.process.findFirst({ where: { id, entityId: ctx.entityId } });
   if (!proc) throw new Error("Process not found in this book.");
   if (proc.status !== "planned") throw new Error("Only a planned process can be started.");
 
-  await prisma.process.update({
-    where: { id },
+  // Guarded update: the status predicate closes the check-then-update race.
+  const res = await prisma.process.updateMany({
+    where: { id: proc.id, entityId: ctx.entityId, status: "planned" },
     data: { status: "in_progress", startedAt: new Date() },
   });
+  if (res.count === 0) throw new Error("Only a planned process can be started.");
   revalidatePath("/processes");
 }
 
@@ -108,6 +113,7 @@ export async function completeProcess(input: z.infer<typeof CompleteSchema>) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
   assertRole(ctx, [...OFFICE_ROLES, "store_keeper"]);
+  await requireFeature("processes");
 
   const parsed = CompleteSchema.parse(input);
   const proc = await prisma.process.findFirst({
@@ -117,8 +123,8 @@ export async function completeProcess(input: z.infer<typeof CompleteSchema>) {
   if (proc.status === "completed" || proc.status === "cancelled") {
     throw new Error("This process is already closed.");
   }
-  if (parsed.postToExpenses && parsed.actualCost === undefined) {
-    throw new Error("Enter the actual cost to post it to expenses.");
+  if (parsed.postToExpenses && (parsed.actualCost === undefined || parsed.actualCost <= 0)) {
+    throw new Error("Enter an actual cost greater than zero to post it to expenses.");
   }
 
   await prisma.$transaction(async (tx) => {
@@ -146,8 +152,16 @@ export async function completeProcess(input: z.infer<typeof CompleteSchema>) {
       expenseEntryId = entry.id;
     }
 
-    await tx.process.update({
-      where: { id: proc.id },
+    // Atomic close: the status predicate is the authoritative guard against
+    // concurrent completes (the pre-transaction check above is a fast-fail
+    // only). Matching nothing means someone else closed it first — the throw
+    // rolls back the ExpenseEntry created above, so nothing double-posts.
+    const res = await tx.process.updateMany({
+      where: {
+        id: proc.id,
+        entityId: ctx.entityId,
+        status: { notIn: ["completed", "cancelled"] },
+      },
       data: {
         status: "completed",
         completedAt: new Date(),
@@ -155,6 +169,7 @@ export async function completeProcess(input: z.infer<typeof CompleteSchema>) {
         expenseEntryId,
       },
     });
+    if (res.count === 0) throw new Error("This process is already closed.");
   });
 
   revalidatePath("/processes");
@@ -166,11 +181,19 @@ export async function cancelProcess(id: string) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
   assertRole(ctx, OFFICE_ROLES);
+  await requireFeature("processes");
 
   const proc = await prisma.process.findFirst({ where: { id, entityId: ctx.entityId } });
   if (!proc) throw new Error("Process not found in this book.");
   if (proc.status === "completed") throw new Error("A completed process cannot be cancelled.");
 
-  await prisma.process.update({ where: { id }, data: { status: "cancelled" } });
+  // Guarded update: the status predicate closes the check-then-update race.
+  const res = await prisma.process.updateMany({
+    where: { id: proc.id, entityId: ctx.entityId, status: { notIn: ["completed", "cancelled"] } },
+    data: { status: "cancelled" },
+  });
+  if (res.count === 0 && proc.status !== "cancelled") {
+    throw new Error("This process is already closed.");
+  }
   revalidatePath("/processes");
 }

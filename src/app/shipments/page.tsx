@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
@@ -17,6 +18,7 @@ export default async function ShipmentsPage() {
   const ctx = await getActiveContext();
   requirePage(ctx, "shipments");
   const cfg = await getAppConfig();
+  if (!cfg.features.shipments) redirect("/");
 
   const shipments = await prisma.shipment.findMany({
     where: entityScope(ctx),

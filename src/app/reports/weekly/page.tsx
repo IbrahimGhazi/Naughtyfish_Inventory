@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
+import { getAppConfig } from "@/lib/config";
 import { pkr, dateShort } from "@/lib/format";
 import { BackLink, Card, PrimaryButton, Th } from "@/components/ui";
 import {
@@ -51,6 +53,8 @@ export default async function WeeklyStatementPage({
   const { from, to, preset } = await searchParams;
   const ctx = await getActiveContext();
   requirePage(ctx, "reports");
+  const cfg = await getAppConfig();
+  if (!cfg.features.reports) redirect("/");
 
   // The PAGE decides "now" (the pure helpers must not read the clock).
   const now = new Date();

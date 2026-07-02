@@ -1,7 +1,9 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
+import { getAppConfig } from "@/lib/config";
 import { pkr, dateShort } from "@/lib/format";
 import { Card, Chip, PageHeader, Th } from "@/components/ui";
 import { AddCategoryForm, AddEntryForm, type FormCategory } from "./ExpenseControls";
@@ -11,6 +13,8 @@ export const dynamic = "force-dynamic";
 export default async function ExpensesPage() {
   const ctx = await getActiveContext();
   requirePage(ctx, "expenses");
+  const cfg = await getAppConfig();
+  if (!cfg.features.expenses) redirect("/");
   const scope = entityScope(ctx);
 
   const now = new Date();

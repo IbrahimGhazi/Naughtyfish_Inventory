@@ -30,10 +30,11 @@ describe("canAccessPage", () => {
     expect(canAccessPage("admin", "platform")).toBe(false);
   });
 
-  it("accountant is admin minus settings; store_keeper is stock-only", () => {
+  it("accountant is admin minus settings; store_keeper is stock + processes", () => {
     expect(canAccessPage("accountant", "settings")).toBe(false);
     expect(canAccessPage("accountant", "cheques")).toBe(true);
     expect(canAccessPage("store_keeper", "inventory")).toBe(true);
+    expect(canAccessPage("store_keeper", "processes")).toBe(true);
     expect(canAccessPage("store_keeper", "invoices")).toBe(false);
   });
 

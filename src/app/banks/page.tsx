@@ -1,7 +1,9 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
+import { getAppConfig } from "@/lib/config";
 import { pkr } from "@/lib/format";
 import { Card, PageHeader } from "@/components/ui";
 import { BalanceEditor, AddBankForm } from "./BankControls";
@@ -19,6 +21,8 @@ function initials(name: string): string {
 export default async function BanksPage() {
   const ctx = await getActiveContext();
   requirePage(ctx, "banks");
+  const cfg = await getAppConfig();
+  if (!cfg.features.banks) redirect("/");
   const scope = entityScope(ctx);
 
   const banks = await prisma.bankAccount.findMany({

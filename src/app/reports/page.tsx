@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
+import { getAppConfig } from "@/lib/config";
 import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +23,8 @@ const REPORTS = [
 export default async function ReportsHub() {
   const ctx = await getActiveContext();
   requirePage(ctx, "reports");
+  const cfg = await getAppConfig();
+  if (!cfg.features.reports) redirect("/");
 
   return (
     <div className="animate-rise space-y-5">

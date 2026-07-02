@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { getAppConfig } from "@/lib/config";
@@ -17,6 +18,7 @@ export default async function NewShipmentPage() {
   const ctx = await getActiveContext();
   requirePage(ctx, "shipments");
   const cfg = await getAppConfig();
+  if (!cfg.features.shipments) redirect("/");
   const scope = entityScope(ctx);
 
   const [stores, parties, invoices] = await Promise.all([

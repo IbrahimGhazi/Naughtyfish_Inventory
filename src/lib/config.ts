@@ -6,7 +6,7 @@
  */
 import { cache } from "react";
 import { prisma } from "./prisma";
-import { mergeConfig, DEFAULT_CONFIG, type AppConfig } from "./config-shared";
+import { mergeConfig, DEFAULT_CONFIG, type AppConfig, type FeatureFlags } from "./config-shared";
 
 export * from "./config-shared";
 
@@ -27,6 +27,15 @@ export const getAppConfig = cache(async (): Promise<AppConfig> => {
     return DEFAULT_CONFIG;
   }
 });
+
+/**
+ * Server-side feature gate for actions/APIs. UI hiding is NOT enforcement —
+ * a disabled module must also reject direct action/route invocations.
+ */
+export async function requireFeature(name: keyof FeatureFlags): Promise<void> {
+  const cfg = await getAppConfig();
+  if (!cfg.features[name]) throw new Error("This module is disabled.");
+}
 
 /** Persist a (partial) config; merge happens on read, so store what was given. */
 export async function persistConfig(cfg: AppConfig): Promise<void> {

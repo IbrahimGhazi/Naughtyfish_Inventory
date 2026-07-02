@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { assertRole, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope, assertEntityAccess } from "@/lib/scope";
+import { requireFeature } from "@/lib/config";
 import { revalidatePath } from "next/cache";
 
 const CategorySchema = z.object({
@@ -20,6 +21,7 @@ export async function addExpenseCategory(input: z.infer<typeof CategorySchema>) 
   const ctx = await getActiveContext();
   assertRole(ctx, OFFICE_ROLES);
   await assertEntityAccess(ctx);
+  await requireFeature("expenses");
   const parsed = CategorySchema.parse(input);
 
   const existing = await prisma.expenseCategory.findFirst({
@@ -50,6 +52,7 @@ export async function addExpenseEntry(input: z.infer<typeof EntrySchema>) {
   const ctx = await getActiveContext();
   assertRole(ctx, OFFICE_ROLES);
   await assertEntityAccess(ctx);
+  await requireFeature("expenses");
   const parsed = EntrySchema.parse(input);
 
   // Category must belong to the active book.

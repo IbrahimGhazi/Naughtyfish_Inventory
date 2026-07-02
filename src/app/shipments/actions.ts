@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { assertRole, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope, assertEntityAccess, storeScope } from "@/lib/scope";
+import { requireFeature } from "@/lib/config";
 import { CITY_NAMES } from "@/lib/geo";
 import { SHIPMENT_STATUSES } from "@/lib/shipments";
 import { revalidatePath } from "next/cache";
@@ -52,6 +53,7 @@ export async function createShipment(input: CreateShipmentInput) {
   const ctx = await getActiveContext();
   assertRole(ctx, [...OFFICE_ROLES, "store_keeper", "north_employee"]);
   await assertEntityAccess(ctx);
+  await requireFeature("shipments");
 
   const parsed = CreateShipmentSchema.parse(input);
 
@@ -127,6 +129,7 @@ export async function updateShipmentStatus(input: UpdateShipmentStatusInput) {
   const ctx = await getActiveContext();
   assertRole(ctx, [...OFFICE_ROLES, "store_keeper", "north_employee"]);
   await assertEntityAccess(ctx);
+  await requireFeature("shipments");
   const parsed = UpdateStatusSchema.parse(input);
 
   const shipment = await prisma.shipment.findFirst({
@@ -161,6 +164,7 @@ export async function updateShipmentEta(input: UpdateShipmentEtaInput) {
   const ctx = await getActiveContext();
   assertRole(ctx, [...OFFICE_ROLES, "store_keeper", "north_employee"]);
   await assertEntityAccess(ctx);
+  await requireFeature("shipments");
   const parsed = UpdateEtaSchema.parse(input);
 
   const shipment = await prisma.shipment.findFirst({

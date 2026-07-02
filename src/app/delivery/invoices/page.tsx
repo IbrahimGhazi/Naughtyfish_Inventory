@@ -13,18 +13,39 @@ export default async function DeliveryInvoicesPage() {
   const ctx = await getActiveContext();
   requirePage(ctx, "delivery");
 
-  const invoices = await prisma.invoice.findMany({
-    where: { ...entityScope(ctx), createdById: ctx.user.id },
-    include: {
-      party: { select: { name: true } },
-      deliveryRecords: {
-        orderBy: { version: "desc" },
-        take: 1,
-        select: { optionalPhoto: true },
+  // NEVER select the photo blob here (base64 data URLs up to ~0.9MB each) —
+  // the list only needs photo PRESENCE. Fetch the latest record's id per
+  // invoice plus a cheap id-only set of photo-carrying records, and join in JS.
+  // A photo only ever lives on the version it was attached to (append-only),
+  // so "latest record id is in the set" exactly matches the detail page.
+  const [invoices, photoRecords] = await Promise.all([
+    prisma.invoice.findMany({
+      where: { ...entityScope(ctx), createdById: ctx.user.id },
+      select: {
+        id: true,
+        invoiceNumber: true,
+        referenceNumber: true,
+        date: true,
+        status: true,
+        totalAmount: true,
+        party: { select: { name: true } },
+        deliveryRecords: {
+          orderBy: { version: "desc" },
+          take: 1,
+          select: { id: true },
+        },
       },
-    },
-    orderBy: { invoiceNumber: "desc" },
-  });
+      orderBy: { invoiceNumber: "desc" },
+    }),
+    prisma.deliveryRecord.findMany({
+      where: {
+        optionalPhoto: { not: null },
+        invoice: { is: { ...entityScope(ctx), createdById: ctx.user.id } },
+      },
+      select: { id: true },
+    }),
+  ]);
+  const photoRecordIds = new Set(photoRecords.map((r) => r.id));
 
   return (
     <div className="mx-auto max-w-[900px] animate-rise space-y-4 px-6 pb-14 pt-7">
@@ -81,7 +102,7 @@ export default async function DeliveryInvoicesPage() {
                   </td>
                   <td className="px-3.5 py-3 text-[13px]">
                     <Link href={`/invoices/${inv.id}`} className="block">
-                      {inv.deliveryRecords[0]?.optionalPhoto ? (
+                      {photoRecordIds.has(inv.deliveryRecords[0]?.id ?? "") ? (
                         <span title="photo attached">📷 ✓</span>
                       ) : (
                         <span className="text-faint">—</span>

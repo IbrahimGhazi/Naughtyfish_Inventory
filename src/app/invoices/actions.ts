@@ -401,7 +401,10 @@ export async function updateInvoice(input: UpdateInvoiceInput) {
       where: { id: invoice.id },
       data: {
         // invoiceNumber + referenceNumber UNCHANGED (edits keep the same number).
-        status: "edited",
+        // A field-entered DRAFT stays a draft through corrections so it remains
+        // in the review queue and approvable (the banner's "Edit … then approve"
+        // flow); only already-final invoices transition to "edited".
+        status: invoice.status === "draft" ? "draft" : "edited",
         version: invoice.version + 1,
         notes: parsed.notes,
         totalAmount: total,
@@ -477,6 +480,8 @@ export async function updateInvoice(input: UpdateInvoiceInput) {
   revalidatePath("/inventory");
   revalidatePath(`/invoices/${invoice.id}`);
   revalidatePath(`/parties/${partyId}`);
+  // The delivery portal's "awaiting review" count keys off status === "draft".
+  revalidatePath("/delivery");
   return { id: invoice.id, invoiceNumber: invoice.invoiceNumber, referenceNumber: invoice.referenceNumber, total };
 }
 
@@ -494,32 +499,92 @@ export async function approveInvoice(invoiceId: string) {
 
   const invoice = await prisma.invoice.findFirst({
     where: { id: invoiceId, entityId: ctx.entityId },
-    select: { id: true, status: true, partyId: true },
+    select: { id: true, status: true, partyId: true, version: true },
   });
   if (!invoice) throw new Error("Invoice not found in this book.");
   if (invoice.status !== "draft") throw new Error("Only draft invoices can be approved.");
 
+  // A draft corrected during review (version bumped by the edit flow) lands as
+  // "edited" so the correction stays visible; an untouched draft is "submitted".
   await prisma.invoice.update({
     where: { id: invoice.id },
-    data: { status: "submitted" },
+    data: { status: invoice.version > 1 ? "edited" : "submitted" },
   });
 
   revalidatePath("/");
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${invoice.id}`);
   revalidatePath(`/parties/${invoice.partyId}`);
+  // The delivery portal's "awaiting review" count keys off status === "draft".
+  revalidatePath("/delivery");
 }
 
 /* ------------------------- Delivery-confirmation photo ------------------------- */
+
+const PHOTO_PREFIX_RE = /^data:image\/(jpeg|png|webp|heic|heif);base64,/;
 
 const PhotoSchema = z.object({
   invoiceId: z.string().min(1),
   /** Compressed client-side (canvas → JPEG); hard cap keeps rows small. */
   photoDataUrl: z
     .string()
-    .regex(/^data:image\/(jpeg|png|webp);base64,/)
+    .regex(PHOTO_PREFIX_RE, "Photo must be a JPEG, PNG, WEBP or HEIC image.")
     .max(900_000, "Photo too large — try again (it is compressed automatically)."),
 });
+
+/** Decoded photo hard cap (~5MB) — backstop behind the string-length cap. */
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+
+/**
+ * The data-URL prefix is only a client CLAIM — verify the payload actually is
+ * an image of the claimed type before storing it in the append-only record.
+ * Node's Buffer.from(str, "base64") never throws (it silently skips junk), so
+ * the base64 format must be checked up front, then the decoded magic bytes
+ * must match the declared MIME. Throws plain, user-friendly errors.
+ */
+function assertValidPhotoPayload(dataUrl: string): void {
+  const match = PHOTO_PREFIX_RE.exec(dataUrl);
+  if (!match) throw new Error("Photo must be a JPEG, PNG, WEBP or HEIC image.");
+  const claimed = match[1];
+  const payload = dataUrl.slice(match[0].length);
+
+  // Strict base64: only valid characters, proper padding, non-empty.
+  if (
+    payload.length === 0 ||
+    payload.length % 4 !== 0 ||
+    !/^[A-Za-z0-9+/]+={0,2}$/.test(payload)
+  ) {
+    throw new Error("Photo data looks broken — please take the photo again.");
+  }
+
+  const buf = Buffer.from(payload, "base64");
+  if (buf.length > MAX_PHOTO_BYTES) {
+    throw new Error("Photo too large — try again (it is compressed automatically).");
+  }
+
+  // Magic bytes must match the CLAIMED type (not just any image type).
+  let ok = false;
+  if (claimed === "jpeg") {
+    ok = buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+  } else if (claimed === "png") {
+    ok =
+      buf.length >= 8 &&
+      buf
+        .subarray(0, 8)
+        .equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  } else if (claimed === "webp") {
+    ok =
+      buf.length >= 12 &&
+      buf.toString("latin1", 0, 4) === "RIFF" &&
+      buf.toString("latin1", 8, 12) === "WEBP";
+  } else {
+    // heic / heif — ISO-BMFF container: "ftyp" box marker at byte offset 4.
+    ok = buf.length >= 12 && buf.toString("latin1", 4, 8) === "ftyp";
+  }
+  if (!ok) {
+    throw new Error("This file is not a real photo — please attach an actual image.");
+  }
+}
 
 /**
  * Attach the "package delivered" confirmation photo to the invoice's LATEST
@@ -534,6 +599,7 @@ export async function attachDeliveryPhoto(input: z.infer<typeof PhotoSchema>) {
   assertRole(ctx, [...OFFICE_ROLES, "delivery"]);
 
   const parsed = PhotoSchema.parse(input);
+  assertValidPhotoPayload(parsed.photoDataUrl);
 
   const invoice = await prisma.invoice.findFirst({
     where: { id: parsed.invoiceId, entityId: ctx.entityId },

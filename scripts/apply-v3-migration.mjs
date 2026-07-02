@@ -21,6 +21,34 @@ const sql = readFileSync(sqlPath, "utf8");
 
 const db = new DatabaseSync(dbPath);
 
+// --- One-time repair: ISO-TEXT DateTimes → epoch-ms INTEGERs -----------------
+// Earlier versions of this script wrote `new Date().toISOString()` where
+// Prisma's SQLite connector stores epoch-milliseconds INTEGERs. Mixed storage
+// classes break raw-SQL comparisons/ORDER BY (all INTEGERs sort before all
+// TEXT). Runs BEFORE the idempotency guards below so already-migrated DBs get
+// normalized too. Date.parse keeps exact ms precision (a SQLite julianday
+// round-trip would not).
+const isoToMs = (v) => (typeof v === "string" ? Date.parse(v) : v);
+for (const row of db
+  .prepare(
+    `SELECT id, started_at, finished_at FROM _prisma_migrations
+     WHERE typeof(started_at) = 'text' OR typeof(finished_at) = 'text'`,
+  )
+  .all()) {
+  db.prepare("UPDATE _prisma_migrations SET started_at = ?, finished_at = ? WHERE id = ?").run(
+    isoToMs(row.started_at),
+    isoToMs(row.finished_at),
+    row.id,
+  );
+  console.log(`✓ normalized _prisma_migrations timestamps to epoch ms (id ${row.id})`);
+}
+for (const row of db
+  .prepare("SELECT id, loginId, createdAt FROM User WHERE typeof(createdAt) = 'text'")
+  .all()) {
+  db.prepare("UPDATE User SET createdAt = ? WHERE id = ?").run(Date.parse(row.createdAt), row.id);
+  console.log(`✓ normalized User.createdAt to epoch ms (loginId: ${row.loginId})`);
+}
+
 const applied = db
   .prepare("SELECT 1 FROM _prisma_migrations WHERE migration_name = ?")
   .all(migName);
@@ -34,7 +62,8 @@ if (applied.length > 0) {
       if (s) db.exec(s);
     }
     const checksum = createHash("sha256").update(sql).digest("hex");
-    const now = new Date().toISOString();
+    // Epoch ms, matching Prisma's SQLite DateTime representation (INTEGER).
+    const now = Date.now();
     db.prepare(
       `INSERT INTO _prisma_migrations (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count)
        VALUES (?, ?, ?, ?, NULL, NULL, ?, 1)`,
@@ -61,7 +90,7 @@ if (existing.length > 0) {
     db.prepare(
       `INSERT INTO User (id, name, loginId, passwordHash, role, entityAccess, regionScope, createdAt, entityId)
        VALUES (?, 'Platform Owner', 'platform', ?, 'platform_admin', 'both', 'all', ?, ?)`,
-    ).run(cuid, hash, new Date().toISOString(), entity.id);
+    ).run(cuid, hash, Date.now(), entity.id); // epoch ms — Prisma's SQLite DateTime shape
     console.log("✓ created platform_admin user — loginId: platform / password: platform123 (CHANGE IT)");
   }
 }
