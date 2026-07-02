@@ -28,6 +28,8 @@ async function main() {
   }
 
   // Clean (dev only) — order respects FKs.
+  await prisma.process.deleteMany(); // references Entity/Item/Store/ExpenseEntry
+  await prisma.stockMovement.deleteMany(); // references Entity/Item/Store/Invoice
   await prisma.deliveryLineItem.deleteMany();
   await prisma.deliveryRecord.deleteMany();
   await prisma.invoiceLineItem.deleteMany();
