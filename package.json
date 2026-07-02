@@ -11,6 +11,8 @@
     "test:watch": "vitest",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:shipments": "tsx src/app/shipments/seed-shipments.ts",
+    "db:seed:money": "tsx prisma/seed-demo-money.ts",
     "db:backup": "bash scripts/backup-db.sh",
     "db:reset": "prisma migrate reset --force",
     "db:studio": "prisma studio"
