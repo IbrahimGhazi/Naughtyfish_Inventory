@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
-import { getAppConfig } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import { dateShort } from "@/lib/format";
 import { BackLink, Card, StatusChip } from "@/components/ui";
 import {
@@ -49,6 +49,7 @@ export default async function ShipmentDetailPage({
   requirePage(ctx, "shipments");
   const cfg = await getAppConfig();
   if (!cfg.features.shipments) redirect("/");
+  const t = await getCopy();
 
   const shipment = await prisma.shipment.findFirst({
     where: { id, ...entityScope(ctx) },
@@ -78,7 +79,7 @@ export default async function ShipmentDetailPage({
   return (
     <div className="animate-rise space-y-5">
       <div>
-        <BackLink href="/shipments">← Shipments</BackLink>
+        <BackLink href="/shipments">{t("shipments.detail.backLink")}</BackLink>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h1 className="font-serif text-[28px] font-semibold leading-tight text-ink">
             {shipment.reference ?? `Shipment ${shipment.id.slice(0, 8)}`}
@@ -110,7 +111,7 @@ export default async function ShipmentDetailPage({
 
       {/* Visual timeline: preparing → in_transit → delivered */}
       <Card className="p-[18px]">
-        <h2 className="mb-4 font-serif text-[17px] font-semibold text-ink">Progress</h2>
+        <h2 className="mb-4 font-serif text-[17px] font-semibold text-ink">{t("shipments.detail.progressHeading")}</h2>
         <ol className="flex items-center" data-testid="ship-timeline">
           {STATUS_TIMELINE.map((step, i) => {
             const done = reachedIndex >= i;
@@ -177,35 +178,35 @@ export default async function ShipmentDetailPage({
         </ol>
         {shipment.status === "delayed" && (
           <p className="mt-3 text-xs font-semibold text-neg">
-            Marked delayed — in transit but behind schedule.
+            {t("shipments.detail.delayedNotice")}
           </p>
         )}
         {shipment.status === "cancelled" && (
-          <p className="mt-3 text-xs text-faint">This shipment was cancelled.</p>
+          <p className="mt-3 text-xs text-faint">{t("shipments.detail.cancelledNotice")}</p>
         )}
       </Card>
 
       {/* Facts grid */}
       <Card className="p-[18px]">
-        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">Details</h2>
+        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">{t("shipments.detail.detailsHeading")}</h2>
         <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-          <Fact label="Departure">{shipment.departureAt ? dateTime(shipment.departureAt) : "—"}</Fact>
-          <Fact label="ETA">
+          <Fact label={t("shipments.detail.factDeparture")}>{shipment.departureAt ? dateTime(shipment.departureAt) : "—"}</Fact>
+          <Fact label={t("shipments.detail.factEta")}>
             {shipment.estimatedArrivalAt ? dateTime(shipment.estimatedArrivalAt) : "—"}
             <span className={`ml-2 text-xs ${ETA_TONE_CLASS[hint.tone]}`}>{hint.text}</span>
           </Fact>
-          <Fact label="Delivered at">
+          <Fact label={t("shipments.detail.factDeliveredAt")}>
             {shipment.deliveredAt ? dateTime(shipment.deliveredAt) : "—"}
           </Fact>
-          <Fact label="Carrier">{shipment.carrier ?? "—"}</Fact>
-          <Fact label="Driver">
+          <Fact label={t("shipments.detail.factCarrier")}>{shipment.carrier ?? "—"}</Fact>
+          <Fact label={t("shipments.detail.factDriver")}>
             {shipment.driverName ?? "—"}
             {shipment.driverPhone ? (
               <span className="ml-1 text-faint">· {shipment.driverPhone}</span>
             ) : null}
           </Fact>
-          <Fact label="Origin store">{shipment.originStore?.name ?? "—"}</Fact>
-          <Fact label="Consignee">
+          <Fact label={t("shipments.detail.factOriginStore")}>{shipment.originStore?.name ?? "—"}</Fact>
+          <Fact label={t("shipments.detail.factConsignee")}>
             {shipment.party ? (
               <Link
                 href={`/parties/${shipment.partyId}`}
@@ -217,7 +218,7 @@ export default async function ShipmentDetailPage({
               "—"
             )}
           </Fact>
-          <Fact label="Linked invoice">
+          <Fact label={t("shipments.detail.factLinkedInvoice")}>
             {shipment.invoice ? (
               <Link
                 href={`/invoices/${shipment.invoiceId}`}
@@ -232,7 +233,7 @@ export default async function ShipmentDetailPage({
         </dl>
         {shipment.notes && (
           <div className="mt-4 border-t border-row pt-3">
-            <div className="text-xs font-medium text-muted">Notes</div>
+            <div className="text-xs font-medium text-muted">{t("shipments.detail.notesLabel")}</div>
             <p className="mt-1 whitespace-pre-wrap text-sm text-text">{shipment.notes}</p>
           </div>
         )}

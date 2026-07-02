@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useCopy } from "@/lib/copy/CopyProvider";
 
 /**
  * Night-mode toggle. Flips `.dark` on <html> immediately (no reload) and
@@ -10,6 +11,7 @@ import { useState } from "react";
  */
 export default function ThemeToggle({ initialDark }: { initialDark: boolean }) {
   const [dark, setDark] = useState(initialDark);
+  const t = useCopy();
 
   function toggle() {
     const next = !dark;
@@ -24,8 +26,8 @@ export default function ThemeToggle({ initialDark }: { initialDark: boolean }) {
       type="button"
       onClick={toggle}
       data-testid="theme-toggle"
-      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-      title={dark ? "Light mode" : "Dark mode"}
+      aria-label={dark ? t("shell.theme.toLightAria") : t("shell.theme.toDarkAria")}
+      title={dark ? t("shell.theme.lightTitle") : t("shell.theme.darkTitle")}
       className="flex h-8 w-8 items-center justify-center rounded-lg border border-hair bg-card text-sm hover:bg-card2"
     >
       {dark ? "☀️" : "🌙"}

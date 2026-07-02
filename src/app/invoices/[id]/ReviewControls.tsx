@@ -3,10 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui";
+import { useCopy } from "@/lib/copy/CopyProvider";
 import { approveInvoice, attachDeliveryPhoto } from "../actions";
 
 /** Office control: approve a delivery-entered draft after review. */
 export function ApproveButton({ invoiceId }: { invoiceId: string }) {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export function ApproveButton({ invoiceId }: { invoiceId: string }) {
         className="inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-on-accent disabled:opacity-50"
         style={{ background: "var(--pos)" }}
       >
-        {isPending ? "Approving…" : "✓ Approve draft"}
+        {isPending ? t("invoices.review.approving") : t("invoices.review.approveDraft")}
       </button>
       {error && <span className="text-[11.5px] text-neg">{error}</span>}
     </div>
@@ -53,6 +55,7 @@ export function PhotoSection({
   photo: string | null;
   canUpload: boolean;
 }) {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +77,7 @@ export function PhotoSection({
         }
       });
     } catch {
-      setError("Could not read that image — try another photo.");
+      setError(t("invoices.review.readError"));
     }
   }
 
@@ -83,8 +86,8 @@ export function PhotoSection({
   return (
     <Card className="p-[18px]">
       <div className="mb-2 flex items-baseline gap-1.5">
-        <div className="font-serif text-[17px] font-semibold text-ink">Package photo</div>
-        <span className="text-[12px] text-faint">· delivery confirmation, optional</span>
+        <div className="font-serif text-[17px] font-semibold text-ink">{t("invoices.review.photoHeading")}</div>
+        <span className="text-[12px] text-faint">{t("invoices.review.photoSubnote")}</span>
       </div>
 
       {shown ? (
@@ -92,12 +95,12 @@ export function PhotoSection({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={shown}
-            alt="Delivered package"
+            alt={t("invoices.review.photoAlt")}
             className="w-full rounded-xl border border-hair object-cover"
             style={{ maxHeight: 320, opacity: isPending ? 0.6 : 1 }}
           />
           <span className="mt-1.5 block text-[11.5px] text-faint">
-            {isPending ? "Uploading…" : "Attached to the latest delivery record. Tap to open."}
+            {isPending ? t("invoices.review.uploading") : t("invoices.review.photoAttached")}
           </span>
         </a>
       ) : canUpload ? (
@@ -110,9 +113,9 @@ export function PhotoSection({
             <circle cx="12" cy="13" r="4" />
           </svg>
           <span className="text-[13.5px] font-semibold text-text">
-            {isPending ? "Uploading…" : "Take / choose a photo of the delivered package"}
+            {isPending ? t("invoices.review.uploading") : t("invoices.review.photoTake")}
           </span>
-          <span className="text-[11.5px] text-faint">compressed automatically · JPG/PNG</span>
+          <span className="text-[11.5px] text-faint">{t("invoices.review.photoCompressed")}</span>
           <input
             type="file"
             accept="image/*"
@@ -123,7 +126,7 @@ export function PhotoSection({
           />
         </label>
       ) : (
-        <p className="text-[13px] text-faint">No photo attached.</p>
+        <p className="text-[13px] text-faint">{t("invoices.review.noPhoto")}</p>
       )}
 
       {error && <p className="mt-2 text-[12.5px] text-neg">⚠ {error}</p>}

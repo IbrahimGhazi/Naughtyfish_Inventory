@@ -14,7 +14,21 @@ export interface BarDatum {
  * out. Colors come from Tailwind classes with dark: variants so it reads in both
  * modes. All-zero data renders a flat baseline gracefully.
  */
-export function BarChart({ data }: { data: BarDatum[] }) {
+export function BarChart({
+  data,
+  ariaLabel = "Revenue, expenses and profit by month",
+  revenueLabel = "Revenue",
+  expensesLabel = "Expenses",
+  profitLabel = "Profit",
+}: {
+  data: BarDatum[];
+  /** Accessible chart label; injected by the caller so it's overridable copy. */
+  ariaLabel?: string;
+  /** Legend labels; injected by the caller so they're overridable copy. */
+  revenueLabel?: string;
+  expensesLabel?: string;
+  profitLabel?: string;
+}) {
   const W = 720;
   const H = 300;
   const padL = 64;
@@ -63,7 +77,7 @@ export function BarChart({ data }: { data: BarDatum[] }) {
         width="100%"
         className="h-auto w-full"
         role="img"
-        aria-label="Revenue, expenses and profit by month"
+        aria-label={ariaLabel}
       >
         {/* Horizontal gridlines + y-axis value labels (PKR, compact). */}
         {Array.from({ length: gridLines + 1 }).map((_, i) => {
@@ -193,11 +207,11 @@ export function BarChart({ data }: { data: BarDatum[] }) {
 
       {/* Legend. */}
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-faint">
-        <LegendSwatch className="bg-[var(--accent)]" label="Revenue" />
-        <LegendSwatch className="bg-[#D9B98A]" label="Expenses" />
+        <LegendSwatch className="bg-[var(--accent)]" label={revenueLabel} />
+        <LegendSwatch className="bg-[#D9B98A]" label={expensesLabel} />
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-0.5 w-4 rounded bg-[var(--pos)]" />
-          Profit
+          {profitLabel}
         </span>
       </div>
     </div>

@@ -5,19 +5,10 @@ import { getActiveContext } from "@/lib/session";
 import { canAccessPage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { pkr, kg, pct, dateShort } from "@/lib/format";
+import { getCopy } from "@/lib/config";
 import PrintButton from "./PrintButton";
 
 export const dynamic = "force-dynamic";
-
-// North (frozen) vs Local (fresh) note templates. Exact wording is an owner
-// Open Question (plan §10); these are safe defaults capturing the billing basis.
-const CHANNEL_NOTE: Record<string, string> = {
-  north:
-    "North (frozen): billed on NET weight after glazing deduction. Net = gross × (1 − glazing%). " +
-    "Buyer's defrosted/final weight is the agreed basis.",
-  local:
-    "Local (fresh): billed on delivered weight. No glazing deduction applies (glazing% = 0).",
-};
 
 export default async function InvoicePrintPage({
   params,
@@ -26,6 +17,14 @@ export default async function InvoicePrintPage({
 }) {
   const { id } = await params;
   const ctx = await getActiveContext();
+  const t = await getCopy();
+
+  // North (frozen) vs Local (fresh) note templates. Exact wording is an owner
+  // Open Question (plan §10); these are safe defaults capturing the billing basis.
+  const CHANNEL_NOTE: Record<string, string> = {
+    north: t("invoices.print.noteNorth"),
+    local: t("invoices.print.noteLocal"),
+  };
 
   const invoice = await prisma.invoice.findFirst({
     where: { id, ...entityScope(ctx) },
@@ -54,7 +53,7 @@ export default async function InvoicePrintPage({
           href={`/invoices/${invoice.id}`}
           className="text-[12.5px] font-semibold text-slate-500 hover:text-slate-900"
         >
-          ← Back to invoice
+          {t("invoices.print.back")}
         </Link>
         <PrintButton />
       </div>
@@ -63,16 +62,16 @@ export default async function InvoicePrintPage({
       <div className="flex items-start justify-between border-b border-slate-300 pb-4">
         <div>
           <div className="text-2xl font-bold tracking-tight">{invoice.entity.name}</div>
-          <div className="text-sm text-slate-500">Seafood trading &amp; distribution</div>
+          <div className="text-sm text-slate-500">{t("invoices.print.tagline")}</div>
         </div>
         <div className="text-right text-sm">
-          <div className="text-lg font-semibold">INVOICE</div>
+          <div className="text-lg font-semibold">{t("invoices.print.invoiceHeading")}</div>
           <div>
             #<span className="font-mono">{invoice.invoiceNumber}</span>
           </div>
           {invoice.referenceNumber && (
             <div className="text-slate-500">
-              Ref <span className="font-mono">{invoice.referenceNumber}</span>
+              {t("invoices.print.refPrefix")} <span className="font-mono">{invoice.referenceNumber}</span>
             </div>
           )}
           <div className="text-slate-500">{dateShort(invoice.date)}</div>
@@ -81,11 +80,11 @@ export default async function InvoicePrintPage({
 
       {/* Bill-to */}
       <div className="mt-4 text-sm">
-        <div className="text-xs uppercase text-slate-400">Bill to</div>
+        <div className="text-xs uppercase text-slate-400">{t("invoices.print.billTo")}</div>
         <div className="font-semibold">{invoice.party.name}</div>
         {invoice.party.address && <div className="text-slate-600">{invoice.party.address}</div>}
         <div className="text-slate-600">
-          {invoice.party.ntn ? `NTN ${invoice.party.ntn}` : "No NTN (local party)"}
+          {invoice.party.ntn ? `${t("invoices.print.ntnPrefix")} ${invoice.party.ntn}` : t("invoices.print.noNtn")}
         </div>
       </div>
 
@@ -93,12 +92,12 @@ export default async function InvoicePrintPage({
       <table className="mt-6 w-full border-collapse text-sm">
         <thead>
           <tr className="border-b-2 border-slate-300 text-left">
-            <th className="py-2">Item</th>
-            <th className="py-2 text-right">Gross</th>
-            <th className="py-2 text-right">Glazing %</th>
-            <th className="py-2 text-right">Net</th>
-            <th className="py-2 text-right">Rate / kg</th>
-            <th className="py-2 text-right">Amount</th>
+            <th className="py-2">{t("invoices.print.colItem")}</th>
+            <th className="py-2 text-right">{t("invoices.print.colGross")}</th>
+            <th className="py-2 text-right">{t("invoices.print.colGlazing")}</th>
+            <th className="py-2 text-right">{t("invoices.print.colNet")}</th>
+            <th className="py-2 text-right">{t("invoices.print.colRate")}</th>
+            <th className="py-2 text-right">{t("invoices.print.colAmount")}</th>
           </tr>
         </thead>
         <tbody>
@@ -116,7 +115,7 @@ export default async function InvoicePrintPage({
         <tfoot>
           <tr className="border-t-2 border-slate-300">
             <td colSpan={5} className="py-2 text-right text-xs uppercase text-slate-500">
-              Total
+              {t("invoices.print.total")}
             </td>
             <td className="py-2 text-right text-lg font-bold">{pkr(total)}</td>
           </tr>
@@ -125,7 +124,7 @@ export default async function InvoicePrintPage({
 
       {/* Notes block — channel template + any invoice-specific notes. */}
       <div className="mt-6 rounded border border-slate-200 p-3 text-xs text-slate-600">
-        <div className="font-semibold uppercase text-slate-400">Notes</div>
+        <div className="font-semibold uppercase text-slate-400">{t("invoices.print.notes")}</div>
         <p className="mt-1">{CHANNEL_NOTE[invoice.channel] ?? ""}</p>
         {invoice.notes && <p className="mt-2 whitespace-pre-wrap text-slate-700">{invoice.notes}</p>}
       </div>
@@ -134,12 +133,12 @@ export default async function InvoicePrintPage({
       <div className="mt-12 flex items-end justify-between text-sm">
         <div>
           <div className="w-64 border-t border-slate-400 pt-1 text-xs text-slate-500">
-            Received by (signature)
+            {t("invoices.print.receivedBy")}
           </div>
         </div>
         <div className="text-right">
           <div className="w-48 border-t border-slate-400 pt-1 text-xs text-slate-500">
-            Date
+            {t("invoices.print.dateLabel")}
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { PageHeader, BackLink } from "@/components/ui";
+import { getCopy } from "@/lib/config";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
@@ -20,6 +21,7 @@ export default async function EditInvoicePage({
   const { id } = await params;
   const ctx = await getActiveContext();
   requirePage(ctx, "invoices");
+  const t = await getCopy();
   const scope = entityScope(ctx);
 
   const invoice = await prisma.invoice.findFirst({
@@ -77,12 +79,12 @@ export default async function EditInvoicePage({
     <div className="animate-rise space-y-4">
       <div>
         <BackLink href={`/invoices/${invoice.id}`}>
-          ← Invoice #{invoice.invoiceNumber}
+          {t("invoices.edit.backPrefix")} #{invoice.invoiceNumber}
         </BackLink>
         <PageHeader
-          eyebrow="Sales"
-          title={`Edit invoice #${invoice.invoiceNumber}`}
-          subtitle="Goods arrived short? Adjust the lines below — amounts recompute through the shared billing engine, the invoice number stays the same, and a new versioned delivery record is appended."
+          eyebrow={t("invoices.edit.eyebrow")}
+          title={`${t("invoices.edit.titlePrefix")} #${invoice.invoiceNumber}`}
+          subtitle={t("invoices.edit.subtitle")}
         />
       </div>
       <EditInvoiceForm

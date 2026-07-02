@@ -4,6 +4,7 @@ import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { getAppConfig, getCopy } from "@/lib/config";
+import type { TFn } from "@/lib/copy/types";
 import { pkr, dateShort } from "@/lib/format";
 import { monthlyPnL, agingBuckets, topDebtors } from "@/lib/analytics";
 import { cityByName, project } from "@/lib/geo";
@@ -201,9 +202,9 @@ export default async function Dashboard() {
   }
   const mixTotal = round2(mix.cash + mix.cheque + mix.transfer);
   const mixSlices: DonutSlice[] = [
-    { label: "Cheque", value: round2(mix.cheque), fill: "fill-[var(--accent)]", swatch: "bg-[var(--accent)]", hex: "#0e7c7b" },
-    { label: "Transfer", value: round2(mix.transfer), fill: "fill-[var(--info)]", swatch: "bg-[var(--info)]", hex: "#3e5d7a" },
-    { label: "Cash", value: round2(mix.cash), fill: "fill-[var(--gold)]", swatch: "bg-[var(--gold)]", hex: "#8c6a1f" },
+    { label: t("dashboard.mix.cheque"), value: round2(mix.cheque), fill: "fill-[var(--accent)]", swatch: "bg-[var(--accent)]", hex: "#0e7c7b" },
+    { label: t("dashboard.mix.transfer"), value: round2(mix.transfer), fill: "fill-[var(--info)]", swatch: "bg-[var(--info)]", hex: "#3e5d7a" },
+    { label: t("dashboard.mix.cash"), value: round2(mix.cash), fill: "fill-[var(--gold)]", swatch: "bg-[var(--gold)]", hex: "#8c6a1f" },
   ];
 
   // --- Invoices by channel (north vs local split bar). ---
@@ -242,11 +243,11 @@ export default async function Dashboard() {
     destinationCity: s.destinationCity,
     reference: s.reference,
     eta: s.estimatedArrivalAt ? dateShort(s.estimatedArrivalAt) : null,
-    etaHint: etaHint(s.estimatedArrivalAt, now),
+    etaHint: etaHint(s.estimatedArrivalAt, now, t),
     progress: shipProgress(s.status),
   }));
 
-  const greeting = greetFor(now, ctx.user.name);
+  const greeting = greetFor(now, ctx.user.name, t);
 
   return (
     <div className="animate-rise space-y-3.5">
@@ -257,11 +258,12 @@ export default async function Dashboard() {
             {greeting}
           </h1>
           <div className="mt-1 text-[13px] text-muted">
-            {dateLong(now)} — here&apos;s where the {ctx.entityName} book stands.
+            {dateLong(now)} {t("dashboard.header.subtitlePrefix")} {ctx.entityName}{" "}
+            {t("dashboard.header.subtitleSuffix")}
           </div>
         </div>
         <PrimaryButton href="/invoices/new" className="shrink-0">
-          <span className="text-base leading-none">+</span> New invoice
+          <span className="text-base leading-none">+</span> {t("dashboard.newInvoice")}
         </PrimaryButton>
       </div>
 
@@ -280,26 +282,26 @@ export default async function Dashboard() {
       {/* KPI row. */}
       <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
         <Kpi
-          label="Receivables (net)"
+          label={t("dashboard.kpi.receivablesNet")}
           value={pkr(receivablesNet)}
-          sub="customer invoices − receipts"
+          sub={t("dashboard.kpi.receivablesNetSub")}
         />
         <Kpi
-          label="Supplier payables"
+          label={t("dashboard.kpi.supplierPayables")}
           value={pkr(supplierPayables)}
-          sub="owed to suppliers"
+          sub={t("dashboard.kpi.supplierPayablesSub")}
           valueColor="var(--neg)"
         />
         <Kpi
-          label="Net position"
+          label={t("dashboard.kpi.netPosition")}
           value={pkr(netPosition)}
-          sub="receivables − payables"
+          sub={t("dashboard.kpi.netPositionSub")}
           valueColor="var(--accent-deep)"
         />
         {f.banks ? (
-          <Kpi label="Est. bank balance" value={pkr(estBank)} sub={`manual · ${banks.length} accounts`} />
+          <Kpi label={t("dashboard.kpi.estBankBalance")} value={pkr(estBank)} sub={`${t("dashboard.kpi.estBankBalanceSubPrefix")} ${banks.length} ${t("dashboard.kpi.estBankBalanceSubSuffix")}`} />
         ) : (
-          <Kpi label="Drafts to review" value={String(draftCount)} sub="from the delivery login" />
+          <Kpi label={t("dashboard.kpi.draftsToReview")} value={String(draftCount)} sub={t("dashboard.kpi.draftsToReviewSub")} />
         )}
       </div>
 
@@ -307,12 +309,18 @@ export default async function Dashboard() {
       <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[1fr_340px]">
         <Card className="p-5">
           <div className="mb-4 flex items-baseline justify-between">
-            <div className="font-serif text-[17px] font-semibold text-ink">Profit &amp; loss</div>
+            <div className="font-serif text-[17px] font-semibold text-ink">{t("dashboard.pnl.title")}</div>
             <div className="text-[11.5px] text-faint2">
-              last 6 months · revenue{f.expenses ? " vs expenses" : ""} · hover for exact figures
+              {t("dashboard.pnl.subtitleBase")}{f.expenses ? t("dashboard.pnl.subtitleVsExpenses") : ""}{t("dashboard.pnl.subtitleHover")}
             </div>
           </div>
-          <BarChart data={barData} />
+          <BarChart
+            data={barData}
+            ariaLabel={t("dashboard.chart.pnlAriaLabel")}
+            revenueLabel={t("dashboard.chart.revenue")}
+            expensesLabel={t("dashboard.chart.expenses")}
+            profitLabel={t("dashboard.chart.profit")}
+          />
         </Card>
 
         <div className="flex flex-col gap-3.5">
@@ -320,16 +328,16 @@ export default async function Dashboard() {
           {f.cheques && (
             <Card className="flex-1 p-[18px]">
               <div className="mb-3 flex items-center justify-between">
-                <div className="font-serif text-[17px] font-semibold text-ink">Cheques due</div>
+                <div className="font-serif text-[17px] font-semibold text-ink">{t("dashboard.cheques.title")}</div>
                 <span
                   className="inline-flex rounded-full px-2.5 py-[3px] text-[11px] font-semibold"
                   style={{ background: "var(--neg-bg)", color: "var(--neg)" }}
                 >
-                  next 24h
+                  {t("dashboard.cheques.next24h")}
                 </span>
               </div>
               {dueCheques.length === 0 ? (
-                <p className="text-[13px] text-faint">No cheques due soon.</p>
+                <p className="text-[13px] text-faint">{t("dashboard.cheques.empty")}</p>
               ) : (
                 <Link href="/cheques" className="block">
                   {dueCheques.map((c) => (
@@ -346,7 +354,7 @@ export default async function Dashboard() {
                           {c.bankAccount.bankName}
                         </div>
                         <div className="text-[11.5px] text-faint">
-                          #{c.chequeNumber} · due {c.clearingDue ? dateShort(c.clearingDue) : "—"}
+                          #{c.chequeNumber} · {t("dashboard.cheques.dueLabel")} {c.clearingDue ? dateShort(c.clearingDue) : "—"}
                         </div>
                       </div>
                       <div className="font-mono text-[13px] font-semibold text-text">
@@ -362,7 +370,7 @@ export default async function Dashboard() {
           {/* Invoices by channel (thin split bar). */}
           <Card className="p-[18px]">
             <div className="mb-3 font-serif text-[17px] font-semibold text-ink">
-              Invoices by channel
+              {t("dashboard.channel.title")}
             </div>
             <div
               className="flex h-3 overflow-hidden rounded-full"
@@ -396,11 +404,11 @@ export default async function Dashboard() {
         {/* Receivables aging. */}
         <Card className="p-[18px]">
           <div className="mb-1 font-serif text-[17px] font-semibold text-ink">
-            Receivables aging
+            {t("dashboard.aging.title")}
           </div>
-          <div className="mb-3 text-[11.5px] text-faint2">unpaid invoices by age</div>
+          <div className="mb-3 text-[11.5px] text-faint2">{t("dashboard.aging.subtitle")}</div>
           {agingTotal <= 0 ? (
-            <p className="text-[13px] text-faint">Nothing outstanding — fully collected.</p>
+            <p className="text-[13px] text-faint">{t("dashboard.aging.empty")}</p>
           ) : (
             <>
               <div className="flex h-3 overflow-hidden rounded-full" style={{ background: "var(--row)" }}>
@@ -420,7 +428,7 @@ export default async function Dashboard() {
                     <span className="flex items-center gap-1.5 text-text">
                       <span className="h-[9px] w-[9px] rounded-sm" style={{ background: AGING_COLORS[i] }} />
                       {b.label}
-                      <span className="text-faint">· {b.count} inv</span>
+                      <span className="text-faint">· {b.count} {t("dashboard.aging.invSuffix")}</span>
                     </span>
                     <span className="font-mono text-muted">{pkr(b.amount)}</span>
                   </div>
@@ -428,7 +436,7 @@ export default async function Dashboard() {
               </div>
               {aging[2].amount + aging[3].amount > 0 && (
                 <div className="mt-2.5 text-[11.5px]" style={{ color: "var(--neg)" }}>
-                  {pkr(aging[2].amount + aging[3].amount)} is over 60 days old — chase first.
+                  {pkr(aging[2].amount + aging[3].amount)} {t("dashboard.aging.chaseSuffix")}
                 </div>
               )}
             </>
@@ -437,10 +445,10 @@ export default async function Dashboard() {
 
         {/* Top debtors. */}
         <Card className="p-[18px]">
-          <div className="mb-1 font-serif text-[17px] font-semibold text-ink">Top debtors</div>
-          <div className="mb-3 text-[11.5px] text-faint2">who owes the most right now</div>
+          <div className="mb-1 font-serif text-[17px] font-semibold text-ink">{t("dashboard.debtors.title")}</div>
+          <div className="mb-3 text-[11.5px] text-faint2">{t("dashboard.debtors.subtitle")}</div>
           {debtors.length === 0 ? (
-            <p className="text-[13px] text-faint">No customer owes anything.</p>
+            <p className="text-[13px] text-faint">{t("dashboard.debtors.empty")}</p>
           ) : (
             <div className="space-y-2.5">
               {debtors.map((d) => (
@@ -463,14 +471,14 @@ export default async function Dashboard() {
 
         {/* Payment mix. */}
         <Card className="p-[18px]">
-          <div className="mb-1 font-serif text-[17px] font-semibold text-ink">Payment mix</div>
-          <div className="mb-3 text-[11.5px] text-faint2">customer receipts · last 90 days</div>
+          <div className="mb-1 font-serif text-[17px] font-semibold text-ink">{t("dashboard.mix.title")}</div>
+          <div className="mb-3 text-[11.5px] text-faint2">{t("dashboard.mix.subtitle")}</div>
           <Donut
             slices={mixSlices}
-            centerLabel="received"
+            centerLabel={t("dashboard.mix.centerLabel")}
             centerValue={compactMoney(mixTotal)}
             formatValue={(n) => compactMoney(n)}
-            emptyLabel="No payments in the last 90 days."
+            emptyLabel={t("dashboard.mix.empty")}
           />
         </Card>
       </div>
@@ -485,14 +493,14 @@ export default async function Dashboard() {
               href="/invoices"
               className="p-1 text-[12px] font-semibold text-accent hover:text-accent-deep"
             >
-              View all →
+              {t("dashboard.recent.viewAll")}
             </Link>
           </div>
           {recent.length === 0 ? (
             <p className="text-[13px] text-faint">
-              No invoices yet.{" "}
+              {t("dashboard.recent.empty")}{" "}
               <Link href="/invoices/new" className="text-gold underline hover:text-accent-deep">
-                Create the first one →
+                {t("dashboard.recent.createFirst")}
               </Link>
             </p>
           ) : (
@@ -529,14 +537,14 @@ export default async function Dashboard() {
                 href="/shipments"
                 className="p-1 text-[12px] font-semibold text-accent hover:text-accent-deep"
               >
-                Shipments →
+                {t("dashboard.road.shipmentsLink")}
               </Link>
             </div>
             {shipmentRows.length === 0 ? (
               <p className="text-[13px] text-faint">
-                No active shipments.{" "}
+                {t("dashboard.road.empty")}{" "}
                 <Link href="/shipments" className="text-gold underline hover:text-accent-deep">
-                  Add one →
+                  {t("dashboard.road.addOne")}
                 </Link>
               </p>
             ) : (
@@ -564,7 +572,7 @@ export default async function Dashboard() {
                         />
                       </div>
                       <div className="shrink-0 text-[11px] text-faint">
-                        {s.eta ? `ETA ${s.eta}` : "ETA —"}
+                        {s.eta ? `${t("dashboard.road.etaPrefix")} ${s.eta}` : t("dashboard.road.etaNone")}
                         {s.etaHint ? ` · ${s.etaHint}` : ""}
                       </div>
                     </div>
@@ -580,8 +588,8 @@ export default async function Dashboard() {
       {f.shipments && (
         <Card className="p-[18px]">
           <div className="mb-3 flex items-center justify-between">
-            <div className="font-serif text-[17px] font-semibold text-ink">Shipment tracker</div>
-            <span className="text-[11.5px] text-faint2">{activeShipments.length} active</span>
+            <div className="font-serif text-[17px] font-semibold text-ink">{t("dashboard.map.title")}</div>
+            <span className="text-[11.5px] text-faint2">{activeShipments.length} {t("dashboard.map.activeSuffix")}</span>
           </div>
           <PakistanMap
             routes={routes}
@@ -607,14 +615,14 @@ function compactMoney(n: number): string {
 }
 
 /** Human "in 3 days" / "overdue" hint from an ETA, using a supplied `now`. */
-function etaHint(eta: Date | null, now: Date): string | null {
+function etaHint(eta: Date | null, now: Date, t: TFn): string | null {
   if (!eta) return null;
   const ms = new Date(eta).getTime() - now.getTime();
   const days = Math.round(ms / (24 * 60 * 60 * 1000));
-  if (days < 0) return `${Math.abs(days)}d overdue`;
-  if (days === 0) return "today";
-  if (days === 1) return "tomorrow";
-  return `in ${days}d`;
+  if (days < 0) return `${Math.abs(days)}d ${t("dashboard.etaHint.overdueSuffix")}`;
+  if (days === 0) return t("dashboard.etaHint.today");
+  if (days === 1) return t("dashboard.etaHint.tomorrow");
+  return `${t("dashboard.etaHint.inPrefix")} ${days}d`;
 }
 
 /** Thin on-the-road progress bar width (%) derived from shipment status. */
@@ -648,10 +656,15 @@ function shipColor(status: string): string {
 }
 
 /** Time-of-day greeting, personalised with the signed-in user's first name. */
-function greetFor(now: Date, name: string): string {
+function greetFor(now: Date, name: string, t: TFn): string {
   const first = name.split(" ")[0] || name;
   const h = now.getHours();
-  const part = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  const part =
+    h < 12
+      ? t("dashboard.greeting.morning")
+      : h < 18
+        ? t("dashboard.greeting.afternoon")
+        : t("dashboard.greeting.evening");
   return `${part}, ${first}`;
 }
 

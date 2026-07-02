@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
-import { getAppConfig } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import { CHEQUE_STATUSES } from "@/lib/enums";
 import { pkr, dateShort } from "@/lib/format";
 import { Card, Chip, StatusChip, PageHeader, Th } from "@/components/ui";
@@ -28,6 +28,7 @@ export default async function ChequesPage({
   requirePage(ctx, "cheques");
   const cfg = await getAppConfig();
   if (!cfg.features.cheques) redirect("/");
+  const t = await getCopy();
   const scope = entityScope(ctx);
 
   const activeStatus =
@@ -76,23 +77,23 @@ export default async function ChequesPage({
   }));
 
   const tabs: { key: string | undefined; label: string }[] = [
-    { key: undefined, label: "All" },
+    { key: undefined, label: t("cheques.tabAll") },
     ...CHEQUE_STATUSES.map((s) => ({ key: s, label: s })),
   ];
 
   return (
     <div className="animate-rise space-y-5">
       <PageHeader
-        eyebrow="Money"
-        title="Cheques"
-        subtitle="Click a status action to move a cheque along — pending → cleared."
+        eyebrow={t("cheques.eyebrow")}
+        title={t("cheques.title")}
+        subtitle={t("cheques.subtitle")}
       />
 
       {/* Stat row */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Card className="p-4">
           <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
-            Awaiting clearance
+            {t("cheques.statAwaiting")}
           </div>
           <div className="mt-1.5 font-mono text-[20px] font-semibold text-text">
             {pkr(awaitingTotal)}
@@ -100,7 +101,7 @@ export default async function ChequesPage({
         </Card>
         <Card className="p-4">
           <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-warn">
-            Due in 24 hours
+            {t("cheques.statDueSoon")}
           </div>
           <div className="mt-1.5 font-mono text-[20px] font-semibold text-warn">
             {dueSoonCount}
@@ -108,7 +109,7 @@ export default async function ChequesPage({
         </Card>
         <Card className="p-4">
           <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
-            Cleared this week
+            {t("cheques.statClearedWeek")}
           </div>
           <div className="mt-1.5 font-mono text-[20px] font-semibold text-pos">
             {pkr(clearedThisWeek)}
@@ -144,19 +145,19 @@ export default async function ChequesPage({
           <table className="w-full">
             <thead>
               <tr>
-                <Th>Cheque</Th>
-                <Th>Recipient</Th>
-                <Th>Clearing due</Th>
-                <Th>Status</Th>
-                <Th align="right">Amount</Th>
-                <Th align="right">Advance</Th>
+                <Th>{t("cheques.colCheque")}</Th>
+                <Th>{t("cheques.colRecipient")}</Th>
+                <Th>{t("cheques.colClearingDue")}</Th>
+                <Th>{t("cheques.colStatus")}</Th>
+                <Th align="right">{t("cheques.colAmount")}</Th>
+                <Th align="right">{t("cheques.colAdvance")}</Th>
               </tr>
             </thead>
             <tbody>
               {cheques.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-3.5 py-6 text-center text-faint">
-                    No cheques.
+                    {t("cheques.emptyState")}
                   </td>
                 </tr>
               ) : (
@@ -189,7 +190,7 @@ export default async function ChequesPage({
                         </span>
                         {dueSoon && (
                           <Chip tone="warn" className="ml-2">
-                            due soon
+                            {t("cheques.dueSoonChip")}
                           </Chip>
                         )}
                       </td>
@@ -214,18 +215,18 @@ export default async function ChequesPage({
       {/* New outgoing cheque — "which cheque was given to whom" */}
       <Card className="p-[18px]">
         <h2 className="mb-1 font-serif text-[17px] font-semibold text-ink">
-          New outgoing cheque
+          {t("cheques.newOutgoingTitle")}
         </h2>
         <p className="mb-3 text-[12.5px] text-muted">
-          Record a cheque NF hands onward to a party — the recipient is the &quot;given to whom&quot; record.
+          {t("cheques.newOutgoingDesc")}
         </p>
         {formBanks.length === 0 ? (
           <p className="text-sm text-faint">
-            Add a bank account first on the{" "}
+            {t("cheques.addBankPrefix")}{" "}
             <Link href="/banks" className="font-semibold text-accent-deep hover:underline">
-              Banks
+              {t("cheques.addBankLink")}
             </Link>{" "}
-            page.
+            {t("cheques.addBankSuffix")}
           </p>
         ) : (
           <OutgoingChequeForm banks={formBanks} />

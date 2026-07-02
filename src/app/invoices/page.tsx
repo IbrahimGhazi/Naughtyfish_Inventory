@@ -4,6 +4,7 @@ import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { pkr, dateShort } from "@/lib/format";
+import { getCopy } from "@/lib/config";
 import { PageHeader, PrimaryButton, Card, Chip, StatusChip, Th } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ export default async function InvoicesPage({
 }) {
   const ctx = await getActiveContext();
   requirePage(ctx, "invoices");
+  const t = await getCopy();
   const { status } = await searchParams;
   const draftsOnly = status === "draft";
 
@@ -39,11 +41,11 @@ export default async function InvoicesPage({
   return (
     <div className="animate-rise space-y-4">
       <PageHeader
-        eyebrow="Sales"
-        title={draftsOnly ? "Invoices · drafts to review" : "Invoices"}
+        eyebrow={t("invoices.list.eyebrow")}
+        title={draftsOnly ? t("invoices.list.titleDrafts") : t("invoices.list.title")}
         action={
           <PrimaryButton href="/invoices/new">
-            <span className="text-base leading-none">+</span> New invoice
+            <span className="text-base leading-none">+</span> {t("invoices.list.newInvoice")}
           </PrimaryButton>
         }
       />
@@ -55,8 +57,8 @@ export default async function InvoicesPage({
           className="block rounded-xl border px-4 py-3 text-[13px] transition-colors hover:brightness-[0.98]"
           style={{ borderColor: "var(--warn)", background: "var(--warn-bg)", color: "var(--warn)" }}
         >
-          <strong>{draftCount} draft{draftCount === 1 ? "" : "s"}</strong> from the delivery login
-          {draftCount === 1 ? " is" : " are"} waiting for review — tap to see {draftCount === 1 ? "it" : "them"}.
+          <strong>{draftCount} draft{draftCount === 1 ? "" : "s"}</strong> {t("invoices.list.draftBannerFrom")}
+          {draftCount === 1 ? t("invoices.list.draftBannerIsWaiting") : t("invoices.list.draftBannerAreWaiting")}{draftCount === 1 ? t("invoices.list.draftBannerIt") : t("invoices.list.draftBannerThem")}.
         </Link>
       )}
       {draftsOnly && (
@@ -64,23 +66,23 @@ export default async function InvoicesPage({
           href="/invoices"
           className="inline-block text-[12.5px] font-semibold text-gold hover:text-accent-deep"
         >
-          ← Show all invoices
+          {t("invoices.list.showAll")}
         </Link>
       )}
 
       {invoices.length === 0 ? (
-        <p className="text-sm text-faint">{draftsOnly ? "No drafts awaiting review." : "No invoices yet."}</p>
+        <p className="text-sm text-faint">{draftsOnly ? t("invoices.list.emptyDrafts") : t("invoices.list.empty")}</p>
       ) : (
         <Card className="overflow-hidden">
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <Th>Invoice</Th>
-                <Th>Party</Th>
-                <Th>Date</Th>
-                <Th>Status</Th>
-                <Th align="right">Balance due</Th>
-                <Th align="right">Total</Th>
+                <Th>{t("invoices.list.colInvoice")}</Th>
+                <Th>{t("invoices.list.colParty")}</Th>
+                <Th>{t("invoices.list.colDate")}</Th>
+                <Th>{t("invoices.list.colStatus")}</Th>
+                <Th align="right">{t("invoices.list.colBalanceDue")}</Th>
+                <Th align="right">{t("invoices.list.colTotal")}</Th>
               </tr>
             </thead>
             <tbody>
@@ -147,7 +149,7 @@ export default async function InvoicesPage({
             <span>
               {invoices.length} invoice{invoices.length === 1 ? "" : "s"}
             </span>
-            <span className="font-mono">outstanding {pkr(outstanding)}</span>
+            <span className="font-mono">{t("invoices.list.outstanding")} {pkr(outstanding)}</span>
           </div>
         </Card>
       )}

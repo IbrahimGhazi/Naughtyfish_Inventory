@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { pkr } from "@/lib/format";
+import { useCopy } from "@/lib/copy/CopyProvider";
 import { createBadDebt, deleteBadDebt } from "./actions";
 import type { BadDebtSubCategory } from "./summary";
 
@@ -36,6 +37,7 @@ export function AddBadDebtForm({
   parties: FormParty[];
   invoices: FormInvoice[];
 }) {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
@@ -107,7 +109,7 @@ export function AddBadDebtForm({
         className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-on-accent transition-colors"
         style={{ background: "var(--accent)" }}
       >
-        + Add entry
+        {t("reports.badDebts.addEntry")}
       </button>
     );
   }
@@ -115,19 +117,19 @@ export function AddBadDebtForm({
   return (
     <div className="rounded-xl border border-hair bg-card p-[18px]">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-serif text-[17px] font-semibold text-ink">New entry</h2>
+        <h2 className="font-serif text-[17px] font-semibold text-ink">{t("reports.badDebts.form.title")}</h2>
         <button
           type="button"
           onClick={() => setOpen(false)}
           className="text-xs font-semibold text-faint hover:text-text"
         >
-          Close
+          {t("reports.badDebts.form.close")}
         </button>
       </div>
 
       {/* Sub-category toggle */}
       <div className="mb-3">
-        <span className="mb-1 block text-xs font-medium text-faint2">Type</span>
+        <span className="mb-1 block text-xs font-medium text-faint2">{t("reports.badDebts.form.type")}</span>
         <div className="inline-flex overflow-hidden rounded-lg border border-hair" data-testid="bd-subcategory">
           <button
             type="button"
@@ -140,7 +142,7 @@ export function AddBadDebtForm({
                 : { background: "var(--card)", color: "var(--muted)" }
             }
           >
-            Bad debt
+            {t("reports.badDebts.form.toggleBadDebt")}
           </button>
           <button
             type="button"
@@ -153,13 +155,13 @@ export function AddBadDebtForm({
                 : { background: "var(--card)", color: "var(--muted)" }
             }
           >
-            Dispute
+            {t("reports.badDebts.form.toggleDispute")}
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Field label="Amount (PKR)">
+        <Field label={t("reports.badDebts.form.amount")}>
           <input
             className="input"
             data-testid="bd-amount"
@@ -169,7 +171,7 @@ export function AddBadDebtForm({
           />
         </Field>
 
-        <Field label="Party" hint="optional — links a tracked party">
+        <Field label={t("reports.badDebts.form.party")} hint={t("reports.badDebts.form.partyHint")}>
           <select
             className="input"
             data-testid="bd-party"
@@ -180,37 +182,37 @@ export function AddBadDebtForm({
               setPartyId(next);
             }}
           >
-            <option value="">— free-text person —</option>
+            <option value="">{t("reports.badDebts.form.partyFreeText")}</option>
             {parties.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
-                {p.partyType === "supplier" ? " (supplier)" : ""}
+                {p.partyType === "supplier" ? t("reports.badDebts.form.partySupplierSuffix") : ""}
               </option>
             ))}
           </select>
         </Field>
 
         <Field
-          label="Person name"
-          hint={selectedParty ? `using ${selectedParty.name}` : "required if no party"}
+          label={t("reports.badDebts.form.personName")}
+          hint={selectedParty ? `using ${selectedParty.name}` : t("reports.badDebts.form.personNameHint")}
         >
           <input
             className="input"
             data-testid="bd-person"
-            placeholder={selectedParty ? selectedParty.name : "e.g. Ali Traders"}
+            placeholder={selectedParty ? selectedParty.name : t("reports.badDebts.form.personNamePlaceholder")}
             value={personName}
             onChange={(e) => setPersonName(e.target.value)}
           />
         </Field>
 
-        <Field label="Invoice" hint="optional — dispute defense">
+        <Field label={t("reports.badDebts.form.invoice")} hint={t("reports.badDebts.form.invoiceHint")}>
           <select
             className="input"
             data-testid="bd-invoice"
             value={invoiceId}
             onChange={(e) => setInvoiceId(e.target.value)}
           >
-            <option value="">— none —</option>
+            <option value="">{t("reports.badDebts.form.invoiceNone")}</option>
             {invoiceOptions.map((i) => (
               <option key={i.id} value={i.id}>
                 #{i.invoiceNumber} · {i.partyName} · {pkr(i.amount)}
@@ -219,7 +221,7 @@ export function AddBadDebtForm({
           </select>
         </Field>
 
-        <Field label="Date">
+        <Field label={t("reports.badDebts.form.date")}>
           <div className="flex gap-2">
             <input
               type="date"
@@ -234,12 +236,12 @@ export function AddBadDebtForm({
               onClick={() => setDate(todayLocal())}
               className="shrink-0 rounded-lg border border-hair bg-card px-2 text-xs font-semibold text-muted transition-colors hover:bg-card2"
             >
-              Today
+              {t("reports.badDebts.form.today")}
             </button>
           </div>
         </Field>
 
-        <Field label="Note" hint="optional">
+        <Field label={t("reports.badDebts.form.note")} hint={t("reports.badDebts.form.noteHint")}>
           <input
             className="input"
             data-testid="bd-note"
@@ -257,9 +259,9 @@ export function AddBadDebtForm({
           className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
-          {isPending ? "Saving…" : "Add entry"}
+          {isPending ? t("reports.badDebts.form.saving") : t("reports.badDebts.form.submit")}
         </button>
-        {ok && <span className="text-xs font-semibold text-pos">✓ Saved.</span>}
+        {ok && <span className="text-xs font-semibold text-pos">{t("reports.badDebts.form.saved")}</span>}
         {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>
@@ -268,6 +270,7 @@ export function AddBadDebtForm({
 
 /** Per-row delete button (ledger corrections are deletable). */
 export function DeleteBadDebtButton({ id }: { id: string }) {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -291,10 +294,10 @@ export function DeleteBadDebtButton({ id }: { id: string }) {
         data-testid={`bd-delete-${id}`}
         onClick={del}
         disabled={isPending}
-        title="Delete entry"
+        title={t("reports.badDebts.delete.title")}
         className="rounded px-2 py-1 text-xs font-semibold text-neg transition-colors hover:bg-card2 disabled:opacity-40"
       >
-        {isPending ? "…" : "Delete"}
+        {isPending ? "…" : t("reports.badDebts.delete.label")}
       </button>
       {error && <span className="text-xs text-neg">{error}</span>}
     </span>

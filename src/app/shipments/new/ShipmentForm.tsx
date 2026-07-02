@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useCopy } from "@/lib/copy/CopyProvider";
 import { createShipment } from "../actions";
 
 export interface FormStore {
@@ -60,6 +61,7 @@ export default function ShipmentForm({
   /** White-label: platform-config origin city. */
   defaultOriginCity?: string;
 }) {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -144,16 +146,16 @@ export default function ShipmentForm({
     <div className="space-y-5">
       {/* Origin */}
       <section className="rounded-xl border border-hair bg-card p-[18px]">
-        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">Origin</h2>
+        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">{t("shipments.form.originHeading")}</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Field label="From store" hint="auto-fills name & city">
+          <Field label={t("shipments.form.fromStore")} hint={t("shipments.form.fromStoreHint")}>
             <select
               className="input"
               data-testid="ship-origin-store"
               value={originStoreId}
               onChange={(e) => pickStore(e.target.value)}
             >
-              <option value="">— none —</option>
+              <option value="">{t("shipments.form.optionNone")}</option>
               {stores.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -161,16 +163,16 @@ export default function ShipmentForm({
               ))}
             </select>
           </Field>
-          <Field label="Origin name">
+          <Field label={t("shipments.form.originName")}>
             <input
               className="input"
               data-testid="ship-origin-name"
-              placeholder="e.g. Karachi — Own Store"
+              placeholder={t("shipments.form.originNamePlaceholder")}
               value={originName}
               onChange={(e) => setOriginName(e.target.value)}
             />
           </Field>
-          <Field label="Origin city">
+          <Field label={t("shipments.form.originCity")}>
             <select
               className="input"
               data-testid="ship-origin-city"
@@ -189,18 +191,18 @@ export default function ShipmentForm({
 
       {/* Destination */}
       <section className="rounded-xl border border-hair bg-card p-[18px]">
-        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">Destination</h2>
+        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">{t("shipments.form.destHeading")}</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Destination name" hint="optional">
+          <Field label={t("shipments.form.destName")} hint={t("shipments.form.destNameHint")}>
             <input
               className="input"
               data-testid="ship-dest-name"
-              placeholder="e.g. Lahore — PC Lahore warehouse"
+              placeholder={t("shipments.form.destNamePlaceholder")}
               value={destinationName}
               onChange={(e) => setDestinationName(e.target.value)}
             />
           </Field>
-          <Field label="Destination city">
+          <Field label={t("shipments.form.destCity")}>
             <select
               className="input"
               data-testid="ship-dest-city"
@@ -219,9 +221,9 @@ export default function ShipmentForm({
 
       {/* Schedule */}
       <section className="rounded-xl border border-hair bg-card p-[18px]">
-        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">Schedule</h2>
+        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">{t("shipments.form.scheduleHeading")}</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Departure">
+          <Field label={t("shipments.form.departure")}>
             <div className="flex items-center gap-2">
               <input
                 type="datetime-local"
@@ -236,11 +238,11 @@ export default function ShipmentForm({
                 data-testid="ship-departure-now"
                 className="shrink-0 rounded-lg border border-hair px-2.5 py-1.5 text-xs font-semibold text-muted transition-colors hover:bg-card2"
               >
-                Now
+                {t("shipments.form.departureNow")}
               </button>
             </div>
           </Field>
-          <Field label="Estimated arrival (ETA)">
+          <Field label={t("shipments.form.eta")}>
             <div className="space-y-2">
               <input
                 type="datetime-local"
@@ -269,18 +271,18 @@ export default function ShipmentForm({
 
       {/* Details */}
       <section className="rounded-xl border border-hair bg-card p-[18px]">
-        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">Details</h2>
+        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">{t("shipments.form.detailsHeading")}</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Reference" hint="optional label">
+          <Field label={t("shipments.form.reference")} hint={t("shipments.form.referenceHint")}>
             <input
               className="input"
               data-testid="ship-reference"
-              placeholder="e.g. TRK-Lahore-01"
+              placeholder={t("shipments.form.referencePlaceholder")}
               value={reference}
               onChange={(e) => setReference(e.target.value)}
             />
           </Field>
-          <Field label="Carrier" hint="transport company / truck">
+          <Field label={t("shipments.form.carrier")} hint={t("shipments.form.carrierHint")}>
             <input
               className="input"
               data-testid="ship-carrier"
@@ -288,7 +290,7 @@ export default function ShipmentForm({
               onChange={(e) => setCarrier(e.target.value)}
             />
           </Field>
-          <Field label="Driver name">
+          <Field label={t("shipments.form.driverName")}>
             <input
               className="input"
               data-testid="ship-driver-name"
@@ -296,7 +298,7 @@ export default function ShipmentForm({
               onChange={(e) => setDriverName(e.target.value)}
             />
           </Field>
-          <Field label="Driver phone">
+          <Field label={t("shipments.form.driverPhone")}>
             <input
               className="input"
               data-testid="ship-driver-phone"
@@ -305,14 +307,14 @@ export default function ShipmentForm({
               onChange={(e) => setDriverPhone(e.target.value)}
             />
           </Field>
-          <Field label="Link invoice" hint="auto-sets consignee">
+          <Field label={t("shipments.form.linkInvoice")} hint={t("shipments.form.linkInvoiceHint")}>
             <select
               className="input"
               data-testid="ship-invoice"
               value={invoiceId}
               onChange={(e) => pickInvoice(e.target.value)}
             >
-              <option value="">— none —</option>
+              <option value="">{t("shipments.form.optionNone")}</option>
               {invoices.map((i) => (
                 <option key={i.id} value={i.id}>
                   #{i.invoiceNumber} · {i.partyName}
@@ -320,14 +322,14 @@ export default function ShipmentForm({
               ))}
             </select>
           </Field>
-          <Field label="Consignee party">
+          <Field label={t("shipments.form.consignee")}>
             <select
               className="input"
               data-testid="ship-party"
               value={partyId}
               onChange={(e) => setPartyId(e.target.value)}
             >
-              <option value="">— none —</option>
+              <option value="">{t("shipments.form.optionNone")}</option>
               {parties.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -336,7 +338,7 @@ export default function ShipmentForm({
             </select>
           </Field>
           <div className="sm:col-span-2">
-            <Field label="Notes">
+            <Field label={t("shipments.form.notes")}>
               <textarea
                 className="input"
                 data-testid="ship-notes"
@@ -357,7 +359,7 @@ export default function ShipmentForm({
           className="rounded-lg px-4 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
-          {isPending ? "Creating…" : "Create shipment"}
+          {isPending ? t("shipments.form.creating") : t("shipments.form.createSubmit")}
         </button>
         {error && <span className="text-xs text-neg">{error}</span>}
       </div>

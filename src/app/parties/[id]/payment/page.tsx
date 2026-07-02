@@ -4,6 +4,7 @@ import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { priorPaidAgainstInvoice, invoiceOutstanding } from "@/lib/payments";
+import { getCopy } from "@/lib/config";
 import { BackLink } from "@/components/ui";
 import PaymentForm, { type FormInvoice, type FormBank } from "./PaymentForm";
 
@@ -17,6 +18,7 @@ export default async function RecordPaymentPage({
   const { id } = await params;
   const ctx = await getActiveContext();
   requirePage(ctx, "parties");
+  const t = await getCopy();
   const scope = entityScope(ctx);
 
   const party = await prisma.party.findFirst({ where: { id, ...scope } });
@@ -56,11 +58,11 @@ export default async function RecordPaymentPage({
       <div>
         <BackLink href={`/parties/${id}`}>← {party.name}</BackLink>
         <h1 className="font-serif text-[28px] font-semibold leading-tight text-ink">
-          Record payment
+          {t("parties.payment.title")}
         </h1>
         <p className="mt-1 text-sm text-muted">
           {[party.partyType, party.subType, party.channel].filter(Boolean).join(" · ")}
-          . Payment appears on the party ledger automatically.
+          {t("parties.payment.appearsHint")}
         </p>
       </div>
 

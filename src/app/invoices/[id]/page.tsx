@@ -5,6 +5,7 @@ import { getActiveContext } from "@/lib/session";
 import { canAccessPage, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { pkr, kg, pct, dateShort } from "@/lib/format";
+import { getCopy } from "@/lib/config";
 import {
   Card,
   Chip,
@@ -24,6 +25,7 @@ export default async function InvoiceDetailPage({
 }) {
   const { id } = await params;
   const ctx = await getActiveContext();
+  const t = await getCopy();
 
   const invoice = await prisma.invoice.findFirst({
     where: { id, ...entityScope(ctx) },
@@ -57,12 +59,12 @@ export default async function InvoiceDetailPage({
     <div className="animate-rise space-y-3.5">
       <div>
         <BackLink href={isDelivery ? "/delivery/invoices" : "/invoices"}>
-          {isDelivery ? "← My invoices" : "← All invoices"}
+          {isDelivery ? t("invoices.detail.backMine") : t("invoices.detail.backAll")}
         </BackLink>
         <div className="flex items-end justify-between gap-4">
           <div>
             <h1 className="font-serif text-[30px] font-semibold leading-tight text-ink">
-              Invoice #{invoice.invoiceNumber}
+              {t("invoices.detail.invoicePrefix")} #{invoice.invoiceNumber}
             </h1>
             <div className="mt-1.5 text-[13px] text-muted">
               {invoice.referenceNumber && (
@@ -93,7 +95,7 @@ export default async function InvoiceDetailPage({
             )}
             {isOffice && (
               <GhostButton href={`/invoices/${invoice.id}/edit`}>
-                <span data-testid="edit-invoice">Edit</span>
+                <span data-testid="edit-invoice">{t("invoices.detail.edit")}</span>
               </GhostButton>
             )}
             <Link
@@ -102,7 +104,7 @@ export default async function InvoiceDetailPage({
               className="inline-flex items-center justify-center rounded-lg px-3.5 py-2 text-sm font-semibold"
               style={{ background: "var(--ink)", color: "var(--card)" }}
             >
-              Print
+              {t("invoices.detail.print")}
             </Link>
           </div>
         </div>
@@ -116,13 +118,11 @@ export default async function InvoiceDetailPage({
         >
           {isOffice ? (
             <>
-              <strong>Draft from the field</strong> — entered by the delivery login. Review the
-              figures (use Edit to correct — it appends a versioned record), then approve.
+              <strong>{t("invoices.detail.draftFromField")}</strong>{t("invoices.detail.draftFromFieldBody")}
             </>
           ) : (
             <>
-              <strong>Awaiting office approval</strong> — you can still print it and attach the
-              package photo below.
+              <strong>{t("invoices.detail.awaitingApproval")}</strong>{t("invoices.detail.awaitingApprovalBody")}
             </>
           )}
         </div>
@@ -132,7 +132,7 @@ export default async function InvoiceDetailPage({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card className="p-3.5">
           <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
-            Channel
+            {t("invoices.detail.cardChannel")}
           </div>
           <div className="mt-1.5">
             <Chip tone="neutral" className="uppercase">
@@ -142,7 +142,7 @@ export default async function InvoiceDetailPage({
         </Card>
         <Card className="p-3.5">
           <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
-            Status
+            {t("invoices.detail.cardStatus")}
           </div>
           <div className="mt-1.5">
             <StatusChip status={invoice.status} />
@@ -150,7 +150,7 @@ export default async function InvoiceDetailPage({
         </Card>
         <Card className="p-3.5">
           <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
-            Version
+            {t("invoices.detail.cardVersion")}
           </div>
           <div className="mt-1.5 text-[13.5px] font-semibold text-ink">
             v{invoice.version}
@@ -158,7 +158,7 @@ export default async function InvoiceDetailPage({
         </Card>
         <Card className="p-3.5">
           <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
-            Source store
+            {t("invoices.detail.cardSourceStore")}
           </div>
           <div className="mt-1.5 text-[13.5px] font-semibold text-ink">
             {invoice.sourceStore?.name ?? "—"}
@@ -171,14 +171,14 @@ export default async function InvoiceDetailPage({
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <Th>Item</Th>
-              <Th align="right">Gross</Th>
-              <Th align="right">Net</Th>
-              <Th align="right">Glazing</Th>
-              <Th align="right">Rate / kg</Th>
-              <Th align="right">Cartons</Th>
-              <Th align="right">Packets</Th>
-              <Th align="right">Amount</Th>
+              <Th>{t("invoices.detail.colItem")}</Th>
+              <Th align="right">{t("invoices.detail.colGross")}</Th>
+              <Th align="right">{t("invoices.detail.colNet")}</Th>
+              <Th align="right">{t("invoices.detail.colGlazing")}</Th>
+              <Th align="right">{t("invoices.detail.colRate")}</Th>
+              <Th align="right">{t("invoices.detail.colCartons")}</Th>
+              <Th align="right">{t("invoices.detail.colPackets")}</Th>
+              <Th align="right">{t("invoices.detail.colAmount")}</Th>
             </tr>
           </thead>
           <tbody>
@@ -217,7 +217,7 @@ export default async function InvoiceDetailPage({
                 colSpan={7}
                 className="px-3.5 py-3 text-right text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2"
               >
-                Total
+                {t("invoices.detail.total")}
               </td>
               <td className="px-3.5 py-3 text-right font-mono text-base font-semibold text-ink">
                 {pkr(total)}
@@ -230,7 +230,7 @@ export default async function InvoiceDetailPage({
       {invoice.notes && (
         <Card className="p-[18px] text-sm">
           <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
-            Notes
+            {t("invoices.detail.notes")}
           </div>
           <p className="mt-1 whitespace-pre-wrap text-text">{invoice.notes}</p>
         </Card>
@@ -248,10 +248,10 @@ export default async function InvoiceDetailPage({
       <div className="grid gap-3.5 lg:grid-cols-[1fr_300px]">
         <Card className="p-[18px]">
           <div className="mb-2.5 font-serif text-[17px] font-semibold text-ink">
-            Payments against this invoice
+            {t("invoices.detail.paymentsHeading")}
           </div>
           {invoice.payments.length === 0 ? (
-            <div className="text-[13px] text-faint">None recorded yet.</div>
+            <div className="text-[13px] text-faint">{t("invoices.detail.paymentsNone")}</div>
           ) : (
             <div>
               {invoice.payments.map((p) => (
@@ -266,13 +266,13 @@ export default async function InvoiceDetailPage({
                   <div className="flex-1 text-[13px] text-text">
                     <span className="capitalize">{p.type}</span>
                     {p.type === "cheque" && p.cheque
-                      ? ` · Cheque ${p.cheque.chequeNumber}`
+                      ? `${t("invoices.detail.chequePrefix")}${p.cheque.chequeNumber}`
                       : p.note
                         ? ` · ${p.note}`
                         : ""}
                     {p.isPartial && (
                       <Chip tone="warn" className="ml-2">
-                        partial
+                        {t("invoices.detail.partial")}
                       </Chip>
                     )}
                   </div>
@@ -294,7 +294,7 @@ export default async function InvoiceDetailPage({
             className="text-[10.5px] font-semibold uppercase tracking-[0.12em]"
             style={{ color: "var(--side-dim)" }}
           >
-            Balance due
+            {t("invoices.detail.balanceDue")}
           </div>
           <div
             className="mt-2 font-mono text-[26px] font-semibold"
@@ -306,7 +306,7 @@ export default async function InvoiceDetailPage({
             className="mt-1 text-[11.5px]"
             style={{ color: "var(--side-dim)" }}
           >
-            of {pkr(total)} · {paidPct}% received
+            {t("invoices.detail.balanceOf")} {pkr(total)} · {paidPct}% {t("invoices.detail.balanceReceived")}
           </div>
           <div
             className="mt-2.5 h-1 overflow-hidden rounded-full"
@@ -322,7 +322,7 @@ export default async function InvoiceDetailPage({
             className="mt-4 block rounded-lg py-2.5 text-center text-sm font-semibold text-on-accent"
             style={{ background: "var(--accent)" }}
           >
-            Record payment
+            {t("invoices.detail.recordPayment")}
           </Link>
         </div>
       </div>
@@ -332,23 +332,23 @@ export default async function InvoiceDetailPage({
       <Card className="overflow-hidden">
         <div className="flex items-baseline gap-1.5 px-[18px] pt-[18px]">
           <div className="font-serif text-[17px] font-semibold text-ink">
-            Delivery record history
+            {t("invoices.detail.historyHeading")}
           </div>
           <span className="text-[12px] text-faint">
-            · append-only dispute defense
+            {t("invoices.detail.historyNote")}
           </span>
         </div>
         {invoice.deliveryRecords.length === 0 ? (
           <div className="px-[18px] pb-[18px] pt-2 text-[13px] text-faint">
-            No delivery records.
+            {t("invoices.detail.historyEmpty")}
           </div>
         ) : (
           <table className="mt-3 w-full border-collapse">
             <thead>
               <tr>
-                <Th>Version</Th>
-                <Th>Delivered at</Th>
-                <Th align="right">Total</Th>
+                <Th>{t("invoices.detail.colVersion")}</Th>
+                <Th>{t("invoices.detail.colDeliveredAt")}</Th>
+                <Th align="right">{t("invoices.detail.colHistoryTotal")}</Th>
               </tr>
             </thead>
             <tbody>
@@ -358,7 +358,7 @@ export default async function InvoiceDetailPage({
                     v{dr.version}
                     {dr.supersedesId === null && (
                       <Chip tone="neutral" className="ml-1.5">
-                        original
+                        {t("invoices.detail.original")}
                       </Chip>
                     )}
                   </td>

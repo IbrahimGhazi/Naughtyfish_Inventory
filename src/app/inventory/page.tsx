@@ -3,12 +3,14 @@ import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope, storeScope } from "@/lib/scope";
 import { kg } from "@/lib/format";
+import { getCopy } from "@/lib/config";
 import { Card, Chip, PageHeader, Th } from "@/components/ui";
 import StockAdjustForm, { type AdjFormStore, type AdjFormItem } from "./StockAdjustForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function InventoryPage() {
+  const t = await getCopy();
   const ctx = await getActiveContext();
   requirePage(ctx, "inventory");
 
@@ -55,7 +57,7 @@ export default async function InventoryPage() {
 
   return (
     <div className="animate-rise space-y-5">
-      <PageHeader eyebrow="Operations" title="Inventory" />
+      <PageHeader eyebrow={t("inventory.eyebrow")} title={t("inventory.title")} />
 
       {/* Grand-total banner across visible stores. */}
       <div
@@ -68,16 +70,18 @@ export default async function InventoryPage() {
             className="h-2 w-2 shrink-0 rounded-full"
             style={{ background: "var(--warn)" }}
           />
-          Grand total · {stores.length} store{stores.length === 1 ? "" : "s"}
+          {t("inventory.grandTotal")} · {stores.length}{" "}
+          {stores.length === 1 ? t("inventory.storeSingular") : t("inventory.storePlural")}
         </span>
         <span className="text-[12.5px]">
-          <span className="font-mono font-semibold">{grandTotalCartons}</span> cartons ·{" "}
+          <span className="font-mono font-semibold">{grandTotalCartons}</span>{" "}
+          {t("inventory.cartonsLabel")} ·{" "}
           <span className="font-mono font-semibold">{kg(grandTotalKg)}</span>
         </span>
       </div>
 
       {stores.length === 0 ? (
-        <p className="text-sm text-faint">No stores in your scope.</p>
+        <p className="text-sm text-faint">{t("inventory.noStores")}</p>
       ) : (
         stores.map((store) => {
           const storeKg = store.inventoryLines.reduce((t, l) => t + Number(l.totalKg), 0);
@@ -104,18 +108,18 @@ export default async function InventoryPage() {
               </div>
 
               {store.inventoryLines.length === 0 ? (
-                <p className="px-4 py-6 text-sm text-faint">No stock recorded.</p>
+                <p className="px-4 py-6 text-sm text-faint">{t("inventory.noStock")}</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr>
-                        <Th>Item</Th>
-                        <Th className="w-[240px]">Level</Th>
-                        <Th align="right">Cartons</Th>
-                        <Th align="right">Packets</Th>
-                        <Th align="right">Kg / carton</Th>
-                        <Th align="right">Net weight</Th>
+                        <Th>{t("inventory.colItem")}</Th>
+                        <Th className="w-[240px]">{t("inventory.colLevel")}</Th>
+                        <Th align="right">{t("inventory.colCartons")}</Th>
+                        <Th align="right">{t("inventory.colPackets")}</Th>
+                        <Th align="right">{t("inventory.colKgPerCarton")}</Th>
+                        <Th align="right">{t("inventory.colNetWeight")}</Th>
                       </tr>
                     </thead>
                     <tbody>
@@ -173,7 +177,7 @@ export default async function InventoryPage() {
                     </tbody>
                     <tfoot>
                       <tr className="border-t border-hair2 bg-card2 text-[13px] font-semibold">
-                        <td className="px-3.5 py-3 text-text">Store total</td>
+                        <td className="px-3.5 py-3 text-text">{t("inventory.storeTotal")}</td>
                         <td className="px-3.5 py-3" />
                         <td
                           className={`px-3.5 py-3 text-right font-mono ${
@@ -210,11 +214,10 @@ export default async function InventoryPage() {
       {/* Receive / adjust stock. */}
       <Card className="p-[18px]">
         <h2 className="mb-1 font-serif text-[17px] font-semibold text-ink">
-          Receive / adjust stock
+          {t("inventory.adjustCardTitle")}
         </h2>
         <p className="mb-3 text-[12.5px] text-muted">
-          Adds to the store&apos;s on-hand and records a stock movement. Negative values are
-          allowed for real-world corrections.
+          {t("inventory.adjustCardHelp")}
         </p>
         <StockAdjustForm stores={formStores} items={formItems} />
       </Card>

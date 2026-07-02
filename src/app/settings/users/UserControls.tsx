@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createUser, updateUser } from "../actions";
 import { Field, EditToggle } from "../ui";
+import { useCopy } from "@/lib/copy/CopyProvider";
 import {
   ASSIGNABLE_ROLES,
   ENTITY_ACCESS,
@@ -43,9 +44,10 @@ function UserFields({
   idPrefix: string;
   passwordHint: string;
 }) {
+  const t = useCopy();
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <Field label="Name">
+      <Field label={t("settings.users.field.name")}>
         <input
           className="input"
           data-testid={`${idPrefix}-name`}
@@ -53,7 +55,7 @@ function UserFields({
           onChange={(e) => set({ name: e.target.value })}
         />
       </Field>
-      <Field label="Login ID">
+      <Field label={t("settings.users.field.loginId")}>
         <input
           className="input"
           data-testid={`${idPrefix}-loginid`}
@@ -61,7 +63,7 @@ function UserFields({
           onChange={(e) => set({ loginId: e.target.value })}
         />
       </Field>
-      <Field label="Password" hint={passwordHint}>
+      <Field label={t("settings.users.field.password")} hint={passwordHint}>
         <input
           className="input"
           type="password"
@@ -71,7 +73,7 @@ function UserFields({
           onChange={(e) => set({ password: e.target.value })}
         />
       </Field>
-      <Field label="Role">
+      <Field label={t("settings.users.field.role")}>
         <select
           className="input"
           data-testid={`${idPrefix}-role`}
@@ -85,7 +87,7 @@ function UserFields({
           ))}
         </select>
       </Field>
-      <Field label="Book access">
+      <Field label={t("settings.users.field.access")}>
         <select
           className="input"
           data-testid={`${idPrefix}-access`}
@@ -99,7 +101,7 @@ function UserFields({
           ))}
         </select>
       </Field>
-      <Field label="Region scope">
+      <Field label={t("settings.users.field.region")}>
         <select
           className="input"
           data-testid={`${idPrefix}-region`}
@@ -127,6 +129,7 @@ const EMPTY: UserValues = {
 };
 
 export function AddUserForm() {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [v, setV] = useState<UserValues>(EMPTY);
@@ -168,7 +171,7 @@ export function AddUserForm() {
         v={v}
         set={set}
         idPrefix="user-add"
-        passwordHint="min 4 chars — hashed on save"
+        passwordHint={t("settings.users.passwordHint.add")}
       />
       <div className="flex items-center gap-3">
         <button
@@ -179,9 +182,9 @@ export function AddUserForm() {
           className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
-          {isPending ? "Adding…" : "+ Add user"}
+          {isPending ? t("settings.users.add.adding") : t("settings.users.add.submit")}
         </button>
-        {ok && <span className="text-xs font-medium text-pos">✓ Saved.</span>}
+        {ok && <span className="text-xs font-medium text-pos">{t("settings.users.saved")}</span>}
         {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>
@@ -189,6 +192,7 @@ export function AddUserForm() {
 }
 
 function EditUserForm({ user, onDone }: { user: UserRow; onDone: () => void }) {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [v, setV] = useState<UserValues>({
@@ -232,7 +236,7 @@ function EditUserForm({ user, onDone }: { user: UserRow; onDone: () => void }) {
         v={v}
         set={set}
         idPrefix={`user-edit-${user.id}`}
-        passwordHint="leave blank to keep current"
+        passwordHint={t("settings.users.passwordHint.edit")}
       />
       <div className="flex items-center gap-3">
         <button
@@ -243,7 +247,7 @@ function EditUserForm({ user, onDone }: { user: UserRow; onDone: () => void }) {
           className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
-          {isPending ? "Saving…" : "Save"}
+          {isPending ? t("settings.users.edit.saving") : t("settings.users.edit.save")}
         </button>
         {error && <span className="text-xs text-neg">{error}</span>}
       </div>
@@ -252,8 +256,9 @@ function EditUserForm({ user, onDone }: { user: UserRow; onDone: () => void }) {
 }
 
 export function UserList({ users }: { users: UserRow[] }) {
+  const t = useCopy();
   if (users.length === 0) {
-    return <p className="text-sm text-faint">No users yet — add one below.</p>;
+    return <p className="text-sm text-faint">{t("settings.users.empty")}</p>;
   }
   return (
     <ul className="divide-y divide-row">
@@ -268,9 +273,11 @@ export function UserList({ users }: { users: UserRow[] }) {
                   <span className="font-normal text-faint">@{u.loginId}</span>
                 </div>
                 <div className="text-xs text-faint">
-                  {[u.role, `access ${u.entityAccess}`, `region ${u.regionScope}`].join(
-                    " · ",
-                  )}
+                  {[
+                    u.role,
+                    `${t("settings.users.row.access")} ${u.entityAccess}`,
+                    `${t("settings.users.row.region")} ${u.regionScope}`,
+                  ].join(" · ")}
                 </div>
               </div>
             }

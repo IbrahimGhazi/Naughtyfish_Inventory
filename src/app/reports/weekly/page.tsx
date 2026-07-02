@@ -2,8 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
-import { getAppConfig } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import { pkr, dateShort } from "@/lib/format";
+import type { TFn } from "@/lib/copy";
 import { BackLink, Card, PrimaryButton, Th } from "@/components/ui";
 import {
   buildWeeklyStatement,
@@ -39,10 +40,10 @@ function toDayValue(d: Date): string {
   ).padStart(2, "0")}`;
 }
 
-const PRESETS: { key: RangePreset; label: string }[] = [
-  { key: "this_week", label: "This week" },
-  { key: "last_week", label: "Last week" },
-  { key: "this_month", label: "This month" },
+const PRESETS: { key: RangePreset; labelKey: string }[] = [
+  { key: "this_week", labelKey: "reports.weekly.preset.thisWeek" },
+  { key: "last_week", labelKey: "reports.weekly.preset.lastWeek" },
+  { key: "this_month", labelKey: "reports.weekly.preset.thisMonth" },
 ];
 
 export default async function WeeklyStatementPage({
@@ -55,6 +56,7 @@ export default async function WeeklyStatementPage({
   requirePage(ctx, "reports");
   const cfg = await getAppConfig();
   if (!cfg.features.reports) redirect("/");
+  const t = await getCopy();
 
   // The PAGE decides "now" (the pure helpers must not read the clock).
   const now = new Date();
@@ -84,17 +86,17 @@ export default async function WeeklyStatementPage({
   return (
     <div className="animate-rise space-y-5">
       <div>
-        <BackLink href="/reports">← Reports</BackLink>
+        <BackLink href="/reports">{t("reports.weekly.back")}</BackLink>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
-              Insight
+              {t("reports.weekly.eyebrow")}
             </div>
             <h1 className="mt-0.5 font-serif text-[28px] font-semibold leading-tight text-ink">
-              Weekly statement
+              {t("reports.weekly.title")}
             </h1>
             <p className="mt-1 text-sm text-muted">
-              {ctx.entityName} · {dateShort(range.from)} → {dateShort(range.to)} · balances as of{" "}
+              {ctx.entityName} · {dateShort(range.from)} → {dateShort(range.to)} · {t("reports.weekly.balancesAsOf")}{" "}
               {dateShort(range.to)}
             </p>
           </div>
@@ -103,7 +105,7 @@ export default async function WeeklyStatementPage({
             data-testid="wk-print"
             style={{ background: "var(--ink)", color: "var(--card)" }}
           >
-            Print / Save as PDF
+            {t("reports.weekly.print")}
           </PrimaryButton>
         </div>
       </div>
@@ -117,7 +119,7 @@ export default async function WeeklyStatementPage({
             data-testid={`wk-preset-${p.key}`}
             className="rounded-lg border border-hair bg-card px-3 py-1.5 font-semibold text-text transition-colors hover:bg-card2"
           >
-            {p.label}
+            {t(p.labelKey)}
           </Link>
         ))}
       </div>
@@ -125,7 +127,7 @@ export default async function WeeklyStatementPage({
       {/* Explicit from/to GET form (like the party ledger as-of filter). */}
       <form className="flex flex-wrap items-end gap-2 text-sm" action="/reports/weekly">
         <label className="text-xs font-semibold uppercase tracking-[0.1em] text-faint2">
-          From
+          {t("reports.weekly.from")}
           <input
             type="date"
             name="from"
@@ -135,7 +137,7 @@ export default async function WeeklyStatementPage({
           />
         </label>
         <label className="text-xs font-semibold uppercase tracking-[0.1em] text-faint2">
-          To
+          {t("reports.weekly.to")}
           <input
             type="date"
             name="to"
@@ -149,7 +151,7 @@ export default async function WeeklyStatementPage({
           data-testid="wk-apply"
           className="rounded-lg border border-hair bg-card px-3 py-2 font-semibold text-text transition-colors hover:bg-card2"
         >
-          Apply
+          {t("reports.weekly.apply")}
         </button>
       </form>
 
@@ -157,7 +159,7 @@ export default async function WeeklyStatementPage({
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-faint2">
-            Receivables — owed to us
+            {t("reports.weekly.receivables")}
           </h2>
           <span className="font-mono text-sm font-semibold text-neg">
             {pkr(stmt.receivablesTotal)}
@@ -165,14 +167,16 @@ export default async function WeeklyStatementPage({
         </div>
 
         <ReceivablesTable
-          title="Corporate customers"
+          title={t("reports.weekly.corporate")}
           rows={stmt.corporate}
-          emptyLabel="No corporate customers with an outstanding balance."
+          emptyLabel={t("reports.weekly.corporateEmpty")}
+          t={t}
         />
         <ReceivablesTable
-          title="Local customers"
+          title={t("reports.weekly.local")}
           rows={stmt.local}
-          emptyLabel="No local customers with an outstanding balance."
+          emptyLabel={t("reports.weekly.localEmpty")}
+          t={t}
         />
       </section>
 
@@ -180,19 +184,19 @@ export default async function WeeklyStatementPage({
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-faint2">
-            Payables — we owe
+            {t("reports.weekly.payables")}
           </h2>
           <span className="font-mono text-sm font-semibold text-warn">
             {pkr(stmt.payablesTotal)}
           </span>
         </div>
-        <PayablesTable rows={stmt.suppliers} />
+        <PayablesTable rows={stmt.suppliers} t={t} />
       </section>
 
       {/* Net position. */}
       <Card className="p-4">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted">Net position (receivables − payables)</span>
+          <span className="text-sm text-muted">{t("reports.weekly.netPosition")}</span>
           <span
             className={`font-mono text-lg font-semibold ${stmt.net >= 0 ? "text-pos" : "text-neg"}`}
           >
@@ -200,8 +204,8 @@ export default async function WeeklyStatementPage({
           </span>
         </div>
         <p className="mt-1 text-[11.5px] text-faint">
-          Positive = net owed to us. {pkr(stmt.receivablesTotal)} receivable −{" "}
-          {pkr(stmt.payablesTotal)} payable.
+          {t("reports.weekly.netHintPrefix")}{pkr(stmt.receivablesTotal)}{t("reports.weekly.netHintReceivable")}
+          {pkr(stmt.payablesTotal)}{t("reports.weekly.netHintPayable")}
         </p>
       </Card>
     </div>
@@ -217,10 +221,12 @@ function ReceivablesTable({
   title,
   rows,
   emptyLabel,
+  t,
 }: {
   title: string;
   rows: StatementRow[];
   emptyLabel: string;
+  t: TFn;
 }) {
   const sorted = byOutstandingDesc(rows);
   const subtotal = sorted.reduce((s, r) => s + r.outstanding, 0);
@@ -233,9 +239,9 @@ function ReceivablesTable({
       <table className="w-full border-collapse">
         <thead>
           <tr>
-            <Th>Party</Th>
-            <Th>Open invoices</Th>
-            <Th align="right">Outstanding</Th>
+            <Th>{t("reports.weekly.th.party")}</Th>
+            <Th>{t("reports.weekly.th.openInvoices")}</Th>
+            <Th align="right">{t("reports.weekly.th.outstanding")}</Th>
           </tr>
         </thead>
         <tbody>
@@ -274,7 +280,7 @@ function ReceivablesTable({
                 colSpan={2}
                 className="px-3.5 py-2.5 text-right text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2"
               >
-                Subtotal
+                {t("reports.weekly.subtotal")}
               </td>
               <td className="px-3.5 py-2.5 text-right font-mono text-[12.5px] font-semibold text-ink">
                 {pkr(subtotal)}
@@ -287,27 +293,27 @@ function ReceivablesTable({
   );
 }
 
-function PayablesTable({ rows }: { rows: StatementRow[] }) {
+function PayablesTable({ rows, t }: { rows: StatementRow[]; t: TFn }) {
   const sorted = byOutstandingDesc(rows);
   const subtotal = sorted.reduce((s, r) => s + r.outstanding, 0);
 
   return (
     <Card className="overflow-hidden">
       <div className="border-b border-hair2 bg-card2 px-3.5 py-2.5 font-serif text-[15px] font-semibold text-ink">
-        Suppliers
+        {t("reports.weekly.suppliers")}
       </div>
       <table className="w-full border-collapse">
         <thead>
           <tr>
-            <Th>Supplier</Th>
-            <Th align="right">Outstanding</Th>
+            <Th>{t("reports.weekly.th.supplier")}</Th>
+            <Th align="right">{t("reports.weekly.th.outstanding")}</Th>
           </tr>
         </thead>
         <tbody>
           {sorted.length === 0 ? (
             <tr>
               <td colSpan={2} className="px-3.5 py-6 text-center text-sm text-faint">
-                No suppliers with an outstanding balance.
+                {t("reports.weekly.suppliersEmpty")}
               </td>
             </tr>
           ) : (
@@ -329,7 +335,7 @@ function PayablesTable({ rows }: { rows: StatementRow[] }) {
           <tfoot>
             <tr className="border-t border-hair2 bg-card2">
               <td className="px-3.5 py-2.5 text-right text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
-                Subtotal
+                {t("reports.weekly.subtotal")}
               </td>
               <td className="px-3.5 py-2.5 text-right font-mono text-[12.5px] font-semibold text-ink">
                 {pkr(subtotal)}

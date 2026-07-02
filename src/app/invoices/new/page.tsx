@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope, storeScope } from "@/lib/scope";
-import { getAppConfig } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import InvoiceForm, {
   type FormItem,
   type FormLabels,
@@ -18,6 +18,7 @@ export default async function NewInvoicePage() {
   requirePage(ctx, "invoices");
   const scope = entityScope(ctx);
   const cfg = await getAppConfig();
+  const copy = await getCopy();
 
   const [parties, items, stores, series, glazing] = await Promise.all([
     prisma.party.findMany({ where: { ...scope, partyType: "customer" }, orderBy: { name: "asc" } }),
@@ -65,21 +66,22 @@ export default async function NewInvoicePage() {
   return (
     <div className="animate-rise space-y-4">
       <div>
-        <BackLink href="/invoices">← All invoices</BackLink>
+        <BackLink href="/invoices">{copy("invoices.new.backAll")}</BackLink>
         <PageHeader
-          eyebrow="Sales"
-          title="New invoice"
+          eyebrow={copy("invoices.new.eyebrow")}
+          title={copy("invoices.new.title")}
           subtitle={
             cfg.features.glazing ? (
               <>
-                {t.channelNorthLabel} bills on <strong>net</strong> weight after{" "}
-                {t.glazingLabel.toLowerCase()}; enter gross + the buyer&apos;s final weight
-                and the % is derived. {t.channelLocalLabel} has no{" "}
-                {t.glazingLabel.toLowerCase()}. Every amount is recomputed on the server
-                through the shared billing engine.
+                {t.channelNorthLabel} {copy("invoices.new.subtitleBills")}{" "}
+                <strong>{copy("invoices.new.subtitleNet")}</strong>{" "}
+                {copy("invoices.new.subtitleWeightAfter")}{" "}
+                {t.glazingLabel.toLowerCase()}{copy("invoices.new.subtitleEnterGross")}{" "}
+                {t.channelLocalLabel} {copy("invoices.new.subtitleHasNo")}{" "}
+                {t.glazingLabel.toLowerCase()}{copy("invoices.new.subtitleEngine")}
               </>
             ) : (
-              <>Every amount is recomputed on the server through the shared billing engine.</>
+              <>{copy("invoices.new.subtitleSimple")}</>
             )
           }
         />

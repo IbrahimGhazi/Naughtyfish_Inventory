@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
+import { getCopy } from "@/lib/config";
 import BackLink from "../BackLink";
 import { Card } from "../ui";
 import { PageHeader } from "@/components/ui";
@@ -19,6 +20,8 @@ export default async function UsersSettingsPage() {
   if (ctx.user.role !== "admin" && !isPlatform) {
     redirect("/settings");
   }
+
+  const t = await getCopy();
 
   // NOTE: passwordHash is intentionally NOT selected — hashes are never rendered.
   const users = await prisma.user.findMany({
@@ -51,14 +54,13 @@ export default async function UsersSettingsPage() {
     <div className="mx-auto max-w-[1000px] animate-rise px-8 pb-14 pt-7">
       <BackLink />
       <PageHeader
-        eyebrow="Admin"
-        title="Users"
+        eyebrow={t("settings.users.eyebrow")}
+        title={t("settings.users.title")}
         subtitle={
           <>
-            Staff logins, roles and access for{" "}
-            <span className="font-medium text-text">{ctx.entityName}</span>. Passwords are
-            hashed and never shown — leave the field blank when editing to keep the
-            current one.
+            {t("settings.users.subtitle.prefix")}
+            <span className="font-medium text-text">{ctx.entityName}</span>
+            {t("settings.users.subtitle.suffix")}
           </>
         }
       />
@@ -66,14 +68,14 @@ export default async function UsersSettingsPage() {
       <div className="space-y-4">
         <Card>
           <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">
-            Existing users
+            {t("settings.users.existingHeading")}
           </h2>
           <UserList users={rows} />
         </Card>
 
         <Card>
           <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">
-            Add user
+            {t("settings.users.addHeading")}
           </h2>
           <AddUserForm />
         </Card>

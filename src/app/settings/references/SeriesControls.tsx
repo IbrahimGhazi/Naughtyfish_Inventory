@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createReferenceSeries, updateReferenceSeries } from "../actions";
 import { Field, EditToggle } from "../ui";
 import { nextReferencePreview } from "./preview";
+import { useCopy } from "@/lib/copy/CopyProvider";
 
 export interface SeriesRow {
   id: string;
@@ -32,6 +33,7 @@ function toPayload(v: SeriesValues) {
 
 /** Live preview of the next reference the series will emit. */
 function Preview({ v }: { v: SeriesValues }) {
+  const t = useCopy();
   const preview = nextReferencePreview(
     v.prefix || "",
     Number(v.currentNumber || 0),
@@ -39,7 +41,7 @@ function Preview({ v }: { v: SeriesValues }) {
   );
   return (
     <div className="rounded-lg border border-hair2 bg-card2 px-3 py-2 text-sm">
-      <span className="text-muted">Next number: </span>
+      <span className="text-muted">{t("settings.references.preview.label")}</span>
       <span className="font-mono font-medium text-gold" data-testid="series-preview">
         {preview}
       </span>
@@ -56,10 +58,11 @@ function SeriesFields({
   set: (patch: Partial<SeriesValues>) => void;
   idPrefix: string;
 }) {
+  const t = useCopy();
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-        <Field label="Prefix" hint="e.g. SSI-">
+        <Field label={t("settings.references.field.prefix")} hint={t("settings.references.field.prefixHint")}>
           <input
             className="input"
             data-testid={`${idPrefix}-prefix`}
@@ -67,7 +70,7 @@ function SeriesFields({
             onChange={(e) => set({ prefix: e.target.value })}
           />
         </Field>
-        <Field label="Book / region" hint="e.g. Karachi">
+        <Field label={t("settings.references.field.region")} hint={t("settings.references.field.regionHint")}>
           <input
             className="input"
             data-testid={`${idPrefix}-region`}
@@ -75,7 +78,7 @@ function SeriesFields({
             onChange={(e) => set({ bookRegion: e.target.value })}
           />
         </Field>
-        <Field label="Current number">
+        <Field label={t("settings.references.field.current")}>
           <input
             className="input"
             data-testid={`${idPrefix}-current`}
@@ -84,7 +87,7 @@ function SeriesFields({
             onChange={(e) => set({ currentNumber: e.target.value })}
           />
         </Field>
-        <Field label="Digit width">
+        <Field label={t("settings.references.field.width")}>
           <input
             className="input"
             data-testid={`${idPrefix}-width`}
@@ -107,6 +110,7 @@ const EMPTY: SeriesValues = {
 };
 
 export function AddSeriesForm() {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [v, setV] = useState<SeriesValues>(EMPTY);
@@ -143,9 +147,9 @@ export function AddSeriesForm() {
           className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
-          {isPending ? "Adding…" : "+ Add series"}
+          {isPending ? t("settings.references.add.adding") : t("settings.references.add.submit")}
         </button>
-        {ok && <span className="text-xs font-medium text-pos">✓ Saved.</span>}
+        {ok && <span className="text-xs font-medium text-pos">{t("settings.references.saved")}</span>}
         {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>
@@ -153,6 +157,7 @@ export function AddSeriesForm() {
 }
 
 function EditSeriesForm({ series, onDone }: { series: SeriesRow; onDone: () => void }) {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [v, setV] = useState<SeriesValues>({
@@ -191,7 +196,7 @@ function EditSeriesForm({ series, onDone }: { series: SeriesRow; onDone: () => v
           className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
-          {isPending ? "Saving…" : "Save"}
+          {isPending ? t("settings.references.edit.saving") : t("settings.references.edit.save")}
         </button>
         {error && <span className="text-xs text-neg">{error}</span>}
       </div>
@@ -200,9 +205,10 @@ function EditSeriesForm({ series, onDone }: { series: SeriesRow; onDone: () => v
 }
 
 export function SeriesList({ series }: { series: SeriesRow[] }) {
+  const t = useCopy();
   if (series.length === 0) {
     return (
-      <p className="text-sm text-faint">No reference series yet — add one below.</p>
+      <p className="text-sm text-faint">{t("settings.references.empty")}</p>
     );
   }
   return (
@@ -215,11 +221,12 @@ export function SeriesList({ series }: { series: SeriesRow[] }) {
               <div>
                 <div className="font-medium text-ink">{s.bookRegion}</div>
                 <div className="text-xs text-faint">
-                  next{" "}
+                  {t("settings.references.row.next")}{" "}
                   <span className="font-mono text-gold">
                     {nextReferencePreview(s.prefix, s.currentNumber, s.digitWidth)}
                   </span>{" "}
-                  · at <span className="font-mono">{s.currentNumber}</span>
+                  · {t("settings.references.row.at")}{" "}
+                  <span className="font-mono">{s.currentNumber}</span>
                 </div>
               </div>
             }

@@ -1,4 +1,5 @@
 import { getActiveContext } from "@/lib/session";
+import { getCopy } from "@/lib/config";
 import { PageHeader, Card, BackLink } from "@/components/ui";
 import PasswordForm from "./PasswordForm";
 
@@ -6,18 +7,19 @@ export const dynamic = "force-dynamic";
 
 export default async function PasswordPage() {
   const ctx = await getActiveContext();
+  const t = await getCopy();
 
   return (
     <div className="mx-auto max-w-md animate-rise px-8 pb-14 pt-7">
-      <BackLink href="/settings">← Settings</BackLink>
+      <BackLink href="/settings">{t("settings.backLink")}</BackLink>
       <PageHeader
-        eyebrow="Admin"
-        title="Change password"
+        eyebrow={t("settings.password.eyebrow")}
+        title={t("settings.password.title")}
         subtitle={
           <>
-            Signed in as <strong className="font-semibold text-text">{ctx.user.name}</strong>.
-            Changing your password does not log out other devices (rotate the server
-            secret for that).
+            {t("settings.password.subtitle.prefix")}
+            <strong className="font-semibold text-text">{ctx.user.name}</strong>
+            {t("settings.password.subtitle.suffix")}
           </>
         }
       />

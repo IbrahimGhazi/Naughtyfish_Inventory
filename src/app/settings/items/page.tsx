@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
+import { getCopy } from "@/lib/config";
 import BackLink from "../BackLink";
 import { Card } from "../ui";
 import { PageHeader } from "@/components/ui";
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function ItemsSettingsPage() {
   const ctx = await getActiveContext();
   requirePage(ctx, "settings");
+  const t = await getCopy();
   const items = await prisma.item.findMany({
     where: entityScope(ctx),
     orderBy: [{ active: "desc" }, { name: "asc" }],
@@ -34,14 +36,15 @@ export default async function ItemsSettingsPage() {
     <div className="mx-auto max-w-[1000px] animate-rise px-8 pb-14 pt-7">
       <BackLink />
       <PageHeader
-        eyebrow="Admin"
-        title="Items / products"
+        eyebrow={t("settings.items.eyebrow")}
+        title={t("settings.items.title")}
         subtitle={
           <>
-            Fish-fillet and prawn products. Fixed rates and default glazing % are{" "}
-            <span className="font-medium text-text">owner-confirmable</span> — leave them
-            blank until confirmed. Items are deactivated, not deleted (they appear
-            in invoice history).
+            {t("settings.items.subtitle.prefix")}
+            <span className="font-medium text-text">
+              {t("settings.items.subtitle.ownerConfirmable")}
+            </span>
+            {t("settings.items.subtitle.suffix")}
           </>
         }
       />
@@ -49,14 +52,14 @@ export default async function ItemsSettingsPage() {
       <div className="space-y-4">
         <Card>
           <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">
-            Existing items
+            {t("settings.items.existingHeading")}
           </h2>
           <ItemList items={rows} />
         </Card>
 
         <Card>
           <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">
-            Add item
+            {t("settings.items.addHeading")}
           </h2>
           <AddItemForm />
         </Card>

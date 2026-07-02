@@ -1,6 +1,6 @@
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
-import { getAppConfig } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import { PageHeader } from "@/components/ui";
 import PlatformPanel from "./PlatformPanel";
 
@@ -16,19 +16,14 @@ export default async function PlatformPage() {
   const ctx = await getActiveContext();
   requirePage(ctx, "platform");
   const cfg = await getAppConfig();
+  const t = await getCopy();
 
   return (
     <div className="mx-auto max-w-[1100px] animate-rise px-8 pb-14 pt-7">
       <PageHeader
-        eyebrow="Product owner"
-        title="Platform"
-        subtitle={
-          <>
-            Customize this deployment for the customer — branding, theme, business
-            terminology and modules. This panel (and your login) is invisible to
-            every client role.
-          </>
-        }
+        eyebrow={t("platform.eyebrow")}
+        title={t("platform.title")}
+        subtitle={<>{t("platform.subtitle")}</>}
       />
       <PlatformPanel initial={cfg} />
     </div>

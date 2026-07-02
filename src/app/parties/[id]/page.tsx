@@ -5,6 +5,7 @@ import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { buildPartyLedger } from "@/lib/ledger";
+import { getCopy } from "@/lib/config";
 import { pkr, dateShort } from "@/lib/format";
 import { BackLink, Card, Chip, PrimaryButton, Th } from "@/components/ui";
 
@@ -21,6 +22,7 @@ export default async function PartyLedgerPage({
   const { asOf } = await searchParams;
   const ctx = await getActiveContext();
   requirePage(ctx, "parties");
+  const t = await getCopy();
 
   const party = await prisma.party.findFirst({ where: { id, ...entityScope(ctx) } });
   if (!party) notFound();
@@ -35,7 +37,7 @@ export default async function PartyLedgerPage({
   return (
     <div className="animate-rise space-y-4">
       <div>
-        <BackLink href="/parties">← All parties</BackLink>
+        <BackLink href="/parties">{t("parties.ledger.backAll")}</BackLink>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="font-serif text-[28px] font-semibold leading-tight text-ink">
@@ -44,7 +46,7 @@ export default async function PartyLedgerPage({
             <p className="mt-1 text-sm text-muted">{meta}</p>
           </div>
           <PrimaryButton href={`/parties/${id}/payment`} data-testid="record-payment">
-            + Record payment
+            {t("parties.ledger.recordPayment")}
           </PrimaryButton>
         </div>
       </div>
@@ -54,10 +56,10 @@ export default async function PartyLedgerPage({
         <Card className="flex flex-1 items-center justify-between gap-4 p-4">
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-faint2">
-              Net outstanding{asOf ? ` (as of ${dateShort(asOfDate!)})` : ""}
+              {t("parties.ledger.netOutstanding")}{asOf ? ` (as of ${dateShort(asOfDate!)})` : ""}
             </div>
             <div className="mt-1 text-[11.5px] text-muted">
-              opening balance {pkr(ledger.opening)} · positive = party owes us
+              {t("parties.ledger.openingBalance")} {pkr(ledger.opening)} · {t("parties.ledger.positiveOwes")}
             </div>
           </div>
           <div
@@ -72,19 +74,19 @@ export default async function PartyLedgerPage({
         <form className="shrink-0" action={`/parties/${id}`}>
           <label>
             <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
-              As of date
+              {t("parties.ledger.asOfDate")}
             </div>
             <div className="flex gap-1.5">
               <input type="date" name="asOf" defaultValue={asOf} className="input" />
               <button className="rounded-lg border border-hair bg-card px-3 py-2 text-sm font-semibold text-text transition-colors hover:bg-card2">
-                Apply
+                {t("parties.ledger.apply")}
               </button>
               {asOf && (
                 <Link
                   href={`/parties/${id}`}
                   className="inline-flex items-center px-2 text-[12.5px] font-semibold text-muted hover:text-accent-deep"
                 >
-                  clear
+                  {t("parties.ledger.clear")}
                 </Link>
               )}
             </div>
@@ -97,18 +99,18 @@ export default async function PartyLedgerPage({
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <Th className="w-[90px]">Date</Th>
-              <Th>Detail</Th>
-              <Th align="right">Debit</Th>
-              <Th align="right">Credit</Th>
-              <Th align="right">Balance</Th>
+              <Th className="w-[90px]">{t("parties.ledger.colDate")}</Th>
+              <Th>{t("parties.ledger.colDetail")}</Th>
+              <Th align="right">{t("parties.ledger.colDebit")}</Th>
+              <Th align="right">{t("parties.ledger.colCredit")}</Th>
+              <Th align="right">{t("parties.ledger.colBalance")}</Th>
             </tr>
           </thead>
           <tbody>
             {ledger.rows.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-3.5 py-6 text-center text-sm text-faint">
-                  No activity.
+                  {t("parties.ledger.noActivity")}
                 </td>
               </tr>
             ) : (

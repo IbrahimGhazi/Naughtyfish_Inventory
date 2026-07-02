@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
-import { getAppConfig } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import { canAccessPage, type PageKey } from "@/lib/roles";
 import SidebarNav, { type NavItem, type NavSection } from "./SidebarNav";
 import { logout } from "./session-actions";
@@ -36,6 +36,7 @@ export default async function Sidebar({
   const ctx = await getActiveContext();
   const scope = entityScope(ctx);
   const cfg = await getAppConfig();
+  const t = await getCopy();
   const f = cfg.features;
 
   const can = (page: PageKey) => canAccessPage(userRole, page);
@@ -46,11 +47,11 @@ export default async function Sidebar({
     // Restricted delivery portal: invoice entry + own invoices only.
     sections = [
       {
-        label: "Delivery",
+        label: t("shell.nav.section.delivery"),
         items: [
-          { href: "/delivery", key: "delivery", label: "Home", d: ICONS.dashboard },
-          { href: "/delivery/new", key: "delivery-new", label: "New invoice", d: ICONS.invoices },
-          { href: "/delivery/invoices", key: "delivery-invoices", label: "My invoices", d: ICONS.delivery },
+          { href: "/delivery", key: "delivery", label: t("shell.nav.deliveryHome"), d: ICONS.dashboard },
+          { href: "/delivery/new", key: "delivery-new", label: t("shell.nav.deliveryNew"), d: ICONS.invoices },
+          { href: "/delivery/invoices", key: "delivery-invoices", label: t("shell.nav.deliveryInvoices"), d: ICONS.delivery },
         ],
       },
     ];
@@ -73,50 +74,50 @@ export default async function Sidebar({
 
     const sales: NavItem[] = [];
     if (can("invoices"))
-      sales.push({ href: "/invoices", key: "invoices", label: "Invoices", d: ICONS.invoices, count: invoiceCount || undefined });
+      sales.push({ href: "/invoices", key: "invoices", label: t("shell.nav.invoices"), d: ICONS.invoices, count: invoiceCount || undefined });
     if (can("parties"))
-      sales.push({ href: "/parties", key: "parties", label: "Parties", d: ICONS.parties });
+      sales.push({ href: "/parties", key: "parties", label: t("shell.nav.parties"), d: ICONS.parties });
 
     const ops: NavItem[] = [];
     if (f.shipments && can("shipments"))
-      ops.push({ href: "/shipments", key: "shipments", label: "Shipments", d: ICONS.shipments });
+      ops.push({ href: "/shipments", key: "shipments", label: t("shell.nav.shipments"), d: ICONS.shipments });
     if (can("inventory"))
-      ops.push({ href: "/inventory", key: "inventory", label: "Inventory", d: ICONS.inventory });
+      ops.push({ href: "/inventory", key: "inventory", label: t("shell.nav.inventory"), d: ICONS.inventory });
     if (f.processes && can("processes"))
-      ops.push({ href: "/processes", key: "processes", label: "Processes", d: ICONS.processes });
+      ops.push({ href: "/processes", key: "processes", label: t("shell.nav.processes"), d: ICONS.processes });
 
     const money: NavItem[] = [];
     if (f.cheques && can("cheques"))
-      money.push({ href: "/cheques", key: "cheques", label: "Cheques", d: ICONS.cheques, count: dueCheques || undefined });
+      money.push({ href: "/cheques", key: "cheques", label: t("shell.nav.cheques"), d: ICONS.cheques, count: dueCheques || undefined });
     if (f.banks && can("banks"))
-      money.push({ href: "/banks", key: "banks", label: "Banks", d: ICONS.banks });
+      money.push({ href: "/banks", key: "banks", label: t("shell.nav.banks"), d: ICONS.banks });
     if (f.expenses && can("expenses"))
-      money.push({ href: "/expenses", key: "expenses", label: "Expenses", d: ICONS.expenses });
+      money.push({ href: "/expenses", key: "expenses", label: t("shell.nav.expenses"), d: ICONS.expenses });
 
     const insight: NavItem[] = [];
     if (f.reports && can("reports"))
-      insight.push({ href: "/reports", key: "reports", label: "Reports", d: ICONS.reports });
+      insight.push({ href: "/reports", key: "reports", label: t("shell.nav.reports"), d: ICONS.reports });
     if (can("settings"))
-      insight.push({ href: "/settings", key: "settings", label: "Settings", d: ICONS.settings });
+      insight.push({ href: "/settings", key: "settings", label: t("shell.nav.settings"), d: ICONS.settings });
 
     sections = [
       {
-        label: "Overview",
-        items: [{ href: "/", key: "dashboard", label: "Dashboard", d: ICONS.dashboard }],
+        label: t("shell.nav.section.overview"),
+        items: [{ href: "/", key: "dashboard", label: t("shell.nav.dashboard"), d: ICONS.dashboard }],
       },
-      ...(sales.length ? [{ label: "Sales", items: sales }] : []),
-      ...(ops.length ? [{ label: "Operations", items: ops }] : []),
-      ...(money.length ? [{ label: "Money", items: money }] : []),
-      ...(insight.length ? [{ label: "Insight", items: insight }] : []),
+      ...(sales.length ? [{ label: t("shell.nav.section.sales"), items: sales }] : []),
+      ...(ops.length ? [{ label: t("shell.nav.section.operations"), items: ops }] : []),
+      ...(money.length ? [{ label: t("shell.nav.section.money"), items: money }] : []),
+      ...(insight.length ? [{ label: t("shell.nav.section.insight"), items: insight }] : []),
       // Product-owner panel — platform_admin only, invisible to client roles.
       ...(can("platform")
-        ? [{ label: "Product owner", items: [{ href: "/platform", key: "platform", label: "Platform", d: ICONS.platform }] }]
+        ? [{ label: t("shell.nav.section.productOwner"), items: [{ href: "/platform", key: "platform", label: t("shell.nav.platform"), d: ICONS.platform }] }]
         : []),
     ];
   }
 
   const bookTag =
-    entityName === "NF" ? "Black book · " + cfg.branding.tagline : cfg.branding.tagline;
+    entityName === "NF" ? t("shell.sidebar.blackBookPrefix") + cfg.branding.tagline : cfg.branding.tagline;
   const initials = userName
     .split(/\s+/)
     .slice(0, 2)
@@ -190,19 +191,19 @@ export default async function Sidebar({
               {userRole.replace(/_/g, " ")}
             </div>
           </div>
-          <LockButton />
+          <LockButton title={t("shell.sidebar.lock")} />
         </div>
       </div>
     </aside>
   );
 }
 
-function LockButton() {
+function LockButton({ title }: { title: string }) {
   return (
     <form action={logout}>
       <button
         type="submit"
-        title="Lock"
+        title={title}
         data-testid="logout"
         className="flex h-7 w-7 items-center justify-center rounded-md"
         style={{ color: "var(--side-dim)" }}

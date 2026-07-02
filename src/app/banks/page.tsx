@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
-import { getAppConfig } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import { pkr } from "@/lib/format";
 import { Card, PageHeader } from "@/components/ui";
 import { BalanceEditor, AddBankForm } from "./BankControls";
@@ -21,6 +21,7 @@ function initials(name: string): string {
 export default async function BanksPage() {
   const ctx = await getActiveContext();
   requirePage(ctx, "banks");
+  const t = await getCopy();
   const cfg = await getAppConfig();
   if (!cfg.features.banks) redirect("/");
   const scope = entityScope(ctx);
@@ -35,12 +36,12 @@ export default async function BanksPage() {
   return (
     <div className="animate-rise space-y-5">
       <PageHeader
-        eyebrow="Money"
-        title="Bank accounts"
+        eyebrow={t("banks.eyebrow")}
+        title={t("banks.title")}
         action={
           <div className="text-right">
             <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
-              Total est. balance
+              {t("banks.totalEstBalance")}
             </div>
             <div className="mt-0.5 font-mono text-[22px] font-semibold text-ink">
               {pkr(total)}
@@ -53,13 +54,13 @@ export default async function BanksPage() {
       <div
         className="flex items-center gap-2.5 rounded-xl border border-hair bg-card2 px-3.5 py-3 text-[12.5px] text-muted"
       >
-        Estimated balances are a{" "}
-        <strong className="font-semibold text-text">manual number the owner updates</strong> — never
-        auto-decremented by payments or cheques. Click a balance to correct it.
+        {t("banks.bannerPrefix")}{" "}
+        <strong className="font-semibold text-text">{t("banks.bannerManualPhrase")}</strong>{" "}
+        {t("banks.bannerSuffix")}
       </div>
 
       {banks.length === 0 ? (
-        <p className="text-sm text-faint">No bank accounts yet. Add one below.</p>
+        <p className="text-sm text-faint">{t("banks.emptyState")}</p>
       ) : (
         <div className="space-y-3">
           {banks.map((b) => (
@@ -84,7 +85,7 @@ export default async function BanksPage() {
       )}
 
       <Card className="p-[18px]">
-        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">Add account</h2>
+        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">{t("banks.addAccountHeading")}</h2>
         <AddBankForm />
       </Card>
     </div>

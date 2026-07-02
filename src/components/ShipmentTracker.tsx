@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useCopy } from "@/lib/copy/CopyProvider";
 import { borderPath, project, CITIES, MAP_W, MAP_H } from "@/lib/geo";
 import {
   KARACHI_XY,
@@ -34,11 +35,20 @@ export interface TrackedShipment {
 
 type Filter = "active" | "delivered" | "all";
 
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: "active", label: "Active" },
-  { key: "delivered", label: "Delivered" },
-  { key: "all", label: "All" },
+/** Filter buttons — display label resolved via t() at render (copyKey). */
+const FILTERS: { key: Filter; copyKey: string }[] = [
+  { key: "active", copyKey: "shipments.tracker.filterActive" },
+  { key: "delivered", copyKey: "shipments.tracker.filterDelivered" },
+  { key: "all", copyKey: "shipments.tracker.filterAll" },
 ];
+
+/** Map legend status → editable-copy key (labels live in the copy registry). */
+const LEGEND_COPY_KEY: Record<string, string> = {
+  in_transit: "shipments.legend.inTransit",
+  preparing: "shipments.legend.preparing",
+  delayed: "shipments.legend.delayed",
+  delivered: "shipments.legend.delivered",
+};
 
 /** Status pill colours — semantic tokens so they flip in dark mode. */
 function chipStyle(status: string): React.CSSProperties {
@@ -91,6 +101,7 @@ export default function ShipmentTracker({
   originCity?: string;
   showContextCities?: boolean;
 }) {
+  const t = useCopy();
   const [filter, setFilter] = useState<Filter>("active");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -126,7 +137,7 @@ export default function ShipmentTracker({
           width="100%"
           className="block h-auto w-full"
           role="img"
-          aria-label="Shipment tracker map of Pakistan"
+          aria-label={t("shipments.tracker.mapAriaLabel")}
         >
           {/* Landmass */}
           <path
@@ -342,7 +353,7 @@ export default function ShipmentTracker({
               </span>
             </div>
             <div className="mt-1.5 text-[11.5px]" style={{ color: "var(--side-dim)" }}>
-              {sel.status === "delivered" ? "Delivered" : "ETA"} {sel.etaLabel ?? "—"}
+              {sel.status === "delivered" ? t("shipments.tracker.delivered") : t("shipments.tracker.eta")} {sel.etaLabel ?? "—"}
               {sel.etaHint ? ` · ${sel.etaHint}` : ""}
             </div>
             {sel.note && (
@@ -355,7 +366,7 @@ export default function ShipmentTracker({
               className="mt-2.5 inline-block text-[12px] font-semibold"
               style={{ color: "#8fd6d0" }}
             >
-              View details →
+              {t("shipments.tracker.viewDetails")}
             </Link>
           </div>
         )}
@@ -376,11 +387,11 @@ export default function ShipmentTracker({
                 className="inline-block h-2.5 w-2.5 rounded-full"
                 style={{ background: mapColor(l.status).token }}
               />
-              {l.label}
+              {LEGEND_COPY_KEY[l.status] ? t(LEGEND_COPY_KEY[l.status]) : l.label}
             </span>
           ))}
           <div className="flex-1" />
-          <span className="text-faint">click a route or row to inspect</span>
+          <span className="text-faint">{t("shipments.tracker.legendHint")}</span>
         </div>
       </div>
 
@@ -400,14 +411,14 @@ export default function ShipmentTracker({
                 }`}
                 style={on ? { background: "var(--accent)" } : undefined}
               >
-                {f.label}
+                {t(f.copyKey)}
               </button>
             );
           })}
         </div>
 
         {filtered.length === 0 ? (
-          <p className="px-1 text-sm text-faint">Nothing to show in this filter.</p>
+          <p className="px-1 text-sm text-faint">{t("shipments.tracker.railEmpty")}</p>
         ) : (
           filtered.map((s, i) => {
             const isSel = sel?.id === s.id;

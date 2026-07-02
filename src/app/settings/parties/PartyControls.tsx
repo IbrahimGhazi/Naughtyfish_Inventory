@@ -13,6 +13,7 @@ import {
   type Channel,
 } from "@/lib/enums";
 import { pkr } from "@/lib/format";
+import { useCopy } from "@/lib/copy/CopyProvider";
 
 export interface PartyRow {
   id: string;
@@ -57,10 +58,11 @@ function PartyFields({
   set: (patch: Partial<PartyValues>) => void;
   idPrefix: string;
 }) {
+  const t = useCopy();
   const isCustomer = v.partyType === "customer";
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <Field label="Name">
+      <Field label={t("settings.parties.field.name")}>
         <input
           className="input"
           data-testid={`${idPrefix}-name`}
@@ -68,7 +70,7 @@ function PartyFields({
           onChange={(e) => set({ name: e.target.value })}
         />
       </Field>
-      <Field label="Type">
+      <Field label={t("settings.parties.field.type")}>
         <select
           className="input"
           data-testid={`${idPrefix}-type`}
@@ -89,8 +91,12 @@ function PartyFields({
         </select>
       </Field>
       <Field
-        label="Sub-type"
-        hint={isCustomer ? "customers only" : "n/a for suppliers"}
+        label={t("settings.parties.field.subType")}
+        hint={
+          isCustomer
+            ? t("settings.parties.field.subTypeHintCustomer")
+            : t("settings.parties.field.subTypeHintSupplier")
+        }
       >
         <select
           className="input"
@@ -107,7 +113,7 @@ function PartyFields({
           ))}
         </select>
       </Field>
-      <Field label="Channel" hint="optional">
+      <Field label={t("settings.parties.field.channel")} hint={t("settings.parties.field.channelHint")}>
         <select
           className="input"
           data-testid={`${idPrefix}-channel`}
@@ -122,7 +128,7 @@ function PartyFields({
           ))}
         </select>
       </Field>
-      <Field label="NTN" hint="local buyers are name-only — leave blank">
+      <Field label={t("settings.parties.field.ntn")} hint={t("settings.parties.field.ntnHint")}>
         <input
           className="input"
           data-testid={`${idPrefix}-ntn`}
@@ -130,7 +136,7 @@ function PartyFields({
           onChange={(e) => set({ ntn: e.target.value })}
         />
       </Field>
-      <Field label="Opening balance (PKR)" hint="optional">
+      <Field label={t("settings.parties.field.opening")} hint={t("settings.parties.field.openingHint")}>
         <input
           className="input"
           data-testid={`${idPrefix}-opening`}
@@ -140,7 +146,7 @@ function PartyFields({
         />
       </Field>
       <div className="sm:col-span-2">
-        <Field label="Address" hint="optional">
+        <Field label={t("settings.parties.field.address")} hint={t("settings.parties.field.addressHint")}>
           <input
             className="input"
             data-testid={`${idPrefix}-address`}
@@ -165,6 +171,7 @@ const EMPTY: PartyValues = {
 
 /** Add a new party (customer or supplier). */
 export function AddPartyForm() {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [v, setV] = useState<PartyValues>(EMPTY);
@@ -201,9 +208,9 @@ export function AddPartyForm() {
           className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
-          {isPending ? "Adding…" : "+ Add party"}
+          {isPending ? t("settings.parties.add.adding") : t("settings.parties.add.submit")}
         </button>
-        {ok && <span className="text-xs font-medium text-pos">✓ Saved.</span>}
+        {ok && <span className="text-xs font-medium text-pos">{t("settings.parties.saved")}</span>}
         {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>
@@ -212,6 +219,7 @@ export function AddPartyForm() {
 
 /** Inline edit form for a party. */
 function EditPartyForm({ party, onDone }: { party: PartyRow; onDone: () => void }) {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [v, setV] = useState<PartyValues>({
@@ -253,7 +261,7 @@ function EditPartyForm({ party, onDone }: { party: PartyRow; onDone: () => void 
           className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
-          {isPending ? "Saving…" : "Save"}
+          {isPending ? t("settings.parties.edit.saving") : t("settings.parties.edit.save")}
         </button>
         {error && <span className="text-xs text-neg">{error}</span>}
       </div>
@@ -263,13 +271,14 @@ function EditPartyForm({ party, onDone }: { party: PartyRow; onDone: () => void 
 
 /** Grouped list (customers / suppliers) with inline edit per row. */
 export function PartyList({ title, parties }: { title: string; parties: PartyRow[] }) {
+  const t = useCopy();
   return (
     <div>
       <h3 className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
         {title} ({parties.length})
       </h3>
       {parties.length === 0 ? (
-        <p className="text-sm text-faint">None yet.</p>
+        <p className="text-sm text-faint">{t("settings.parties.empty")}</p>
       ) : (
         <ul className="divide-y divide-row">
           {parties.map((p) => (
@@ -280,11 +289,15 @@ export function PartyList({ title, parties }: { title: string; parties: PartyRow
                   <div>
                     <div className="font-medium text-ink">{p.name}</div>
                     <div className="text-xs text-faint">
-                      {[p.subType, p.channel, p.ntn ? `NTN ${p.ntn}` : null]
+                      {[
+                        p.subType,
+                        p.channel,
+                        p.ntn ? `${t("settings.parties.row.ntnPrefix")} ${p.ntn}` : null,
+                      ]
                         .filter(Boolean)
                         .join(" · ") || "—"}
                       {p.openingBalance
-                        ? ` · opening ${pkr(p.openingBalance)}`
+                        ? ` · ${t("settings.parties.row.openingPrefix")} ${pkr(p.openingBalance)}`
                         : ""}
                     </div>
                   </div>

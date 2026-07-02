@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope, storeScope } from "@/lib/scope";
-import { getAppConfig } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import InvoiceForm, {
   type FormItem,
   type FormLabels,
@@ -23,6 +23,7 @@ export default async function DeliveryNewInvoicePage() {
   requirePage(ctx, "delivery");
   const scope = entityScope(ctx);
   const cfg = await getAppConfig();
+  const t = await getCopy();
 
   const [parties, items, stores, series, glazing] = await Promise.all([
     prisma.party.findMany({ where: { ...scope, partyType: "customer" }, orderBy: { name: "asc" } }),
@@ -69,11 +70,11 @@ export default async function DeliveryNewInvoicePage() {
   return (
     <div className="animate-rise space-y-4 px-6 pb-14 pt-7">
       <div>
-        <BackLink href="/delivery">← Delivery home</BackLink>
+        <BackLink href="/delivery">{t("delivery.new.back")}</BackLink>
         <PageHeader
-          eyebrow="Delivery"
-          title="New invoice"
-          subtitle="Fill it exactly like the paper slip. It goes to the office as a draft for approval — you can print it and attach the package photo right away."
+          eyebrow={t("delivery.new.eyebrow")}
+          title={t("delivery.new.title")}
+          subtitle={t("delivery.new.subtitle")}
         />
       </div>
       <InvoiceForm

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { pkr } from "@/lib/format";
+import { useCopy } from "@/lib/copy/CopyProvider";
 import { createBankAccount, updateBankBalance } from "./actions";
 
 /** Inline manual balance edit for one account. Never auto-decremented. */
@@ -13,6 +14,7 @@ export function BalanceEditor({
   id: string;
   balance: number;
 }) {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
@@ -41,11 +43,11 @@ export function BalanceEditor({
           setValue(String(balance));
           setEditing(true);
         }}
-        title="Click to correct"
+        title={t("banks.editTooltip")}
         className="rounded-lg px-1 text-right transition-colors hover:bg-card2"
       >
         <div className="font-mono text-[18px] font-semibold text-ink">{pkr(balance)}</div>
-        <div className="mt-0.5 text-[11px] text-faint">click to correct</div>
+        <div className="mt-0.5 text-[11px] text-faint">{t("banks.clickToCorrect")}</div>
       </button>
     );
   }
@@ -67,14 +69,14 @@ export function BalanceEditor({
         className="rounded-lg px-3 py-1.5 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
         style={{ background: "var(--accent)" }}
       >
-        {isPending ? "…" : "Save"}
+        {isPending ? "…" : t("banks.save")}
       </button>
       <button
         type="button"
         onClick={() => setEditing(false)}
         className="text-xs text-faint transition-colors hover:text-text"
       >
-        Cancel
+        {t("banks.cancel")}
       </button>
       {error && <span className="text-xs text-neg">{error}</span>}
     </div>
@@ -83,6 +85,7 @@ export function BalanceEditor({
 
 /** Add-account form. */
 export function AddBankForm() {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [bankName, setBankName] = useState("");
@@ -114,15 +117,15 @@ export function AddBankForm() {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Field label="Bank name">
+        <Field label={t("banks.fieldBankName")}>
           <input className="input" data-testid="add-bank-name" value={bankName}
             onChange={(e) => setBankName(e.target.value)} />
         </Field>
-        <Field label="Account name">
+        <Field label={t("banks.fieldAccountName")}>
           <input className="input" data-testid="add-account-name" value={accountName}
             onChange={(e) => setAccountName(e.target.value)} />
         </Field>
-        <Field label="Opening est. balance (PKR)">
+        <Field label={t("banks.fieldOpeningBalance")}>
           <input className="input" data-testid="add-balance" inputMode="decimal" value={estimatedBalance}
             onChange={(e) => setEstimatedBalance(e.target.value)} />
         </Field>
@@ -131,7 +134,7 @@ export function AddBankForm() {
       <button onClick={submit} disabled={!canSubmit} data-testid="add-bank-submit"
         className="rounded-lg px-4 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
         style={{ background: "var(--accent)" }}>
-        {isPending ? "Saving…" : "Add account"}
+        {isPending ? t("banks.savingEllipsis") : t("banks.addAccountButton")}
       </button>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useCopy } from "@/lib/copy/CopyProvider";
 
 /** Small labelled field wrapper, matching the pattern used across the app. */
 export function Field({
@@ -53,6 +54,7 @@ export function EditToggle({
   summary: ReactNode;
   children: (close: () => void) => ReactNode;
 }) {
+  const t = useCopy();
   const [open, setOpen] = useState(false);
   return (
     <div className="py-3">
@@ -64,7 +66,7 @@ export function EditToggle({
           onClick={() => setOpen((o) => !o)}
           className="shrink-0 rounded-lg border border-hair bg-card px-2.5 py-1 text-xs font-medium text-text transition-colors hover:bg-card2"
         >
-          {open ? "Close" : "Edit"}
+          {open ? t("settings.editToggle.close") : t("settings.editToggle.edit")}
         </button>
       </div>
       {open && (

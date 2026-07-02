@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useCopy } from "@/lib/copy/CopyProvider";
 import { updateShipmentStatus, updateShipmentEta } from "../actions";
 import { SHIPMENT_STATUSES, STATUS_LABELS, type ShipmentStatus } from "@/lib/shipments";
 
@@ -34,6 +35,7 @@ export default function ShipmentControls({
   status: string;
   etaValue: string;
 }) {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [eta, setEta] = useState(etaValue);
@@ -61,7 +63,7 @@ export default function ShipmentControls({
     startTransition(async () => {
       try {
         await updateShipmentEta({ shipmentId, estimatedArrivalAt: eta || undefined });
-        setOk("ETA updated");
+        setOk(t("shipments.controls.etaUpdated"));
         router.refresh();
       } catch (e) {
         setError((e as Error).message);
@@ -76,11 +78,11 @@ export default function ShipmentControls({
 
   return (
     <section className="rounded-xl border border-hair bg-card p-[18px]">
-      <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">Actions</h2>
+      <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">{t("shipments.controls.heading")}</h2>
 
       {/* Status change buttons */}
       <div className="mb-4">
-        <div className="mb-2 text-xs font-medium text-muted">Set status</div>
+        <div className="mb-2 text-xs font-medium text-muted">{t("shipments.controls.setStatus")}</div>
         <div className="flex flex-wrap gap-2" data-testid="ship-status-buttons">
           {SHIPMENT_STATUSES.map((s) => {
             const active = s === status;
@@ -107,7 +109,7 @@ export default function ShipmentControls({
 
       {/* ETA quick-edit */}
       <div className="border-t border-row pt-4">
-        <div className="mb-2 text-xs font-medium text-muted">Update ETA</div>
+        <div className="mb-2 text-xs font-medium text-muted">{t("shipments.controls.updateEta")}</div>
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="datetime-local"
@@ -135,7 +137,7 @@ export default function ShipmentControls({
             className="rounded-lg px-3 py-1.5 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
             style={{ background: "var(--accent)" }}
           >
-            {isPending ? "Saving…" : "Save ETA"}
+            {isPending ? t("shipments.controls.saving") : t("shipments.controls.saveEta")}
           </button>
         </div>
       </div>

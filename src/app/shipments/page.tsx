@@ -7,7 +7,7 @@ import { entityScope } from "@/lib/scope";
 import { dateShort } from "@/lib/format";
 import { PageHeader, PrimaryButton } from "@/components/ui";
 import { STATUS_LABELS, statusSortWeight, etaHint, isShipmentStatus } from "@/lib/shipments";
-import { getAppConfig } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import { cityByName, project } from "@/lib/geo";
 import { KARACHI_XY, progressFor } from "@/lib/mapgeo";
 import ShipmentTracker, { type TrackedShipment } from "@/components/ShipmentTracker";
@@ -19,6 +19,7 @@ export default async function ShipmentsPage() {
   requirePage(ctx, "shipments");
   const cfg = await getAppConfig();
   if (!cfg.features.shipments) redirect("/");
+  const t = await getCopy();
 
   const shipments = await prisma.shipment.findMany({
     where: entityScope(ctx),
@@ -63,21 +64,21 @@ export default async function ShipmentsPage() {
   return (
     <div className="animate-rise space-y-5">
       <PageHeader
-        eyebrow="Operations"
-        title="Shipments"
+        eyebrow={t("shipments.eyebrow")}
+        title={t("shipments.title")}
         subtitle={cfg.map.subtitle}
         action={
           <PrimaryButton href="/shipments/new" data-testid="ship-new-link">
-            + New shipment
+            {t("shipments.newButton")}
           </PrimaryButton>
         }
       />
 
       {tracked.length === 0 ? (
         <p className="text-sm text-faint">
-          No shipments yet.{" "}
+          {t("shipments.emptyLead")}{" "}
           <Link href="/shipments/new" className="font-semibold text-accent-deep hover:underline">
-            Create one →
+            {t("shipments.emptyCreateLink")}
           </Link>
         </p>
       ) : (

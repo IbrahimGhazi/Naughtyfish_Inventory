@@ -4,8 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
-import { getAppConfig } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import { pkr, dateShort } from "@/lib/format";
+import type { TFn } from "@/lib/copy";
 import { BAD_DEBT_SUBCATEGORIES } from "@/lib/enums";
 import { BackLink, Card, Chip, Th } from "@/components/ui";
 import {
@@ -24,10 +25,10 @@ export const dynamic = "force-dynamic";
 
 type Filter = "all" | BadDebtSubCategory;
 
-const FILTER_TABS: { key: Filter; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "bad_debt", label: "Bad debts" },
-  { key: "dispute", label: "Disputes" },
+const FILTER_TABS: { key: Filter; labelKey: string }[] = [
+  { key: "all", labelKey: "reports.badDebts.tab.all" },
+  { key: "bad_debt", labelKey: "reports.badDebts.tab.badDebt" },
+  { key: "dispute", labelKey: "reports.badDebts.tab.dispute" },
 ];
 
 function normalizeFilter(raw?: string): Filter {
@@ -36,11 +37,11 @@ function normalizeFilter(raw?: string): Filter {
 }
 
 /** Sub-category chip — warn tone for dispute, neg tone for bad_debt. */
-function SubCategoryChip({ sub }: { sub: BadDebtSubCategory }) {
+function SubCategoryChip({ sub, t }: { sub: BadDebtSubCategory; t: TFn }) {
   if (sub === "dispute") {
-    return <Chip tone="warn">Dispute</Chip>;
+    return <Chip tone="warn">{t("reports.badDebts.chip.dispute")}</Chip>;
   }
-  return <Chip tone="neg">Bad debt</Chip>;
+  return <Chip tone="neg">{t("reports.badDebts.chip.badDebt")}</Chip>;
 }
 
 export default async function BadDebtsPage({
@@ -54,6 +55,7 @@ export default async function BadDebtsPage({
   requirePage(ctx, "reports");
   const cfg = await getAppConfig();
   if (!cfg.features.reports) redirect("/");
+  const t = await getCopy();
   const scope = entityScope(ctx);
 
   const subFilter =
@@ -115,17 +117,17 @@ export default async function BadDebtsPage({
   return (
     <div className="animate-rise space-y-5">
       <div>
-        <BackLink href="/reports">← Reports</BackLink>
+        <BackLink href="/reports">{t("reports.badDebts.back")}</BackLink>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
-              Insight
+              {t("reports.badDebts.eyebrow")}
             </div>
             <h1 className="mt-0.5 font-serif text-[28px] font-semibold leading-tight text-ink">
-              Bad debts &amp; disputes
+              {t("reports.badDebts.title")}
             </h1>
             <p className="mt-1 text-sm text-muted">
-              Write-offs and disputed amounts for {ctx.entityName} — link a party/invoice for dispute defense.
+              {t("reports.badDebts.subtitlePrefix")}{ctx.entityName}{t("reports.badDebts.subtitleSuffix")}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -134,7 +136,7 @@ export default async function BadDebtsPage({
               data-testid="bd-print-link"
               className="rounded-lg border border-hair bg-card px-3.5 py-2 text-sm font-semibold text-text transition-colors hover:bg-card2"
             >
-              Print summary
+              {t("reports.badDebts.printSummary")}
             </Link>
             <AddBadDebtForm parties={formParties} invoices={formInvoices} />
           </div>
@@ -143,21 +145,21 @@ export default async function BadDebtsPage({
 
       {/* Summary cards for the active filter/book. */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <SummaryCard label="Bad debts" value={totals.badDebt} tone="neg" testid="bd-total-bad_debt" />
-        <SummaryCard label="Disputed" value={totals.dispute} tone="warn" testid="bd-total-dispute" />
-        <SummaryCard label="Grand total" value={totals.grand} tone="ink" testid="bd-total-grand" />
+        <SummaryCard label={t("reports.badDebts.summary.badDebts")} value={totals.badDebt} tone="neg" testid="bd-total-bad_debt" />
+        <SummaryCard label={t("reports.badDebts.summary.disputed")} value={totals.dispute} tone="warn" testid="bd-total-dispute" />
+        <SummaryCard label={t("reports.badDebts.summary.grandTotal")} value={totals.grand} tone="ink" testid="bd-total-grand" />
       </div>
 
       {/* Filter tabs. */}
       <div className="flex flex-wrap gap-2 text-sm">
-        {FILTER_TABS.map((t) => {
-          const active = t.key === filter;
-          const href = t.key === "all" ? "/reports/bad-debts" : `/reports/bad-debts?filter=${t.key}`;
+        {FILTER_TABS.map((tab) => {
+          const active = tab.key === filter;
+          const href = tab.key === "all" ? "/reports/bad-debts" : `/reports/bad-debts?filter=${tab.key}`;
           return (
             <Link
-              key={t.key}
+              key={tab.key}
               href={href}
-              data-testid={`bd-tab-${t.key}`}
+              data-testid={`bd-tab-${tab.key}`}
               className={`rounded-full px-3 py-1 font-semibold transition-colors ${
                 active
                   ? "text-on-accent"
@@ -165,7 +167,7 @@ export default async function BadDebtsPage({
               }`}
               style={active ? { background: "var(--accent)" } : undefined}
             >
-              {t.label}
+              {t(tab.labelKey)}
             </Link>
           );
         })}
@@ -176,20 +178,20 @@ export default async function BadDebtsPage({
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <Th>Date</Th>
-              <Th>Party / person</Th>
-              <Th>Invoice</Th>
-              <Th>Type</Th>
-              <Th align="right">Amount</Th>
-              <Th>Note</Th>
-              <Th align="right">Actions</Th>
+              <Th>{t("reports.badDebts.th.date")}</Th>
+              <Th>{t("reports.badDebts.th.party")}</Th>
+              <Th>{t("reports.badDebts.th.invoice")}</Th>
+              <Th>{t("reports.badDebts.th.type")}</Th>
+              <Th align="right">{t("reports.badDebts.th.amount")}</Th>
+              <Th>{t("reports.badDebts.th.note")}</Th>
+              <Th align="right">{t("reports.badDebts.th.actions")}</Th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-3.5 py-6 text-center text-sm text-faint">
-                  No entries{filter !== "all" ? " for this filter" : ""}.
+                  {t("reports.badDebts.empty")}{filter !== "all" ? t("reports.badDebts.emptyFilterSuffix") : ""}.
                 </td>
               </tr>
             ) : (
@@ -220,7 +222,7 @@ export default async function BadDebtsPage({
                     )}
                   </td>
                   <td className="px-3.5 py-3">
-                    <SubCategoryChip sub={r.subCategory} />
+                    <SubCategoryChip sub={r.subCategory} t={t} />
                   </td>
                   <td className="px-3.5 py-3 text-right font-mono text-[12.5px] font-semibold text-text">
                     {pkr(r.amount)}

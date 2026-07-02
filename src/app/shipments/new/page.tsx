@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
-import { getAppConfig } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import { requirePage } from "@/lib/roles";
 import { entityScope, storeScope } from "@/lib/scope";
 import { CITY_NAMES } from "@/lib/geo";
@@ -19,6 +19,7 @@ export default async function NewShipmentPage() {
   requirePage(ctx, "shipments");
   const cfg = await getAppConfig();
   if (!cfg.features.shipments) redirect("/");
+  const t = await getCopy();
   const scope = entityScope(ctx);
 
   const [stores, parties, invoices] = await Promise.all([
@@ -51,16 +52,11 @@ export default async function NewShipmentPage() {
   return (
     <div className="animate-rise space-y-5">
       <div>
-        <BackLink href="/shipments">← Shipments</BackLink>
+        <BackLink href="/shipments">{t("shipments.new.backLink")}</BackLink>
         <PageHeader
-          eyebrow="Operations"
-          title="New shipment"
-          subtitle={
-            <>
-              Track a parcel from an origin to a destination city. Cities feed the
-              dashboard map; departure and ETA drive the “in&nbsp;2&nbsp;days / overdue” hints.
-            </>
-          }
+          eyebrow={t("shipments.new.eyebrow")}
+          title={t("shipments.new.title")}
+          subtitle={t("shipments.new.subtitle")}
         />
       </div>
       <ShipmentForm

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
-import { getAppConfig } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import { pkr, dateShort } from "@/lib/format";
 import { Card, Chip, PageHeader, Th } from "@/components/ui";
 import { AddCategoryForm, AddEntryForm, type FormCategory } from "./ExpenseControls";
@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function ExpensesPage() {
   const ctx = await getActiveContext();
   requirePage(ctx, "expenses");
+  const t = await getCopy();
   const cfg = await getAppConfig();
   if (!cfg.features.expenses) redirect("/");
   const scope = entityScope(ctx);
@@ -51,12 +52,12 @@ export default async function ExpensesPage() {
   return (
     <div className="animate-rise space-y-5">
       <PageHeader
-        eyebrow="Money"
-        title="Expenses"
+        eyebrow={t("expenses.eyebrow")}
+        title={t("expenses.title")}
         action={
           <div className="text-right" data-testid="exp-month-total">
             <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
-              This month
+              {t("expenses.thisMonth")}
             </div>
             <div className="mt-0.5 font-mono text-[22px] font-semibold text-ink">
               {pkr(monthTotal)}
@@ -68,7 +69,7 @@ export default async function ExpensesPage() {
       {/* Category chips (with running totals) + add-category. */}
       <div className="space-y-3">
         {categories.length === 0 ? (
-          <p className="text-sm text-faint">No categories yet — add one below.</p>
+          <p className="text-sm text-faint">{t("expenses.noCategories")}</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {categories.map((c) => (
@@ -81,7 +82,7 @@ export default async function ExpensesPage() {
                 <span className="font-mono text-[11px] text-gold">
                   {pkr(totalByCategory.get(c.id) ?? 0)}
                 </span>
-                {c.isOwnerAdded && <span className="text-[11px] text-faint">·added</span>}
+                {c.isOwnerAdded && <span className="text-[11px] text-faint">{t("expenses.catAddedSuffix")}</span>}
               </span>
             ))}
           </div>
@@ -96,17 +97,17 @@ export default async function ExpensesPage() {
 
       {/* Recent entries. */}
       {entries.length === 0 ? (
-        <p className="text-sm text-faint">No expense entries yet.</p>
+        <p className="text-sm text-faint">{t("expenses.noEntries")}</p>
       ) : (
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr>
-                  <Th className="w-[110px]">Date</Th>
-                  <Th className="w-[160px]">Category</Th>
-                  <Th>Note</Th>
-                  <Th align="right">Amount</Th>
+                  <Th className="w-[110px]">{t("expenses.colDate")}</Th>
+                  <Th className="w-[160px]">{t("expenses.colCategory")}</Th>
+                  <Th>{t("expenses.colNote")}</Th>
+                  <Th align="right">{t("expenses.colAmount")}</Th>
                 </tr>
               </thead>
               <tbody>

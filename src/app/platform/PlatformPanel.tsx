@@ -11,6 +11,7 @@ import {
   type TerminologyConfig,
 } from "@/lib/config-shared";
 import { COPY_GROUPS, COPY_DEFAULTS } from "@/lib/copy";
+import { useCopy } from "@/lib/copy/CopyProvider";
 import { CITY_NAMES } from "@/lib/geo";
 import { savePlatformConfig } from "./actions";
 
@@ -67,6 +68,7 @@ const FEATURE_LABELS: Record<keyof FeatureFlags, [string, string]> = {
 };
 
 export default function PlatformPanel({ initial }: { initial: AppConfig }) {
+  const t = useCopy();
   const [cfg, setCfg] = useState<AppConfig>(initial);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,7 +115,7 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
       const dataUrl = await resizeImage(file, 192, 0.85);
       patch("branding", { logoDataUrl: dataUrl });
     } catch {
-      setError("Could not read that image — try a PNG or JPG.");
+      setError(t("platform.logo.readError"));
     }
   }
 
@@ -122,19 +124,19 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
       {/* ============================== Branding ============================== */}
       <Card className="p-5">
         <SectionTitle
-          title="Branding"
-          sub="Name, logo and tagline shown on the login screen, sidebar and browser tab."
+          title={t("platform.branding.title")}
+          sub={t("platform.branding.sub")}
         />
         <div className="grid gap-3.5 sm:grid-cols-2">
-          <Field label="App name">
+          <Field label={t("platform.field.appName")}>
             <input className="input" value={cfg.branding.appName} maxLength={40}
               onChange={(e) => patch("branding", { appName: e.target.value })} />
           </Field>
-          <Field label="Tagline">
+          <Field label={t("platform.field.tagline")}>
             <input className="input" value={cfg.branding.tagline} maxLength={60}
               onChange={(e) => patch("branding", { tagline: e.target.value })} />
           </Field>
-          <Field label="Business type" hint="drives terminology suggestions below">
+          <Field label={t("platform.field.businessType")} hint={t("platform.field.businessType.hint")}>
             <select className="input" value={cfg.branding.businessType}
               onChange={(e) => {
                 const preset = BUSINESS_PRESETS[e.target.value];
@@ -153,7 +155,7 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
               )}
             </select>
           </Field>
-          <Field label="Logo" hint="square PNG/JPG, replaces the fish mark">
+          <Field label={t("platform.field.logo")} hint={t("platform.field.logo.hint")}>
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-hair"
                 style={{ background: "var(--side-bg)" }}>
@@ -161,18 +163,18 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={cfg.branding.logoDataUrl} alt="logo" className="h-full w-full object-cover" />
                 ) : (
-                  <span className="text-[10px]" style={{ color: "var(--side-dim)" }}>fish</span>
+                  <span className="text-[10px]" style={{ color: "var(--side-dim)" }}>{t("platform.logo.placeholder")}</span>
                 )}
               </div>
               <label className="cursor-pointer text-[13px] font-semibold text-accent hover:text-accent-deep">
-                Upload…
+                {t("platform.logo.upload")}
                 <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
                   onChange={(e) => onLogoFile(e.target.files?.[0])} />
               </label>
               {cfg.branding.logoDataUrl && (
                 <button type="button" className="text-[13px] font-semibold text-neg"
                   onClick={() => patch("branding", { logoDataUrl: null })}>
-                  Remove
+                  {t("platform.logo.remove")}
                 </button>
               )}
             </div>
@@ -183,8 +185,8 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
       {/* ================================ Theme ================================ */}
       <Card className="p-5">
         <SectionTitle
-          title="Theme"
-          sub="Pick a preset or fine-tune the tokens. Every screen retints instantly on save — light and dark mode both."
+          title={t("platform.theme.title")}
+          sub={t("platform.theme.sub")}
         />
         <div className="mb-4 flex flex-wrap gap-2">
           {Object.entries(THEME_PRESETS).map(([name, t]) => (
@@ -206,28 +208,28 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
           ))}
         </div>
         <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-          <ColorField label="Accent" value={cfg.theme.accent}
+          <ColorField label={t("platform.color.accent")} value={cfg.theme.accent}
             onChange={(v) => patch("theme", { accent: v, preset: "custom" })} />
-          <ColorField label="Accent (deep)" value={cfg.theme.accentDeep}
+          <ColorField label={t("platform.color.accentDeep")} value={cfg.theme.accentDeep}
             onChange={(v) => patch("theme", { accentDeep: v, preset: "custom" })} />
-          <ColorField label="Gold / highlight" value={cfg.theme.gold}
+          <ColorField label={t("platform.color.gold")} value={cfg.theme.gold}
             onChange={(v) => patch("theme", { gold: v, preset: "custom" })} />
-          <ColorField label="Sidebar" value={cfg.theme.sideBg}
+          <ColorField label={t("platform.color.sidebar")} value={cfg.theme.sideBg}
             onChange={(v) => patch("theme", { sideBg: v, preset: "custom" })} />
-          <ColorField label="Dark · accent" value={cfg.theme.darkAccent}
+          <ColorField label={t("platform.color.darkAccent")} value={cfg.theme.darkAccent}
             onChange={(v) => patch("theme", { darkAccent: v, preset: "custom" })} />
-          <ColorField label="Dark · accent deep" value={cfg.theme.darkAccentDeep}
+          <ColorField label={t("platform.color.darkAccentDeep")} value={cfg.theme.darkAccentDeep}
             onChange={(v) => patch("theme", { darkAccentDeep: v, preset: "custom" })} />
-          <ColorField label="Dark · gold" value={cfg.theme.darkGold}
+          <ColorField label={t("platform.color.darkGold")} value={cfg.theme.darkGold}
             onChange={(v) => patch("theme", { darkGold: v, preset: "custom" })} />
-          <ColorField label="Dark · sidebar" value={cfg.theme.darkSideBg}
+          <ColorField label={t("platform.color.darkSidebar")} value={cfg.theme.darkSideBg}
             onChange={(v) => patch("theme", { darkSideBg: v, preset: "custom" })} />
         </div>
 
         {/* Typefaces — trio presets (serif headings / sans UI / mono figures). */}
         <div className="mt-5">
           <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-faint2">
-            Typefaces
+            {t("platform.theme.typefaces")}
           </div>
           <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
             {Object.entries(FONT_PRESETS).map(([key, fp]) => {
@@ -254,7 +256,7 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
         {/* Paper & surface tone (light mode neutrals). */}
         <div className="mt-5">
           <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-faint2">
-            Paper &amp; surfaces
+            {t("platform.theme.paperSurfaces")}
           </div>
           <div className="flex flex-wrap gap-2">
             {Object.entries(SURFACE_PRESETS).map(([key, sp]) => {
@@ -277,23 +279,23 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
             })}
           </div>
           <p className="mt-1.5 text-[11.5px] text-faint">
-            Light mode only — dark mode keeps its tuned neutrals.
+            {t("platform.theme.lightModeNote")}
           </p>
         </div>
 
         {/* Status & alert colors. */}
         <div className="mt-5">
           <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-faint2">
-            Status &amp; alert colors
+            {t("platform.theme.statusColors")}
           </div>
           <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-            <ColorField label="Positive · paid, delivered" value={cfg.theme.statusPos}
+            <ColorField label={t("platform.color.statusPos")} value={cfg.theme.statusPos}
               onChange={(v) => patch("theme", { statusPos: v })} />
-            <ColorField label="Warning · pending, edited" value={cfg.theme.statusWarn}
+            <ColorField label={t("platform.color.statusWarn")} value={cfg.theme.statusWarn}
               onChange={(v) => patch("theme", { statusWarn: v })} />
-            <ColorField label="Negative · overdue, bounced" value={cfg.theme.statusNeg}
+            <ColorField label={t("platform.color.statusNeg")} value={cfg.theme.statusNeg}
               onChange={(v) => patch("theme", { statusNeg: v })} />
-            <ColorField label="Info · issued, in transit" value={cfg.theme.statusInfo}
+            <ColorField label={t("platform.color.statusInfo")} value={cfg.theme.statusInfo}
               onChange={(v) => patch("theme", { statusInfo: v })} />
           </div>
           <div className="mt-2.5 flex flex-wrap gap-2">
@@ -310,7 +312,7 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
               </span>
             ))}
             <span className="self-center text-[11.5px] text-faint">
-              dark mode derives lighter shades automatically
+              {t("platform.theme.darkShadesNote")}
             </span>
           </div>
         </div>
@@ -325,15 +327,15 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
               <div className="mt-2 space-y-1">
                 <div className="rounded px-2 py-1 text-[10px] font-semibold"
                   style={{ background: hexTint(cfg.theme.accent, 0.28), color: "#f2ebd9" }}>
-                  Dashboard
+                  {t("platform.preview.dashboard")}
                 </div>
-                <div className="px-2 py-1 text-[10px]" style={{ color: "#7e938e" }}>Invoices</div>
-                <div className="px-2 py-1 text-[10px]" style={{ color: "#7e938e" }}>Parties</div>
+                <div className="px-2 py-1 text-[10px]" style={{ color: "#7e938e" }}>{t("platform.preview.invoices")}</div>
+                <div className="px-2 py-1 text-[10px]" style={{ color: "#7e938e" }}>{t("platform.preview.parties")}</div>
               </div>
             </div>
             <div className="flex-1 bg-paper2 p-3">
               <div className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: cfg.theme.accent }}>
-                Preview
+                {t("platform.preview.eyebrow")}
               </div>
               <div className="mt-1 font-serif text-[15px] font-semibold text-ink">
                 {cfg.branding.tagline}
@@ -341,7 +343,7 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
               <div className="mt-2 flex gap-2">
                 <span className="rounded-lg px-3 py-1.5 text-[11px] font-semibold"
                   style={{ background: cfg.theme.accent, color: "#f6f2e6" }}>
-                  + New invoice
+                  {t("platform.preview.newInvoice")}
                 </span>
                 <span className="rounded-lg border border-hair bg-card px-3 py-1.5 font-mono text-[11px]"
                   style={{ color: cfg.theme.gold }}>
@@ -356,11 +358,11 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
       {/* ============================ Terminology ============================ */}
       <Card className="p-5">
         <SectionTitle
-          title="Terminology"
-          sub="What things are called across the app — so a crate of mangoes never reads like a carton of fish. Schema and math are untouched."
+          title={t("platform.terminology.title")}
+          sub={t("platform.terminology.sub")}
         />
         <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Sellable unit (singular / plural)">
+          <Field label={t("platform.term.sellableUnit")}>
             <div className="flex gap-2">
               <input className="input" value={cfg.terminology.itemSingular}
                 onChange={(e) => patch("terminology", { itemSingular: e.target.value })} />
@@ -368,7 +370,7 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
                 onChange={(e) => patch("terminology", { itemPlural: e.target.value })} />
             </div>
           </Field>
-          <Field label="Outer package (singular / plural)">
+          <Field label={t("platform.term.outerPackage")}>
             <div className="flex gap-2">
               <input className="input" value={cfg.terminology.packageSingular}
                 onChange={(e) => patch("terminology", { packageSingular: e.target.value })} />
@@ -376,7 +378,7 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
                 onChange={(e) => patch("terminology", { packagePlural: e.target.value })} />
             </div>
           </Field>
-          <Field label="Inner package (singular / plural)">
+          <Field label={t("platform.term.innerPackage")}>
             <div className="flex gap-2">
               <input className="input" value={cfg.terminology.subUnitSingular}
                 onChange={(e) => patch("terminology", { subUnitSingular: e.target.value })} />
@@ -384,15 +386,15 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
                 onChange={(e) => patch("terminology", { subUnitPlural: e.target.value })} />
             </div>
           </Field>
-          <Field label="Weight/measure unit">
+          <Field label={t("platform.term.weightUnit")}>
             <input className="input" value={cfg.terminology.weightUnit}
               onChange={(e) => patch("terminology", { weightUnit: e.target.value })} />
           </Field>
-          <Field label="Deduction concept" hint="glazing for seafood; wastage, trim…">
+          <Field label={t("platform.term.deductionConcept")} hint={t("platform.term.deductionConcept.hint")}>
             <input className="input" value={cfg.terminology.glazingLabel}
               onChange={(e) => patch("terminology", { glazingLabel: e.target.value })} />
           </Field>
-          <Field label="Channels (north / local)" hint="display names only">
+          <Field label={t("platform.term.channels")} hint={t("platform.term.channels.hint")}>
             <div className="flex gap-2">
               <input className="input" value={cfg.terminology.channelNorthLabel}
                 onChange={(e) => patch("terminology", { channelNorthLabel: e.target.value })} />
@@ -400,16 +402,16 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
                 onChange={(e) => patch("terminology", { channelLocalLabel: e.target.value })} />
             </div>
           </Field>
-          <Field label="Currency (ISO code)" hint="PKR, AED, USD…">
+          <Field label={t("platform.term.currency")} hint={t("platform.term.currency.hint")}>
             <input className="input font-mono uppercase" maxLength={3} value={cfg.terminology.currencyCode}
               onChange={(e) => patch("terminology", { currencyCode: e.target.value.toUpperCase() })} />
           </Field>
-          <Field label="Number locale" hint="en-PK, en-AE, en-US…">
+          <Field label={t("platform.term.numberLocale")} hint={t("platform.term.numberLocale.hint")}>
             <input className="input font-mono" value={cfg.terminology.currencyLocale}
               onChange={(e) => patch("terminology", { currencyLocale: e.target.value })} />
           </Field>
           <div className="self-end pb-1 text-[12.5px] text-faint">
-            Preview:{" "}
+            {t("platform.term.previewLabel")}{" "}
             <span className="font-mono text-text">{currencyPreview(cfg)}</span>
           </div>
         </div>
@@ -418,8 +420,8 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
       {/* ============================== Features ============================== */}
       <Card className="p-5">
         <SectionTitle
-          title="Modules"
-          sub="Switch off what this customer doesn't need — nav entries, dashboard cards and form fields disappear together."
+          title={t("platform.modules.title")}
+          sub={t("platform.modules.sub")}
         />
         <div className="grid gap-2.5 sm:grid-cols-2">
           {(Object.keys(FEATURE_LABELS) as (keyof FeatureFlags)[]).map((key) => (
@@ -430,9 +432,9 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
                 onChange={(e) => patch("features", { [key]: e.target.checked } as Partial<FeatureFlags>)} />
               <span>
                 <span className="block text-[13.5px] font-semibold text-text">
-                  {FEATURE_LABELS[key][0]}
+                  {t(`platform.feature.${key}.label`)}
                 </span>
-                <span className="block text-[12px] text-faint">{FEATURE_LABELS[key][1]}</span>
+                <span className="block text-[12px] text-faint">{t(`platform.feature.${key}.desc`)}</span>
               </span>
             </label>
           ))}
@@ -443,11 +445,11 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
       {cfg.features.shipments && (
         <Card className="p-5">
           <SectionTitle
-            title="Map & shipments"
-            sub="Where this customer dispatches FROM — the map, dashboard routes and shipment labels all follow it. (Not everyone ships out of Karachi.)"
+            title={t("platform.map.title")}
+            sub={t("platform.map.sub")}
           />
           <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Origin city" hint="must be on the Pakistan map">
+            <Field label={t("platform.map.originCity")} hint={t("platform.map.originCity.hint")}>
               <select className="input" value={cfg.map.originCity}
                 onChange={(e) => patch("map", { originCity: e.target.value })}>
                 {CITY_NAMES.map((c) => (
@@ -455,7 +457,7 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
                 ))}
               </select>
             </Field>
-            <Field label="Shipments page subtitle">
+            <Field label={t("platform.map.subtitle")}>
               <input className="input" value={cfg.map.subtitle} maxLength={120}
                 onChange={(e) => patch("map", { subtitle: e.target.value })} />
             </Field>
@@ -463,7 +465,7 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
               <input type="checkbox" className="h-4 w-4 accent-[var(--accent)]"
                 checked={cfg.map.showContextCities}
                 onChange={(e) => patch("map", { showContextCities: e.target.checked })} />
-              Show faded context cities on the map
+              {t("platform.map.showContextCities")}
             </label>
           </div>
         </Card>
@@ -472,8 +474,8 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
       {/* ============================== Wording ============================== */}
       <Card className="p-5">
         <SectionTitle
-          title="Wording"
-          sub="Rewrite any text in the app — screen titles, buttons, labels, empty-state messages. Leave a field blank to keep the default. Grouped by screen; use search to jump to a phrase."
+          title={t("platform.wording.title")}
+          sub={t("platform.wording.sub")}
         />
         <CopyEditor copy={cfg.copy} onChange={patchCopy} />
       </Card>
@@ -481,39 +483,38 @@ export default function PlatformPanel({ initial }: { initial: AppConfig }) {
       {/* ========================== New customer runbook ========================== */}
       <Card className="p-5">
         <SectionTitle
-          title="New customer runbook"
-          sub="One codebase, one deployment per customer — on THEIR Supabase and Vercel accounts, signed up with their Gmail."
+          title={t("platform.runbook.title")}
+          sub={t("platform.runbook.sub")}
         />
         <ol className="space-y-3 text-[13.5px] leading-relaxed text-text">
-          <Step n={1} title="Accounts (customer's Gmail)">
+          <Step n={1} title={t("platform.runbook.step1.title")}>
             Sign in to <Mono>supabase.com</Mono> and <Mono>vercel.com</Mono> with the customer&apos;s
             Google account (&quot;Continue with Google&quot;). Creating the accounts is a manual
             signup — everything after it is repeatable.
           </Step>
-          <Step n={2} title="Supabase project (the database)">
+          <Step n={2} title={t("platform.runbook.step2.title")}>
             New project → copy the <Mono>Session pooler</Mono> connection string. In{" "}
             <Mono>prisma/schema.prisma</Mono> set <Mono>provider = &quot;postgresql&quot;</Mono>, then run{" "}
             <Mono>npx prisma migrate deploy</Mono> followed by <Mono>npm run db:seed</Mono> against it.
           </Step>
-          <Step n={3} title="Vercel project (the app)">
+          <Step n={3} title={t("platform.runbook.step3.title")}>
             Push the customer&apos;s copy of this repo to a private GitHub repo → Vercel &quot;Import
             Project&quot;. Set env vars: <Mono>DATABASE_URL</Mono> (from step 2), a fresh 32+ char{" "}
             <Mono>JWT_SECRET</Mono>, and optionally the <Mono>ASSISTANT_*</Mono> keys.{" "}
             <Mono>postinstall</Mono> already runs <Mono>prisma generate</Mono> on deploy.
           </Step>
-          <Step n={4} title="Make it theirs (this panel)">
+          <Step n={4} title={t("platform.runbook.step4.title")}>
             Log in as <Mono>platform</Mono> (change the seeded password immediately in Settings →
             Password) → open <Mono>/platform</Mono> → set branding, theme, terminology and switch
             off unused modules. Then create the customer&apos;s admin login in Settings → Users.
           </Step>
-          <Step n={5} title="Handover checklist">
-            Real items + rates entered · opening balances loaded · reference series start numbers
-            set · seeded demo logins removed/re-passworded · backup schedule confirmed.
+          <Step n={5} title={t("platform.runbook.step5.title")}>
+            {t("platform.runbook.step5.body")}
           </Step>
         </ol>
         <div className="mt-4 rounded-xl border border-hair bg-card2 p-3.5">
           <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-faint2">
-            Env template (Vercel → Settings → Environment Variables)
+            {t("platform.runbook.envTemplate")}
           </div>
           <pre className="overflow-x-auto font-mono text-[12px] leading-relaxed text-muted">{`DATABASE_URL=postgresql://…  # Supabase session pooler
 JWT_SECRET=…                 # openssl rand -base64 48
@@ -530,19 +531,19 @@ ASSISTANT_MODEL=…            # optional`}</pre>
           {error ? (
             <span className="text-neg">⚠ {error}</span>
           ) : saved && !dirty ? (
-            <Chip tone="pos">Saved — every screen retinted</Chip>
+            <Chip tone="pos">{t("platform.save.saved")}</Chip>
           ) : dirty ? (
-            <Chip tone="warn">Unsaved changes</Chip>
+            <Chip tone="warn">{t("platform.save.unsaved")}</Chip>
           ) : (
-            <span className="text-faint">No changes yet.</span>
+            <span className="text-faint">{t("platform.save.noChanges")}</span>
           )}
         </div>
         <div className="flex gap-2">
           <GhostButton type="button" onClick={() => { setCfg(initial); setError(null); }} disabled={!dirty || isPending}>
-            Revert
+            {t("platform.save.revert")}
           </GhostButton>
           <PrimaryButton type="button" onClick={save} disabled={!dirty || isPending}>
-            {isPending ? "Saving…" : "Save configuration"}
+            {isPending ? t("platform.save.saving") : t("platform.save.button")}
           </PrimaryButton>
         </div>
       </div>

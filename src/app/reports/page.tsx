@@ -2,35 +2,36 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
-import { getAppConfig } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
-
-const REPORTS = [
-  {
-    href: "/reports/weekly",
-    title: "Weekly statement",
-    desc: "Who owes you and whom you owe, as of a date range — split corporate / local / suppliers. Printable / save as PDF.",
-  },
-  {
-    href: "/reports/bad-debts",
-    title: "Bad debts & disputes",
-    desc: "Record write-offs and disputed amounts (linked to a party/invoice or free-text), split bad-debt vs dispute, with a printable summary.",
-  },
-];
 
 export default async function ReportsHub() {
   const ctx = await getActiveContext();
   requirePage(ctx, "reports");
   const cfg = await getAppConfig();
   if (!cfg.features.reports) redirect("/");
+  const t = await getCopy();
+
+  const REPORTS = [
+    {
+      href: "/reports/weekly",
+      title: t("reports.hub.weekly.title"),
+      desc: t("reports.hub.weekly.desc"),
+    },
+    {
+      href: "/reports/bad-debts",
+      title: t("reports.hub.badDebts.title"),
+      desc: t("reports.hub.badDebts.desc"),
+    },
+  ];
 
   return (
     <div className="animate-rise space-y-5">
       <PageHeader
-        eyebrow="Insight"
-        title="Reports"
+        eyebrow={t("reports.hub.eyebrow")}
+        title={t("reports.hub.title")}
         subtitle={`Statements and ledgers for ${ctx.entityName}.`}
       />
 

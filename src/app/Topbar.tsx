@@ -4,36 +4,38 @@ import { useTransition } from "react";
 import { usePathname } from "next/navigation";
 import { switchBook } from "./session-actions";
 import ThemeToggle from "./ThemeToggle";
+import { useCopy } from "@/lib/copy/CopyProvider";
+import type { TFn } from "@/lib/copy";
 
-/** pathname prefix → [eyebrow, title]. Longest match wins. */
+/** pathname prefix → [eyebrow copy key, title copy key]. Longest match wins. */
 const TITLES: [string, string, string][] = [
-  ["/invoices/new", "Sales", "New invoice"],
-  ["/invoices/", "Sales", "Invoice detail"],
-  ["/invoices", "Sales", "Invoices"],
-  ["/parties/", "Sales", "Party ledger"],
-  ["/parties", "Sales", "Parties"],
-  ["/shipments", "Operations", "Shipments"],
-  ["/inventory", "Operations", "Inventory"],
-  ["/processes", "Operations", "Processes"],
-  ["/cheques", "Money", "Cheques"],
-  ["/banks", "Money", "Banks"],
-  ["/expenses", "Money", "Expenses"],
-  ["/reports/bad-debts", "Insight", "Bad debts & disputes"],
-  ["/reports/weekly", "Insight", "Weekly statement"],
-  ["/reports", "Insight", "Reports"],
-  ["/settings/password", "Admin", "Password"],
-  ["/settings", "Admin", "Settings"],
-  ["/platform", "Product owner", "Platform"],
-  ["/delivery/new", "Delivery", "New invoice"],
-  ["/delivery/invoices", "Delivery", "My invoices"],
-  ["/delivery", "Delivery", "Home"],
-  ["/", "Overview", "Dashboard"],
+  ["/invoices/new", "shell.topbar.eyebrow.sales", "shell.topbar.title.newInvoice"],
+  ["/invoices/", "shell.topbar.eyebrow.sales", "shell.topbar.title.invoiceDetail"],
+  ["/invoices", "shell.topbar.eyebrow.sales", "shell.topbar.title.invoices"],
+  ["/parties/", "shell.topbar.eyebrow.sales", "shell.topbar.title.partyLedger"],
+  ["/parties", "shell.topbar.eyebrow.sales", "shell.topbar.title.parties"],
+  ["/shipments", "shell.topbar.eyebrow.operations", "shell.topbar.title.shipments"],
+  ["/inventory", "shell.topbar.eyebrow.operations", "shell.topbar.title.inventory"],
+  ["/processes", "shell.topbar.eyebrow.operations", "shell.topbar.title.processes"],
+  ["/cheques", "shell.topbar.eyebrow.money", "shell.topbar.title.cheques"],
+  ["/banks", "shell.topbar.eyebrow.money", "shell.topbar.title.banks"],
+  ["/expenses", "shell.topbar.eyebrow.money", "shell.topbar.title.expenses"],
+  ["/reports/bad-debts", "shell.topbar.eyebrow.insight", "shell.topbar.title.badDebts"],
+  ["/reports/weekly", "shell.topbar.eyebrow.insight", "shell.topbar.title.weeklyStatement"],
+  ["/reports", "shell.topbar.eyebrow.insight", "shell.topbar.title.reports"],
+  ["/settings/password", "shell.topbar.eyebrow.admin", "shell.topbar.title.password"],
+  ["/settings", "shell.topbar.eyebrow.admin", "shell.topbar.title.settings"],
+  ["/platform", "shell.topbar.eyebrow.productOwner", "shell.topbar.title.platform"],
+  ["/delivery/new", "shell.topbar.eyebrow.delivery", "shell.topbar.title.deliveryNewInvoice"],
+  ["/delivery/invoices", "shell.topbar.eyebrow.delivery", "shell.topbar.title.deliveryMyInvoices"],
+  ["/delivery", "shell.topbar.eyebrow.delivery", "shell.topbar.title.deliveryHome"],
+  ["/", "shell.topbar.eyebrow.overview", "shell.topbar.title.dashboard"],
 ];
 
-function titleFor(pathname: string, appName: string): { eyebrow: string; title: string } {
-  for (const [prefix, eyebrow, title] of TITLES) {
+function titleFor(pathname: string, appName: string, t: TFn): { eyebrow: string; title: string } {
+  for (const [prefix, eyebrowKey, titleKey] of TITLES) {
     if (prefix === "/" ? pathname === "/" : pathname.startsWith(prefix)) {
-      return { eyebrow, title };
+      return { eyebrow: t(eyebrowKey), title: t(titleKey) };
     }
   }
   return { eyebrow: "", title: appName };
@@ -52,7 +54,8 @@ export default function Topbar({
 }) {
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
-  const { eyebrow, title } = titleFor(pathname, appName);
+  const t = useCopy();
+  const { eyebrow, title } = titleFor(pathname, appName, t);
 
   const seg = (book: string) => {
     const on = book === activeBook;

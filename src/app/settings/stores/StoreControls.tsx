@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createStore, updateStore } from "../actions";
 import { Field, EditToggle } from "../ui";
 import { STORE_OWNERSHIP } from "@/lib/enums";
+import { useCopy } from "@/lib/copy/CopyProvider";
 
 export interface StoreRow {
   id: string;
@@ -18,6 +19,7 @@ const REGIONS = ["north", "south"] as const;
 
 /** Add a new store. */
 export function AddStoreForm() {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState("");
@@ -55,7 +57,7 @@ export function AddStoreForm() {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-        <Field label="Name">
+        <Field label={t("settings.stores.field.name")}>
           <input
             className="input"
             data-testid="store-add-name"
@@ -63,7 +65,7 @@ export function AddStoreForm() {
             onChange={(e) => setName(e.target.value)}
           />
         </Field>
-        <Field label="City" hint="optional">
+        <Field label={t("settings.stores.field.city")} hint={t("settings.stores.field.cityHint")}>
           <input
             className="input"
             data-testid="store-add-city"
@@ -71,7 +73,7 @@ export function AddStoreForm() {
             onChange={(e) => setCity(e.target.value)}
           />
         </Field>
-        <Field label="Region" hint="optional">
+        <Field label={t("settings.stores.field.region")} hint={t("settings.stores.field.regionHint")}>
           <select
             className="input"
             data-testid="store-add-region"
@@ -86,7 +88,7 @@ export function AddStoreForm() {
             ))}
           </select>
         </Field>
-        <Field label="Ownership">
+        <Field label={t("settings.stores.field.ownership")}>
           <select
             className="input"
             data-testid="store-add-ownership"
@@ -110,9 +112,9 @@ export function AddStoreForm() {
           className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
-          {isPending ? "Adding…" : "+ Add store"}
+          {isPending ? t("settings.stores.add.adding") : t("settings.stores.add.submit")}
         </button>
-        {ok && <span className="text-xs font-medium text-pos">✓ Saved.</span>}
+        {ok && <span className="text-xs font-medium text-pos">{t("settings.stores.saved")}</span>}
         {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>
@@ -121,6 +123,7 @@ export function AddStoreForm() {
 
 /** Inline edit form for a store (rename + city/region/ownership). */
 function EditStoreForm({ store, onDone }: { store: StoreRow; onDone: () => void }) {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState(store.name);
@@ -153,7 +156,7 @@ function EditStoreForm({ store, onDone }: { store: StoreRow; onDone: () => void 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-        <Field label="Name">
+        <Field label={t("settings.stores.field.name")}>
           <input
             className="input"
             data-testid={`store-edit-name-${store.id}`}
@@ -161,7 +164,7 @@ function EditStoreForm({ store, onDone }: { store: StoreRow; onDone: () => void 
             onChange={(e) => setName(e.target.value)}
           />
         </Field>
-        <Field label="City">
+        <Field label={t("settings.stores.field.city")}>
           <input
             className="input"
             data-testid={`store-edit-city-${store.id}`}
@@ -169,7 +172,7 @@ function EditStoreForm({ store, onDone }: { store: StoreRow; onDone: () => void 
             onChange={(e) => setCity(e.target.value)}
           />
         </Field>
-        <Field label="Region">
+        <Field label={t("settings.stores.field.region")}>
           <select
             className="input"
             data-testid={`store-edit-region-${store.id}`}
@@ -184,7 +187,7 @@ function EditStoreForm({ store, onDone }: { store: StoreRow; onDone: () => void 
             ))}
           </select>
         </Field>
-        <Field label="Ownership">
+        <Field label={t("settings.stores.field.ownership")}>
           <select
             className="input"
             data-testid={`store-edit-ownership-${store.id}`}
@@ -208,7 +211,7 @@ function EditStoreForm({ store, onDone }: { store: StoreRow; onDone: () => void 
           className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
-          {isPending ? "Saving…" : "Save"}
+          {isPending ? t("settings.stores.edit.saving") : t("settings.stores.edit.save")}
         </button>
         {error && <span className="text-xs text-neg">{error}</span>}
       </div>
@@ -218,8 +221,9 @@ function EditStoreForm({ store, onDone }: { store: StoreRow; onDone: () => void 
 
 /** List of stores with per-row inline edit. */
 export function StoreList({ stores }: { stores: StoreRow[] }) {
+  const t = useCopy();
   if (stores.length === 0) {
-    return <p className="text-sm text-faint">No stores yet — add one below.</p>;
+    return <p className="text-sm text-faint">{t("settings.stores.empty")}</p>;
   }
   return (
     <ul className="divide-y divide-row">

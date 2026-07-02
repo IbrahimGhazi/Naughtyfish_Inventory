@@ -4,6 +4,7 @@ import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { pkr, dateShort } from "@/lib/format";
+import { getCopy } from "@/lib/config";
 import { PageHeader, PrimaryButton, Card, StatusChip, BackLink, Th } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function DeliveryInvoicesPage() {
   const ctx = await getActiveContext();
   requirePage(ctx, "delivery");
+  const t = await getCopy();
 
   // NEVER select the photo blob here (base64 data URLs up to ~0.9MB each) —
   // the list only needs photo PRESENCE. Fetch the latest record's id per
@@ -50,32 +52,32 @@ export default async function DeliveryInvoicesPage() {
   return (
     <div className="mx-auto max-w-[900px] animate-rise space-y-4 px-6 pb-14 pt-7">
       <div>
-        <BackLink href="/delivery">← Delivery home</BackLink>
+        <BackLink href="/delivery">{t("delivery.invoices.back")}</BackLink>
         <PageHeader
-          eyebrow="Delivery"
-          title="My invoices"
-          subtitle="Only invoices you entered. Open one to print it or attach the delivered-package photo."
+          eyebrow={t("delivery.invoices.eyebrow")}
+          title={t("delivery.invoices.title")}
+          subtitle={t("delivery.invoices.subtitle")}
           action={
             <PrimaryButton href="/delivery/new">
-              <span className="text-base leading-none">+</span> New invoice
+              <span className="text-base leading-none">+</span> {t("delivery.invoices.newInvoiceButton")}
             </PrimaryButton>
           }
         />
       </div>
 
       {invoices.length === 0 ? (
-        <p className="text-sm text-faint">No invoices yet.</p>
+        <p className="text-sm text-faint">{t("delivery.invoices.empty")}</p>
       ) : (
         <Card className="overflow-hidden">
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <Th>Invoice</Th>
-                <Th>Party</Th>
-                <Th>Date</Th>
-                <Th>Status</Th>
-                <Th>Photo</Th>
-                <Th align="right">Total</Th>
+                <Th>{t("delivery.invoices.colInvoice")}</Th>
+                <Th>{t("delivery.invoices.colParty")}</Th>
+                <Th>{t("delivery.invoices.colDate")}</Th>
+                <Th>{t("delivery.invoices.colStatus")}</Th>
+                <Th>{t("delivery.invoices.colPhoto")}</Th>
+                <Th align="right">{t("delivery.invoices.colTotal")}</Th>
               </tr>
             </thead>
             <tbody>
@@ -97,13 +99,13 @@ export default async function DeliveryInvoicesPage() {
                   </td>
                   <td className="px-3.5 py-3">
                     <Link href={`/invoices/${inv.id}`} className="block">
-                      <StatusChip status={inv.status} label={inv.status === "draft" ? "awaiting review" : undefined} />
+                      <StatusChip status={inv.status} label={inv.status === "draft" ? t("delivery.invoices.awaitingReviewChip") : undefined} />
                     </Link>
                   </td>
                   <td className="px-3.5 py-3 text-[13px]">
                     <Link href={`/invoices/${inv.id}`} className="block">
                       {photoRecordIds.has(inv.deliveryRecords[0]?.id ?? "") ? (
-                        <span title="photo attached">📷 ✓</span>
+                        <span title={t("delivery.invoices.photoAttachedTitle")}>📷 ✓</span>
                       ) : (
                         <span className="text-faint">—</span>
                       )}

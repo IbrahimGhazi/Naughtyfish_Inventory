@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
+import { getCopy } from "@/lib/config";
 import BackLink from "../BackLink";
 import { Card } from "../ui";
 import { PageHeader } from "@/components/ui";
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function PartiesSettingsPage() {
   const ctx = await getActiveContext();
   requirePage(ctx, "settings");
+  const t = await getCopy();
   const parties = await prisma.party.findMany({
     where: entityScope(ctx),
     orderBy: [{ partyType: "asc" }, { name: "asc" }],
@@ -35,20 +37,20 @@ export default async function PartiesSettingsPage() {
     <div className="mx-auto max-w-[1000px] animate-rise px-8 pb-14 pt-7">
       <BackLink />
       <PageHeader
-        eyebrow="Admin"
-        title="Parties & suppliers"
-        subtitle="Add and edit customers and suppliers. Local buyers can be name-only (leave NTN blank); opening balances feed the ledgers."
+        eyebrow={t("settings.parties.eyebrow")}
+        title={t("settings.parties.title")}
+        subtitle={t("settings.parties.subtitle")}
       />
 
       <div className="space-y-4">
         <Card className="space-y-5">
-          <PartyList title="Customers" parties={customers} />
-          <PartyList title="Suppliers" parties={suppliers} />
+          <PartyList title={t("settings.parties.customersTitle")} parties={customers} />
+          <PartyList title={t("settings.parties.suppliersTitle")} parties={suppliers} />
         </Card>
 
         <Card>
           <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">
-            Add party / supplier
+            {t("settings.parties.addHeading")}
           </h2>
           <AddPartyForm />
         </Card>

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { pkr, dateShort } from "@/lib/format";
+import { useCopy } from "@/lib/copy/CopyProvider";
 import { createPayment } from "@/app/payments/actions";
 
 export interface FormInvoice {
@@ -29,6 +30,7 @@ export default function PaymentForm({
   invoices: FormInvoice[];
   banks: FormBank[];
 }) {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -84,27 +86,27 @@ export default function PaymentForm({
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 gap-4 rounded-xl border border-hair bg-card p-[18px] sm:grid-cols-2">
-        <Field label="Payment type">
+        <Field label={t("parties.form.paymentType")}>
           <div className="flex gap-2">
-            {(["cash", "transfer", "cheque"] as PayType[]).map((t) => (
+            {(["cash", "transfer", "cheque"] as PayType[]).map((pt) => (
               <button
-                key={t}
+                key={pt}
                 type="button"
-                data-testid={`type-${t}`}
-                onClick={() => setType(t)}
+                data-testid={`type-${pt}`}
+                onClick={() => setType(pt)}
                 className={`rounded-lg border px-3 py-1.5 text-sm font-semibold capitalize transition-colors ${
-                  type === t
+                  type === pt
                     ? "border-transparent text-on-accent"
                     : "border-hair bg-card text-text hover:bg-card2"
                 }`}
-                style={type === t ? { background: "var(--accent)" } : undefined}
+                style={type === pt ? { background: "var(--accent)" } : undefined}
               >
-                {t}
+                {pt}
               </button>
             ))}
           </div>
         </Field>
-        <Field label="Amount (PKR)">
+        <Field label={t("parties.form.amount")}>
           <input
             className="input"
             data-testid="amount"
@@ -113,7 +115,7 @@ export default function PaymentForm({
             onChange={(e) => setAmount(e.target.value)}
           />
         </Field>
-        <Field label="Date" hint="defaults to today">
+        <Field label={t("parties.form.date")} hint={t("parties.form.dateHint")}>
           <input
             type="date"
             className="input"
@@ -122,18 +124,18 @@ export default function PaymentForm({
             onChange={(e) => setDate(e.target.value)}
           />
         </Field>
-        <Field label="Against invoice (optional)">
+        <Field label={t("parties.form.againstInvoice")}>
           <select
             className="input"
             data-testid="invoice"
             value={invoiceId}
             onChange={(e) => setInvoiceId(e.target.value)}
           >
-            <option value="">— not linked —</option>
+            <option value="">{t("parties.form.notLinked")}</option>
             {invoices.map((inv) => (
               <option key={inv.id} value={inv.id}>
                 #{inv.invoiceNumber}
-                {inv.referenceNumber ? ` · ${inv.referenceNumber}` : ""} · {dateShort(inv.date)} · outstanding {pkr(inv.outstanding)}
+                {inv.referenceNumber ? ` · ${inv.referenceNumber}` : ""} · {dateShort(inv.date)} · {t("parties.form.outstanding")} {pkr(inv.outstanding)}
               </option>
             ))}
           </select>
@@ -143,7 +145,7 @@ export default function PaymentForm({
       {/* Cash proof flags (the tape: cash recorded "ehtiyaatan") */}
       {type === "cash" && (
         <div className="space-y-3 rounded-xl border border-hair bg-card p-[18px]">
-          <Field label="Note (required for cash)" hint="proof / what this cash is">
+          <Field label={t("parties.form.noteRequiredCash")} hint={t("parties.form.noteRequiredCashHint")}>
             <input
               className="input"
               data-testid="note"
@@ -158,7 +160,7 @@ export default function PaymentForm({
               checked={isPrecautionaryCash}
               onChange={(e) => setIsPrecautionaryCash(e.target.checked)}
             />
-            Precautionary cash (recorded as proof)
+            {t("parties.form.precautionaryCash")}
           </label>
           <label className="flex items-center gap-2 text-sm text-text">
             <input
@@ -167,7 +169,7 @@ export default function PaymentForm({
               checked={promiseOfCheque}
               onChange={(e) => setPromiseOfCheque(e.target.checked)}
             />
-            Promise of cheque (placeholder)
+            {t("parties.form.promiseOfCheque")}
           </label>
         </div>
       )}
@@ -175,7 +177,7 @@ export default function PaymentForm({
       {/* Note for non-cash types (optional) */}
       {type !== "cash" && (
         <div className="rounded-xl border border-hair bg-card p-[18px]">
-          <Field label="Note (optional)">
+          <Field label={t("parties.form.noteOptional")}>
             <input
               className="input"
               data-testid="note"
@@ -189,7 +191,7 @@ export default function PaymentForm({
       {/* Cheque fields */}
       {type === "cheque" && (
         <div className="grid grid-cols-1 gap-4 rounded-xl border border-hair bg-card p-[18px] sm:grid-cols-2">
-          <Field label="Cheque number">
+          <Field label={t("parties.form.chequeNumber")}>
             <input
               className="input"
               data-testid="cheque-number"
@@ -197,14 +199,14 @@ export default function PaymentForm({
               onChange={(e) => setChequeNumber(e.target.value)}
             />
           </Field>
-          <Field label="Bank account">
+          <Field label={t("parties.form.bankAccount")}>
             <select
               className="input"
               data-testid="bank-account"
               value={bankAccountId}
               onChange={(e) => setBankAccountId(e.target.value)}
             >
-              <option value="">Select bank…</option>
+              <option value="">{t("parties.form.selectBank")}</option>
               {banks.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.label}
@@ -212,7 +214,7 @@ export default function PaymentForm({
               ))}
             </select>
           </Field>
-          <Field label="Issue date">
+          <Field label={t("parties.form.issueDate")}>
             <input
               type="date"
               className="input"
@@ -221,7 +223,7 @@ export default function PaymentForm({
               onChange={(e) => setIssueDate(e.target.value)}
             />
           </Field>
-          <Field label="Clearing due" hint="reminder set 1 day before">
+          <Field label={t("parties.form.clearingDue")} hint={t("parties.form.clearingDueHint")}>
             <input
               type="date"
               className="input"
@@ -242,7 +244,7 @@ export default function PaymentForm({
         className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
         style={{ background: "var(--accent)" }}
       >
-        {isPending ? "Recording…" : "Record payment"}
+        {isPending ? t("parties.form.recording") : t("parties.form.submit")}
       </button>
     </div>
   );

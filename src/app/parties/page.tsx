@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
+import { getCopy } from "@/lib/config";
 import { Card, PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ function initials(name: string): string {
 export default async function PartiesPage() {
   const ctx = await getActiveContext();
   requirePage(ctx, "parties");
+  const t = await getCopy();
   const parties = await prisma.party.findMany({
     where: entityScope(ctx),
     orderBy: [{ partyType: "asc" }, { name: "asc" }],
@@ -36,14 +38,14 @@ export default async function PartiesPage() {
   return (
     <div className="animate-rise space-y-5">
       <PageHeader
-        eyebrow="Sales"
-        title="Parties"
-        subtitle="Customers and suppliers — click a party to open its ledger."
+        eyebrow={t("parties.list.eyebrow")}
+        title={t("parties.list.title")}
+        subtitle={t("parties.list.subtitle")}
       />
 
       <div className="grid grid-cols-1 items-start gap-3.5 lg:grid-cols-2">
-        <Group title="Customers" tone="accent" parties={customers} emptyLabel="No customers yet." />
-        <Group title="Suppliers" tone="gold" parties={suppliers} emptyLabel="No suppliers yet." />
+        <Group title={t("parties.list.customers")} tone="accent" parties={customers} emptyLabel={t("parties.list.noCustomers")} />
+        <Group title={t("parties.list.suppliers")} tone="gold" parties={suppliers} emptyLabel={t("parties.list.noSuppliers")} />
       </div>
     </div>
   );

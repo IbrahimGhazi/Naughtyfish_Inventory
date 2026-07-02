@@ -1,3 +1,4 @@
+import { getCopy } from "@/lib/config";
 import { borderPath, project, CITIES, MAP_W, MAP_H } from "@/lib/geo";
 import {
   KARACHI_XY,
@@ -31,7 +32,16 @@ export interface MapRoute {
  *
  * The interactive sibling (selection, rail, detail card) is ShipmentTracker.
  */
-export function PakistanMap({
+
+/** Map legend status → editable-copy key (labels live in the copy registry). */
+const LEGEND_COPY_KEY: Record<string, string> = {
+  in_transit: "shipments.legend.inTransit",
+  preparing: "shipments.legend.preparing",
+  delayed: "shipments.legend.delayed",
+  delivered: "shipments.legend.delivered",
+};
+
+export async function PakistanMap({
   routes,
   originCity = "Karachi",
   showContextCities = true,
@@ -41,6 +51,7 @@ export function PakistanMap({
   originCity?: string;
   showContextCities?: boolean;
 }) {
+  const t = await getCopy();
   const d = borderPath();
   const destCitySet = new Set(routes.map((r) => r.destCity));
   const originGeo = CITIES.find((c) => c.name === originCity);
@@ -54,7 +65,7 @@ export function PakistanMap({
           width="100%"
           className="block h-auto w-full"
           role="img"
-          aria-label="Shipment tracker map of Pakistan"
+          aria-label={t("shipments.tracker.mapAriaLabel")}
         >
           {/* Landmass */}
           <path
@@ -196,7 +207,7 @@ export function PakistanMap({
         {routes.length === 0 && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <span className="rounded-md border border-hair bg-card px-3 py-1.5 text-sm text-muted shadow-sm">
-              No active shipments
+              {t("shipments.map.emptyState")}
             </span>
           </div>
         )}
@@ -210,7 +221,7 @@ export function PakistanMap({
               className="inline-block h-2.5 w-2.5 rounded-full"
               style={{ background: mapColor(l.status).token }}
             />
-            {l.label}
+            {LEGEND_COPY_KEY[l.status] ? t(LEGEND_COPY_KEY[l.status]) : l.label}
           </span>
         ))}
       </div>

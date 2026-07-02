@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { computeLine, computeInvoiceTotal, type Channel, type LineResult } from "@/lib/billing";
 import { pkr, kg, pct } from "@/lib/format";
 import { Card, Chip } from "@/components/ui";
+import { useCopy } from "@/lib/copy/CopyProvider";
 import { updateInvoice } from "../../actions";
 
 export interface EditFormItem {
@@ -55,6 +56,7 @@ export default function EditInvoiceForm({
   initialLines: EditLineRow[];
   initialNotes: string;
 }) {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [notes, setNotes] = useState(initialNotes);
@@ -140,12 +142,12 @@ export default function EditInvoiceForm({
         {/* Header — party + channel are FIXED on edit. */}
         <Card className="p-[18px]">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Party" hint="fixed on edit">
+            <Field label={t("invoices.editForm.labelParty")} hint={t("invoices.editForm.hintFixed")}>
               <div className="input bg-card2 text-muted">{partyName}</div>
             </Field>
-            <Field label="Channel" hint="fixed on edit">
+            <Field label={t("invoices.editForm.labelChannel")} hint={t("invoices.editForm.hintFixed")}>
               <div className="input bg-card2 capitalize text-muted">
-                {channel === "north" ? "North (frozen)" : "Local (fresh)"}
+                {channel === "north" ? t("invoices.editForm.channelNorth") : t("invoices.editForm.channelLocal")}
               </div>
             </Field>
           </div>
@@ -154,13 +156,13 @@ export default function EditInvoiceForm({
         {/* Line-items table */}
         <Card className="overflow-hidden">
           <div className="grid grid-cols-[1fr_76px_92px_84px_88px_90px_100px_30px] items-center gap-2 border-b border-hair2 bg-card2 px-3.5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-faint2">
-            <span>Item</span>
-            <span>Cartons</span>
-            <span>Gross kg</span>
-            <span>{channel === "north" ? "Net kg in" : "Glaz %"}</span>
-            <span>Rate</span>
-            <span className="text-right">Net kg</span>
-            <span className="text-right">Amount</span>
+            <span>{t("invoices.editForm.colItem")}</span>
+            <span>{t("invoices.editForm.colCartons")}</span>
+            <span>{t("invoices.editForm.colGross")}</span>
+            <span>{channel === "north" ? t("invoices.editForm.colNetIn") : t("invoices.editForm.colGlaz")}</span>
+            <span>{t("invoices.editForm.colRate")}</span>
+            <span className="text-right">{t("invoices.editForm.colNet")}</span>
+            <span className="text-right">{t("invoices.editForm.colAmount")}</span>
             <span />
           </div>
           <div>
@@ -171,7 +173,7 @@ export default function EditInvoiceForm({
                 <div key={i} className="animate-pop border-b border-row px-3.5 py-2.5">
                   <div className="grid grid-cols-[1fr_76px_92px_84px_88px_90px_100px_30px] items-center gap-2">
                     <select className="input !py-1.5 text-[13px]" data-testid={`edit-item-${i}`} value={r.itemId} onChange={(e) => pickItem(i, e.target.value)}>
-                      <option value="">Select…</option>
+                      <option value="">{t("invoices.editForm.selectItem")}</option>
                       {items.map((it) => (
                         <option key={it.id} value={it.id}>
                           {it.name}
@@ -185,7 +187,7 @@ export default function EditInvoiceForm({
                       onChange={(e) => updateRow(i, { grossWeightKg: e.target.value })} />
                     {channel === "north" ? (
                       <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-final-${i}`} inputMode="decimal" value={r.finalWeightKg}
-                        onChange={(e) => updateRow(i, { finalWeightKg: e.target.value })} placeholder="net kg" />
+                        onChange={(e) => updateRow(i, { finalWeightKg: e.target.value })} placeholder={t("invoices.editForm.netKgPlaceholder")} />
                     ) : (
                       <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-glazing-${i}`} inputMode="decimal" value={r.glazingPercent} disabled placeholder="0" />
                     )}
@@ -200,7 +202,7 @@ export default function EditInvoiceForm({
                     {rows.length > 1 ? (
                       <button type="button" data-testid={`edit-remove-${i}`}
                         onClick={() => setRows((rs) => rs.filter((_, idx) => idx !== i))}
-                        title="Remove line"
+                        title={t("invoices.editForm.removeLine")}
                         className="justify-self-center text-[15px] text-faint2 hover:text-neg">×</button>
                     ) : (
                       <span />
@@ -209,11 +211,11 @@ export default function EditInvoiceForm({
 
                   {/* Live packets + alerts */}
                   <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <Field label="Packets">
+                    <Field label={t("invoices.editForm.labelPackets")}>
                       <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-packets-${i}`} inputMode="numeric" value={r.packetCount}
                         onChange={(e) => updateRow(i, { packetCount: e.target.value })} />
                     </Field>
-                    <Field label="Expected packets" hint="short-count alert">
+                    <Field label={t("invoices.editForm.labelExpectedPackets")} hint={t("invoices.editForm.hintShortCount")}>
                       <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-expected-${i}`} inputMode="numeric" value={r.expectedPacketCount}
                         onChange={(e) => updateRow(i, { expectedPacketCount: e.target.value })}
                         placeholder={item ? String((Number(r.cartonCount) || 0) * item.packetsPerCarton || "") : ""} />
@@ -222,15 +224,15 @@ export default function EditInvoiceForm({
                       {c?.error && <span className="text-warn">⚠ {c.error}</span>}
                       {c?.result && (
                         <>
-                          <span className="text-muted">Glazing: <strong className="font-mono text-text">{pct(c.result.glazingPercent)}</strong></span>
+                          <span className="text-muted">{t("invoices.editForm.glazing")} <strong className="font-mono text-text">{pct(c.result.glazingPercent)}</strong></span>
                           {c.result.varianceAlert && (
                             <Chip tone="neg">
-                              ⚠ Over-deduction {pct(c.result.varianceAlert.actualPercent)} vs {pct(c.result.varianceAlert.expectedPercent)} (+{pct(c.result.varianceAlert.exceededByPercent)})
+                              {t("invoices.editForm.overDeduction")} {pct(c.result.varianceAlert.actualPercent)} {t("invoices.editForm.varianceVs")} {pct(c.result.varianceAlert.expectedPercent)} (+{pct(c.result.varianceAlert.exceededByPercent)})
                             </Chip>
                           )}
                           {c.result.packetShortAlert && (
                             <Chip tone="warn">
-                              ⚠ Short {c.result.packetShortAlert.shortBy}: {c.result.packetShortAlert.actual}/{c.result.packetShortAlert.expected}
+                              {t("invoices.editForm.short")} {c.result.packetShortAlert.shortBy}: {c.result.packetShortAlert.actual}/{c.result.packetShortAlert.expected}
                             </Chip>
                           )}
                         </>
@@ -248,13 +250,12 @@ export default function EditInvoiceForm({
             className="block w-full px-3.5 py-3 text-left text-[13px] font-semibold text-accent transition-colors hover:bg-card2"
             style={{ background: "var(--card-2)" }}
           >
-            + Add line
+            {t("invoices.editForm.addLine")}
           </button>
         </Card>
 
         <div className="px-0.5 text-[12px] text-faint">
-          The invoice number stays the same. A new versioned delivery record is appended for dispute
-          defense — the previous record is preserved, never overwritten.
+          {t("invoices.editForm.footNote")}
         </div>
 
         {error && <p className="text-sm text-neg">{error}</p>}
@@ -266,32 +267,32 @@ export default function EditInvoiceForm({
         style={{ background: "var(--side-bg)", color: "var(--side-fg)" }}
       >
         <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--side-dim)" }}>
-          Summary
+          {t("invoices.editForm.summary")}
         </div>
         <div className="my-3.5 flex flex-col gap-2.5 text-[13px]">
           <div className="flex justify-between">
-            <span style={{ color: "var(--side-dim)" }}>Invoice</span>
+            <span style={{ color: "var(--side-dim)" }}>{t("invoices.editForm.summaryInvoice")}</span>
             <span className="font-mono">#{invoiceNumber}</span>
           </div>
           <div className="flex justify-between">
-            <span style={{ color: "var(--side-dim)" }}>Channel</span>
+            <span style={{ color: "var(--side-dim)" }}>{t("invoices.editForm.summaryChannel")}</span>
             <span className="font-semibold capitalize">{channel}</span>
           </div>
           <div className="flex justify-between">
-            <span style={{ color: "var(--side-dim)" }}>Lines</span>
+            <span style={{ color: "var(--side-dim)" }}>{t("invoices.editForm.summaryLines")}</span>
             <span className="font-mono">{rows.length}</span>
           </div>
           <div className="flex justify-between">
-            <span style={{ color: "var(--side-dim)" }}>Net weight</span>
+            <span style={{ color: "var(--side-dim)" }}>{t("invoices.editForm.summaryNetWeight")}</span>
             <span className="font-mono">{kg(netWeightTotal)}</span>
           </div>
           <label className="mt-1 block">
             <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em]" style={{ color: "var(--side-dim)" }}>
-              Notes
+              {t("invoices.editForm.summaryNotes")}
             </div>
             <input
               data-testid="edit-notes"
-              placeholder="Notes (optional)"
+              placeholder={t("invoices.editForm.notesPlaceholder")}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="w-full rounded-lg px-2.5 py-2 text-[13px] outline-none"
@@ -305,7 +306,7 @@ export default function EditInvoiceForm({
         </div>
         <div className="border-t pt-3.5" style={{ borderColor: "rgba(242,235,217,.14)" }}>
           <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--side-dim)" }}>
-            Total
+            {t("invoices.editForm.summaryTotal")}
           </div>
           <div className="mt-1.5 font-mono text-[28px] font-semibold tracking-tight">
             {pkr(total)}
@@ -318,14 +319,14 @@ export default function EditInvoiceForm({
           className="mt-4 w-full rounded-[10px] py-3 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
-          {isPending ? "Saving…" : `Save changes to #${invoiceNumber}`}
+          {isPending ? t("invoices.editForm.saving") : `${t("invoices.editForm.saveChanges")} #${invoiceNumber}`}
         </button>
         <a
           href={`/invoices/${invoiceId}`}
           className="mt-2.5 block text-center text-[13px]"
           style={{ color: "var(--side-dim)" }}
         >
-          Cancel
+          {t("invoices.editForm.cancel")}
         </a>
       </div>
     </div>

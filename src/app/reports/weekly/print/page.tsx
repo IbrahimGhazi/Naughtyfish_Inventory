@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
-import { getAppConfig } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import { pkr, dateShort } from "@/lib/format";
+import type { TFn } from "@/lib/copy";
 import {
   buildWeeklyStatement,
   defaultWeekRange,
@@ -45,6 +46,7 @@ export default async function WeeklyStatementPrintPage({
   requirePage(ctx, "reports");
   const cfg = await getAppConfig();
   if (!cfg.features.reports) redirect("/");
+  const t = await getCopy();
 
   // Default to the current week when the range params are absent/invalid.
   const now = new Date();
@@ -66,7 +68,7 @@ export default async function WeeklyStatementPrintPage({
           href={`/reports/weekly?from=${from ?? ""}&to=${to ?? ""}`}
           className="text-sm text-slate-400 hover:text-cyan-700"
         >
-          ← Back to statement
+          {t("reports.weekly.print.back")}
         </Link>
         <PrintButton />
       </div>
@@ -77,14 +79,14 @@ export default async function WeeklyStatementPrintPage({
           <div className="text-2xl font-bold tracking-tight">
             {entity?.name ?? ctx.entityName}
           </div>
-          <div className="text-sm text-slate-500">Seafood trading &amp; distribution</div>
+          <div className="text-sm text-slate-500">{t("reports.weekly.print.tagline")}</div>
         </div>
         <div className="text-right text-sm">
-          <div className="text-lg font-semibold">WEEKLY STATEMENT</div>
+          <div className="text-lg font-semibold">{t("reports.weekly.print.heading")}</div>
           <div className="text-slate-500">
             {dateShort(range.from)} — {dateShort(range.to)}
           </div>
-          <div className="text-slate-500">Balances as of {dateShort(range.to)}</div>
+          <div className="text-slate-500">{t("reports.weekly.print.balancesAsOf")}{dateShort(range.to)}</div>
         </div>
       </div>
 
@@ -92,30 +94,30 @@ export default async function WeeklyStatementPrintPage({
       <div className="mt-6">
         <div className="flex items-baseline justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Receivables — owed to us
+            {t("reports.weekly.print.receivables")}
           </h2>
           <span className="font-semibold">{pkr(stmt.receivablesTotal)}</span>
         </div>
-        <ReceivablesSection title="Corporate customers" rows={stmt.corporate} />
-        <ReceivablesSection title="Local customers" rows={stmt.local} />
+        <ReceivablesSection title={t("reports.weekly.print.corporate")} rows={stmt.corporate} t={t} />
+        <ReceivablesSection title={t("reports.weekly.print.local")} rows={stmt.local} t={t} />
       </div>
 
       {/* Payables — suppliers. */}
       <div className="mt-6">
         <div className="flex items-baseline justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Payables — we owe
+            {t("reports.weekly.print.payables")}
           </h2>
           <span className="font-semibold">{pkr(stmt.payablesTotal)}</span>
         </div>
-        <PayablesSection rows={stmt.suppliers} />
+        <PayablesSection rows={stmt.suppliers} t={t} />
       </div>
 
       {/* Net position. */}
       <div className="mt-8 border-t-2 border-slate-300 pt-3">
         <div className="flex items-center justify-between">
           <span className="text-sm uppercase text-slate-500">
-            Net position (receivables − payables)
+            {t("reports.weekly.print.netPosition")}
           </span>
           <span className="text-lg font-bold">{pkr(stmt.net)}</span>
         </div>
@@ -124,7 +126,7 @@ export default async function WeeklyStatementPrintPage({
   );
 }
 
-function ReceivablesSection({ title, rows }: { title: string; rows: StatementRow[] }) {
+function ReceivablesSection({ title, rows, t }: { title: string; rows: StatementRow[]; t: TFn }) {
   const sorted = byOutstandingDesc(rows);
   const subtotal = sorted.reduce((s, r) => s + r.outstanding, 0);
 
@@ -132,14 +134,14 @@ function ReceivablesSection({ title, rows }: { title: string; rows: StatementRow
     <div className="mt-4">
       <div className="text-xs font-semibold uppercase text-slate-400">{title}</div>
       {sorted.length === 0 ? (
-        <p className="mt-1 text-sm text-slate-400">No outstanding balance.</p>
+        <p className="mt-1 text-sm text-slate-400">{t("reports.weekly.print.sectionEmpty")}</p>
       ) : (
         <table className="mt-1 w-full border-collapse text-sm">
           <thead>
             <tr className="border-b-2 border-slate-300 text-left">
-              <th className="py-2">Party</th>
-              <th className="py-2">Open invoices</th>
-              <th className="py-2 text-right">Outstanding</th>
+              <th className="py-2">{t("reports.weekly.print.th.party")}</th>
+              <th className="py-2">{t("reports.weekly.print.th.openInvoices")}</th>
+              <th className="py-2 text-right">{t("reports.weekly.print.th.outstanding")}</th>
             </tr>
           </thead>
           <tbody>
@@ -162,7 +164,7 @@ function ReceivablesSection({ title, rows }: { title: string; rows: StatementRow
           <tfoot>
             <tr className="border-t-2 border-slate-300">
               <td colSpan={2} className="py-2 text-right text-xs uppercase text-slate-500">
-                Subtotal
+                {t("reports.weekly.print.subtotal")}
               </td>
               <td className="py-2 text-right font-bold">{pkr(subtotal)}</td>
             </tr>
@@ -173,21 +175,21 @@ function ReceivablesSection({ title, rows }: { title: string; rows: StatementRow
   );
 }
 
-function PayablesSection({ rows }: { rows: StatementRow[] }) {
+function PayablesSection({ rows, t }: { rows: StatementRow[]; t: TFn }) {
   const sorted = byOutstandingDesc(rows);
   const subtotal = sorted.reduce((s, r) => s + r.outstanding, 0);
 
   return (
     <div className="mt-4">
-      <div className="text-xs font-semibold uppercase text-slate-400">Suppliers</div>
+      <div className="text-xs font-semibold uppercase text-slate-400">{t("reports.weekly.print.suppliers")}</div>
       {sorted.length === 0 ? (
-        <p className="mt-1 text-sm text-slate-400">No outstanding balance.</p>
+        <p className="mt-1 text-sm text-slate-400">{t("reports.weekly.print.sectionEmpty")}</p>
       ) : (
         <table className="mt-1 w-full border-collapse text-sm">
           <thead>
             <tr className="border-b-2 border-slate-300 text-left">
-              <th className="py-2">Supplier</th>
-              <th className="py-2 text-right">Outstanding</th>
+              <th className="py-2">{t("reports.weekly.print.th.supplier")}</th>
+              <th className="py-2 text-right">{t("reports.weekly.print.th.outstanding")}</th>
             </tr>
           </thead>
           <tbody>
@@ -200,7 +202,7 @@ function PayablesSection({ rows }: { rows: StatementRow[] }) {
           </tbody>
           <tfoot>
             <tr className="border-t-2 border-slate-300">
-              <td className="py-2 text-right text-xs uppercase text-slate-500">Subtotal</td>
+              <td className="py-2 text-right text-xs uppercase text-slate-500">{t("reports.weekly.print.subtotal")}</td>
               <td className="py-2 text-right font-bold">{pkr(subtotal)}</td>
             </tr>
           </tfoot>

@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useCopy } from "@/lib/copy/CopyProvider";
 import { adjustStock } from "./actions";
 
 export interface AdjFormStore {
@@ -22,6 +23,7 @@ export default function StockAdjustForm({
   stores: AdjFormStore[];
   items: AdjFormItem[];
 }) {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [storeId, setStoreId] = useState("");
@@ -93,60 +95,60 @@ export default function StockAdjustForm({
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Field label="Store">
+        <Field label={t("inventory.fieldStore")}>
           <select className="input" data-testid="adj-store" value={storeId} onChange={(e) => setStoreId(e.target.value)}>
-            <option value="">Select store…</option>
+            <option value="">{t("inventory.selectStore")}</option>
             {stores.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
         </Field>
-        <Field label="Item">
+        <Field label={t("inventory.fieldItem")}>
           <select className="input" data-testid="adj-item" value={itemId} onChange={(e) => pickItem(e.target.value)}>
-            <option value="">Select item…</option>
+            <option value="">{t("inventory.selectItem")}</option>
             {items.map((i) => (
               <option key={i.id} value={i.id}>{i.name}{i.isPrawn ? " 🦐" : ""}</option>
             ))}
           </select>
         </Field>
-        <Field label="Movement type">
+        <Field label={t("inventory.fieldMovementType")}>
           <div className="flex gap-2">
-            {(["receive", "adjust"] as const).map((t) => (
+            {(["receive", "adjust"] as const).map((mt) => (
               <button
-                key={t}
+                key={mt}
                 type="button"
-                data-testid={`adj-type-${t}`}
-                onClick={() => setType(t)}
+                data-testid={`adj-type-${mt}`}
+                onClick={() => setType(mt)}
                 className={`rounded-lg border px-3 py-1.5 text-sm font-semibold capitalize transition-colors ${
-                  type === t
+                  type === mt
                     ? "border-transparent text-accent-deep"
                     : "border-hair text-muted hover:bg-card2"
                 }`}
-                style={type === t ? { background: "var(--accent-tint)" } : undefined}
+                style={type === mt ? { background: "var(--accent-tint)" } : undefined}
               >
-                {t}
+                {mt === "receive" ? t("inventory.typeReceive") : t("inventory.typeAdjust")}
               </button>
             ))}
           </div>
         </Field>
-        <Field label="Cartons">
+        <Field label={t("inventory.fieldCartons")}>
           <input className="input" data-testid="adj-cartons" inputMode="numeric" value={cartons}
             onChange={(e) => setCartons(e.target.value)} placeholder="0" />
         </Field>
-        <Field label="Packets">
+        <Field label={t("inventory.fieldPackets")}>
           <input className="input" data-testid="adj-packets" inputMode="numeric" value={packets}
             onChange={(e) => setPackets(e.target.value)} placeholder="0" />
         </Field>
-        <Field label="Kg / carton">
+        <Field label={t("inventory.fieldKgPerCarton")}>
           <input className="input" data-testid="adj-kgpercarton" inputMode="decimal" value={kgPerCarton}
             onChange={(e) => setKgPerCarton(e.target.value)} placeholder="0" />
         </Field>
-        <Field label="Total kg" hint={computedTotalKg !== null && totalKgOverride.trim() === "" ? "computed" : "override"}>
+        <Field label={t("inventory.fieldTotalKg")} hint={computedTotalKg !== null && totalKgOverride.trim() === "" ? t("inventory.hintComputed") : t("inventory.hintOverride")}>
           <input className="input" data-testid="adj-totalkg" inputMode="decimal" value={totalKgOverride}
             onChange={(e) => setTotalKgOverride(e.target.value)}
             placeholder={computedTotalKg !== null ? String(computedTotalKg) : "0"} />
         </Field>
-        <Field label="Note">
+        <Field label={t("inventory.fieldNote")}>
           <input className="input" data-testid="adj-note" value={note} onChange={(e) => setNote(e.target.value)} />
         </Field>
       </div>
@@ -155,14 +157,14 @@ export default function StockAdjustForm({
         <button onClick={submit} disabled={!canSubmit} data-testid="adj-submit"
           className="rounded-lg px-4 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}>
-          {isPending ? "Saving…" : type === "receive" ? "Receive stock" : "Adjust stock"}
+          {isPending ? t("inventory.saving") : type === "receive" ? t("inventory.receiveStock") : t("inventory.adjustStock")}
         </button>
         {effectiveTotalKg !== null && !Number.isNaN(effectiveTotalKg) && (
           <span className="text-xs text-faint">
-            Will apply {effectiveTotalKg} kg to the store.
+            {t("inventory.willApplyPrefix")} {effectiveTotalKg} {t("inventory.willApplySuffix")}
           </span>
         )}
-        {ok && <span className="text-xs text-pos">✓ Saved.</span>}
+        {ok && <span className="text-xs text-pos">{t("inventory.saved")}</span>}
         {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>

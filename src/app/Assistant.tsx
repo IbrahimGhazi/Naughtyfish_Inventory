@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useCopy } from "@/lib/copy/CopyProvider";
 
 interface Msg {
   role: "user" | "assistant";
@@ -10,23 +11,23 @@ interface Msg {
   pending?: boolean;
 }
 
-const SUGGESTIONS = [
-  "Who owes me the most?",
-  "Cheques due this week",
-  "What's my net position?",
-  "PC Lahore ka kitna baaki hai?",
+const SUGGESTION_KEYS = [
+  "shell.assistant.suggestion.owesMost",
+  "shell.assistant.suggestion.chequesDue",
+  "shell.assistant.suggestion.netPosition",
+  "shell.assistant.suggestion.pcLahore",
 ];
 
-const TOOL_LABEL: Record<string, string> = {
-  get_party_balance: "party balance",
-  net_position: "net position",
-  top_receivables: "receivables",
-  list_payables: "payables",
-  due_cheques: "cheques due",
-  profit_and_loss: "profit & loss",
-  find_invoices: "invoices",
-  inventory_summary: "inventory",
-  active_shipments: "shipments",
+const TOOL_LABEL_KEY: Record<string, string> = {
+  get_party_balance: "shell.assistant.tool.getPartyBalance",
+  net_position: "shell.assistant.tool.netPosition",
+  top_receivables: "shell.assistant.tool.topReceivables",
+  list_payables: "shell.assistant.tool.listPayables",
+  due_cheques: "shell.assistant.tool.dueCheques",
+  profit_and_loss: "shell.assistant.tool.profitAndLoss",
+  find_invoices: "shell.assistant.tool.findInvoices",
+  inventory_summary: "shell.assistant.tool.inventorySummary",
+  active_shipments: "shell.assistant.tool.activeShipments",
 };
 
 export default function Assistant({ book }: { book: string }) {
@@ -36,6 +37,7 @@ export default function Assistant({ book }: { book: string }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const t = useCopy();
 
   // Only render the portal after mount (document.body exists client-side only).
   useEffect(() => setMounted(true), []);
@@ -78,7 +80,7 @@ export default function Assistant({ book }: { book: string }) {
         if (i >= 0)
           next[i] = {
             role: "assistant",
-            content: data.reply || "Sorry, I couldn't answer that.",
+            content: data.reply || t("shell.assistant.fallbackReply"),
             tools: data.toolsUsed,
           };
         return next;
@@ -87,7 +89,7 @@ export default function Assistant({ book }: { book: string }) {
       setMessages((m) => {
         const next = [...m];
         const i = next.findIndex((x) => x.pending);
-        if (i >= 0) next[i] = { role: "assistant", content: "Network error — please try again." };
+        if (i >= 0) next[i] = { role: "assistant", content: t("shell.assistant.networkError") };
         return next;
       });
     } finally {
@@ -117,15 +119,15 @@ export default function Assistant({ book }: { book: string }) {
           {/* Header */}
           <div className="flex shrink-0 items-center justify-between border-b border-hair2 bg-card2 px-4 py-3">
             <div className="min-w-0">
-              <div className="font-serif text-[16px] font-semibold text-ink">Ask the ledger</div>
+              <div className="font-serif text-[16px] font-semibold text-ink">{t("shell.assistant.title")}</div>
               <div className="truncate text-[11px] text-faint">
-                Read-only · {book} book · answers from your data
+                {t("shell.assistant.subtitlePrefix")}{book}{t("shell.assistant.subtitleSuffix")}
               </div>
             </div>
             <button
               onClick={() => setOpen(false)}
               data-testid="assistant-close"
-              aria-label="Close chat"
+              aria-label={t("shell.assistant.closeAria")}
               className="ml-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-faint hover:bg-card hover:text-ink"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -139,19 +141,21 @@ export default function Assistant({ book }: { book: string }) {
             {messages.length === 0 && (
               <div className="space-y-3">
                 <p className="text-[13px] leading-relaxed text-muted">
-                  Ask about balances, cheques, stock, shipments or profit — in English or Urdu.
-                  I read the live ledger; I can&apos;t change anything.
+                  {t("shell.assistant.intro")}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {SUGGESTIONS.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => send(s)}
-                      className="rounded-full border border-hair bg-card px-3 py-1.5 text-left text-[12px] text-text transition-colors hover:bg-card2"
-                    >
-                      {s}
-                    </button>
-                  ))}
+                  {SUGGESTION_KEYS.map((k) => {
+                    const s = t(k);
+                    return (
+                      <button
+                        key={k}
+                        onClick={() => send(s)}
+                        className="rounded-full border border-hair bg-card px-3 py-1.5 text-left text-[12px] text-text transition-colors hover:bg-card2"
+                      >
+                        {s}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -179,7 +183,10 @@ export default function Assistant({ book }: { book: string }) {
                   </div>
                   {m.tools && m.tools.length > 0 && (
                     <div className="pl-1 text-[10.5px] text-faint">
-                      checked: {[...new Set(m.tools)].map((t) => TOOL_LABEL[t] ?? t).join(", ")}
+                      {t("shell.assistant.checkedPrefix")}
+                      {[...new Set(m.tools)]
+                        .map((name) => (TOOL_LABEL_KEY[name] ? t(TOOL_LABEL_KEY[name]) : name))
+                        .join(", ")}
                     </div>
                   )}
                 </div>
@@ -200,7 +207,7 @@ export default function Assistant({ book }: { book: string }) {
               onChange={(e) => setInput(e.target.value)}
               disabled={busy}
               data-testid="assistant-input"
-              placeholder="Ask a question…"
+              placeholder={t("shell.assistant.inputPlaceholder")}
               className="input"
               autoComplete="off"
             />
@@ -210,7 +217,7 @@ export default function Assistant({ book }: { book: string }) {
               data-testid="assistant-send"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-on-accent disabled:opacity-40"
               style={{ background: "var(--accent)" }}
-              aria-label="Send"
+              aria-label={t("shell.assistant.sendAria")}
             >
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
@@ -225,7 +232,7 @@ export default function Assistant({ book }: { book: string }) {
         type="button"
         onClick={() => setOpen((o) => !o)}
         data-testid="assistant-toggle"
-        aria-label={open ? "Close assistant" : "Ask the ledger"}
+        aria-label={open ? t("shell.assistant.toggleCloseAria") : t("shell.assistant.toggleOpenAria")}
         className="fixed z-[71] flex items-center justify-center rounded-full text-on-accent transition-transform hover:scale-105"
         style={{ right: 20, bottom: 20, height: 54, width: 54, background: "var(--accent)", boxShadow: "var(--shadow-pop)" }}
       >

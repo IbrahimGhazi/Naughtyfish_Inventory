@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { computeLine, computeInvoiceTotal, type Channel, type LineResult } from "@/lib/billing";
 import { pkr, kg, pct } from "@/lib/format";
 import { Card, Chip } from "@/components/ui";
+import { useCopy } from "@/lib/copy/CopyProvider";
 import { createInvoice } from "../actions";
 
 export interface FormItem {
@@ -85,6 +86,7 @@ export default function InvoiceForm({
   /** Delivery portal: submissions become drafts; success links stay in-portal. */
   deliveryMode?: boolean;
 }) {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [partyId, setPartyId] = useState("");
@@ -182,25 +184,25 @@ export default function InvoiceForm({
         style={{ borderColor: "var(--pos)", background: "var(--pos-bg)" }}
       >
         <h2 className="font-serif text-lg font-semibold text-pos">
-          ✓ Invoice #{done.invoiceNumber} {deliveryMode ? "sent for review" : "saved"}
+          ✓ {t("invoices.form.invoicePrefix")} #{done.invoiceNumber} {deliveryMode ? t("invoices.form.sentForReview") : t("invoices.form.savedSuffix")}
         </h2>
         <p className="mt-1 text-sm text-text">
-          {done.referenceNumber ? `Reference ${done.referenceNumber} · ` : ""}
-          Total <span className="font-mono">{pkr(done.total)}</span>.{" "}
+          {done.referenceNumber ? `${t("invoices.form.referencePrefix")} ${done.referenceNumber} · ` : ""}
+          {t("invoices.form.totalPrefix")} <span className="font-mono">{pkr(done.total)}</span>.{" "}
           {deliveryMode
-            ? "It is saved as a draft — the office will review and approve it. You can open it to print or add a package photo."
-            : "An immutable delivery record was created for dispute defense."}
+            ? t("invoices.form.successDraft")
+            : t("invoices.form.successImmutable")}
         </p>
         <div className="mt-4 flex gap-4 text-sm">
           <a
             href={`/invoices/${done.id}`}
             className="font-semibold text-accent-deep underline"
           >
-            Open invoice →
+            {t("invoices.form.openInvoice")}
           </a>
           {!deliveryMode && (
           <a href={`/parties/${partyId}`} className="font-semibold text-accent-deep underline">
-            View party ledger →
+            {t("invoices.form.viewLedger")}
           </a>
           )}
           <button
@@ -210,7 +212,7 @@ export default function InvoiceForm({
             }}
             className="font-semibold text-muted underline"
           >
-            New another
+            {t("invoices.form.newAnother")}
           </button>
         </div>
       </Card>
@@ -228,7 +230,7 @@ export default function InvoiceForm({
         {/* Party / channel / reference header card */}
         <Card className="p-[18px]">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Party">
+            <Field label={t("invoices.form.labelParty")}>
               <select
                 className="input"
                 data-testid="party"
@@ -239,7 +241,7 @@ export default function InvoiceForm({
                   if (p?.channel === "north" || p?.channel === "local") setChannel(p.channel);
                 }}
               >
-                <option value="">Select party…</option>
+                <option value="">{t("invoices.form.selectParty")}</option>
                 {parties.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} {p.subType ? `(${p.subType})` : ""}
@@ -247,7 +249,7 @@ export default function InvoiceForm({
                 ))}
               </select>
             </Field>
-            <Field label="Channel">
+            <Field label={t("invoices.form.labelChannel")}>
               <div className="flex gap-2">
                 {(["north", "local"] as Channel[]).map((c) => (
                   <button
@@ -270,16 +272,16 @@ export default function InvoiceForm({
                 ))}
               </div>
             </Field>
-            <Field label="Reference series (book/region)">
+            <Field label={t("invoices.form.labelReferenceSeries")}>
               <select className="input" value={referenceRegion} onChange={(e) => setReferenceRegion(e.target.value)}>
-                <option value="">None</option>
+                <option value="">{t("invoices.form.optionNone")}</option>
                 {regions.map((r) => (
                   <option key={r} value={r}>{r}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Notes" hint="optional">
-              <input className="input" placeholder="Notes (optional)" value={notes}
+            <Field label={t("invoices.form.labelNotes")} hint={t("invoices.form.hintOptional")}>
+              <input className="input" placeholder={t("invoices.form.notesPlaceholder")} value={notes}
                 onChange={(e) => setNotes(e.target.value)} />
             </Field>
           </div>
@@ -288,13 +290,13 @@ export default function InvoiceForm({
         {/* Line-items table */}
         <Card className="overflow-hidden">
           <div className="grid grid-cols-[1fr_76px_92px_84px_88px_90px_100px_30px] items-center gap-2 border-b border-hair2 bg-card2 px-3.5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-faint2">
-            <span>Item</span>
+            <span>{t("invoices.form.colItem")}</span>
             <span>{labels.packagePlural}</span>
-            <span>Gross {labels.weightUnit}</span>
-            <span>{channel === "north" ? `Net ${labels.weightUnit} in` : `${labels.glazingLabel.slice(0, 6)} %`}</span>
-            <span>Rate</span>
-            <span className="text-right">Net {labels.weightUnit}</span>
-            <span className="text-right">Amount</span>
+            <span>{t("invoices.form.colGross")} {labels.weightUnit}</span>
+            <span>{channel === "north" ? `${t("invoices.form.colNetIn")} ${labels.weightUnit} in` : `${labels.glazingLabel.slice(0, 6)} %`}</span>
+            <span>{t("invoices.form.colRate")}</span>
+            <span className="text-right">{t("invoices.form.colNet")} {labels.weightUnit}</span>
+            <span className="text-right">{t("invoices.form.colAmount")}</span>
             <span />
           </div>
           <div>
@@ -305,7 +307,7 @@ export default function InvoiceForm({
                 <div key={i} className="animate-pop border-b border-row px-3.5 py-2.5">
                   <div className="grid grid-cols-[1fr_76px_92px_84px_88px_90px_100px_30px] items-center gap-2">
                     <select className="input !py-1.5 text-[13px]" data-testid={`item-${i}`} value={r.itemId} onChange={(e) => pickItem(i, e.target.value)}>
-                      <option value="">Select…</option>
+                      <option value="">{t("invoices.form.selectItem")}</option>
                       {items.map((it) => (
                         <option key={it.id} value={it.id}>{it.name}{it.isPrawn ? " 🦐" : ""}</option>
                       ))}
@@ -330,7 +332,7 @@ export default function InvoiceForm({
                     </span>
                     {rows.length > 1 ? (
                       <button type="button" onClick={() => setRows((rs) => rs.filter((_, idx) => idx !== i))}
-                        title="Remove line"
+                        title={t("invoices.form.removeLine")}
                         className="justify-self-center text-[15px] text-faint2 hover:text-neg">×</button>
                     ) : (
                       <span />
@@ -346,7 +348,7 @@ export default function InvoiceForm({
                     </Field>
                     )}
                     {showPackaging && (
-                    <Field label={`Expected ${labels.subUnitPlural.toLowerCase()}`} hint="short-count alert">
+                    <Field label={`${t("invoices.form.expectedPrefix")} ${labels.subUnitPlural.toLowerCase()}`} hint={t("invoices.form.hintShortCount")}>
                       <input className="input !py-1.5 font-mono text-[13px]" data-testid={`expected-${i}`} inputMode="numeric" value={r.expectedPacketCount}
                         onChange={(e) => updateRow(i, { expectedPacketCount: e.target.value })}
                         placeholder={item ? String((Number(r.cartonCount) || 0) * item.packetsPerCarton || "") : ""} />
@@ -361,12 +363,12 @@ export default function InvoiceForm({
                           )}
                           {c.result.varianceAlert && (
                             <Chip tone="neg">
-                              ⚠ Over-deduction {pct(c.result.varianceAlert.actualPercent)} vs {pct(c.result.varianceAlert.expectedPercent)} (+{pct(c.result.varianceAlert.exceededByPercent)})
+                              {t("invoices.form.overDeduction")} {pct(c.result.varianceAlert.actualPercent)} {t("invoices.form.varianceVs")} {pct(c.result.varianceAlert.expectedPercent)} (+{pct(c.result.varianceAlert.exceededByPercent)})
                             </Chip>
                           )}
                           {c.result.packetShortAlert && (
                             <Chip tone="warn">
-                              ⚠ Short {c.result.packetShortAlert.shortBy}: {c.result.packetShortAlert.actual}/{c.result.packetShortAlert.expected}
+                              {t("invoices.form.short")} {c.result.packetShortAlert.shortBy}: {c.result.packetShortAlert.actual}/{c.result.packetShortAlert.expected}
                             </Chip>
                           )}
                         </>
@@ -380,12 +382,12 @@ export default function InvoiceForm({
           <button type="button" onClick={() => setRows((rs) => [...rs, { ...emptyLine }])}
             className="block w-full px-3.5 py-3 text-left text-[13px] font-semibold text-accent transition-colors hover:bg-card2"
             style={{ background: "var(--card-2)" }}>
-            + Add line
+            {t("invoices.form.addLine")}
           </button>
         </Card>
 
         <div className="px-0.5 text-[12px] text-faint">
-          Net weight and amounts recompute live — net = gross − {labels.glazingLabel.toLowerCase()} %, amount = net × rate.
+          {t("invoices.form.recomputeHintPrefix")} {labels.glazingLabel.toLowerCase()} {t("invoices.form.recomputeHintSuffix")}
         </div>
 
         {error && <p className="text-sm text-neg">{error}</p>}
@@ -397,28 +399,28 @@ export default function InvoiceForm({
         style={{ background: "var(--side-bg)", color: "var(--side-fg)" }}
       >
         <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--side-dim)" }}>
-          Summary
+          {t("invoices.form.summary")}
         </div>
         <div className="my-3.5 flex flex-col gap-2.5 text-[13px]">
           <div className="flex justify-between">
-            <span style={{ color: "var(--side-dim)" }}>Reference</span>
-            <span className="font-mono text-gold">{referenceRegion || "auto"}</span>
+            <span style={{ color: "var(--side-dim)" }}>{t("invoices.form.summaryReference")}</span>
+            <span className="font-mono text-gold">{referenceRegion || t("invoices.form.summaryReferenceAuto")}</span>
           </div>
           <div className="flex justify-between">
-            <span style={{ color: "var(--side-dim)" }}>Channel</span>
+            <span style={{ color: "var(--side-dim)" }}>{t("invoices.form.summaryChannel")}</span>
             <span className="font-semibold capitalize">{channel}</span>
           </div>
           <div className="flex justify-between">
-            <span style={{ color: "var(--side-dim)" }}>Lines</span>
+            <span style={{ color: "var(--side-dim)" }}>{t("invoices.form.summaryLines")}</span>
             <span className="font-mono">{rows.length}</span>
           </div>
           <div className="flex justify-between">
-            <span style={{ color: "var(--side-dim)" }}>Net weight</span>
+            <span style={{ color: "var(--side-dim)" }}>{t("invoices.form.summaryNetWeight")}</span>
             <span className="font-mono">{kg(netWeightTotal)}</span>
           </div>
           <label className="mt-1 block">
             <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em]" style={{ color: "var(--side-dim)" }}>
-              Source store
+              {t("invoices.form.summarySourceStore")}
             </div>
             <select
               value={sourceStoreId}
@@ -439,7 +441,7 @@ export default function InvoiceForm({
         </div>
         <div className="border-t pt-3.5" style={{ borderColor: "rgba(242,235,217,.14)" }}>
           <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--side-dim)" }}>
-            Total
+            {t("invoices.form.summaryTotal")}
           </div>
           <div className="mt-1.5 font-mono text-[28px] font-semibold tracking-tight">
             {pkr(total)}
@@ -451,7 +453,7 @@ export default function InvoiceForm({
           className="mt-4 w-full rounded-[10px] py-3 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}
         >
-          {isPending ? "Saving…" : "Save invoice"}
+          {isPending ? t("invoices.form.saving") : t("invoices.form.saveInvoice")}
         </button>
       </div>
     </div>

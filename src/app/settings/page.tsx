@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
+import { getCopy } from "@/lib/config";
 import { PageHeader, Card, Chip } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const ctx = await getActiveContext();
   requirePage(ctx, "settings");
+  const t = await getCopy();
   const scope = entityScope(ctx);
   const isAdmin = ctx.user.role === "admin";
 
@@ -31,13 +33,13 @@ export default async function SettingsPage() {
   return (
     <div className="mx-auto max-w-[1000px] animate-rise px-8 pb-14 pt-7">
       <PageHeader
-        eyebrow="Admin"
-        title="Settings"
+        eyebrow={t("settings.hub.eyebrow")}
+        title={t("settings.hub.title")}
         subtitle={
           <>
-            Master data for <span className="font-medium text-text">{ctx.entityName}</span>.
-            Add, rename and fine-tune the stores, parties, products and numbering
-            your book uses.
+            {t("settings.hub.subtitle.prefix")}
+            <span className="font-medium text-text">{ctx.entityName}</span>
+            {t("settings.hub.subtitle.suffix")}
           </>
         }
       />
@@ -46,37 +48,37 @@ export default async function SettingsPage() {
         <HubCard
           href="/settings/stores"
           testId="hub-stores"
-          title="Stores"
-          desc="Add stores; rename an existing one (no delete — FK-safe)."
+          title={t("settings.hub.stores.title")}
+          desc={t("settings.hub.stores.desc")}
           count={storeCount}
         />
         <HubCard
           href="/settings/parties"
           testId="hub-parties"
-          title="Parties & suppliers"
-          desc="Customers and suppliers — add, edit, opening balances, NTN."
+          title={t("settings.hub.parties.title")}
+          desc={t("settings.hub.parties.desc")}
           count={partyCount}
         />
         <HubCard
           href="/settings/items"
           testId="hub-items"
-          title="Items / products"
-          desc="Fish fillet & prawn products; rates and glazing are owner-confirmable."
+          title={t("settings.hub.items.title")}
+          desc={t("settings.hub.items.desc")}
           count={itemCount}
         />
         <HubCard
           href="/settings/references"
           testId="hub-references"
-          title="Reference series"
-          desc="Per-book/region manual invoice numbering with a live preview."
+          title={t("settings.hub.references.title")}
+          desc={t("settings.hub.references.desc")}
           count={seriesCount}
         />
         {isAdmin ? (
           <HubCard
             href="/settings/users"
             testId="hub-users"
-            title="Users"
-            desc="Staff logins, roles, book access and region scope (admin only)."
+            title={t("settings.hub.users.title")}
+            desc={t("settings.hub.users.desc")}
             count={userCount}
           />
         ) : (
@@ -85,11 +87,13 @@ export default async function SettingsPage() {
             className="rounded-xl border border-hair bg-card p-4 opacity-70"
           >
             <div className="flex items-baseline justify-between gap-2">
-              <h2 className="font-serif text-[17px] font-semibold text-ink">Users</h2>
-              <Chip tone="neutral">admin only</Chip>
+              <h2 className="font-serif text-[17px] font-semibold text-ink">
+                {t("settings.hub.users.title")}
+              </h2>
+              <Chip tone="neutral">{t("settings.hub.users.lockedChip")}</Chip>
             </div>
             <p className="mt-1.5 text-[12px] leading-relaxed text-muted">
-              Only an admin may manage staff logins and roles.
+              {t("settings.hub.users.lockedDesc")}
             </p>
           </div>
         )}
@@ -98,21 +102,20 @@ export default async function SettingsPage() {
       {/* Cross-links to existing hubs — not rebuilt here. */}
       <Card className="mt-4 p-[18px]">
         <h2 className="font-serif text-[17px] font-semibold text-ink">
-          Also managed elsewhere
+          {t("settings.hub.elsewhere.title")}
         </h2>
         <p className="mb-3 mt-0.5 text-xs text-muted">
-          These live on their own pages so this stays the single hub for
-          everything you can customise.
+          {t("settings.hub.elsewhere.desc")}
         </p>
         <div className="flex flex-wrap gap-2">
           <CrossLink href="/banks" testId="hub-link-banks">
-            Bank accounts →
+            {t("settings.hub.link.banks")}
           </CrossLink>
           <CrossLink href="/expenses" testId="hub-link-expenses">
-            Expense categories →
+            {t("settings.hub.link.expenses")}
           </CrossLink>
           <CrossLink href="/settings/password" testId="hub-link-password">
-            Change my password →
+            {t("settings.hub.link.password")}
           </CrossLink>
         </div>
       </Card>

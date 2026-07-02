@@ -4,6 +4,7 @@ import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { pkr, dateShort } from "@/lib/format";
+import { getCopy } from "@/lib/config";
 import { Card, StatusChip } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function DeliveryHome() {
   const ctx = await getActiveContext();
   requirePage(ctx, "delivery");
+  const t = await getCopy();
 
   const recent = await prisma.invoice.findMany({
     where: { ...entityScope(ctx), createdById: ctx.user.id },
@@ -39,10 +41,10 @@ export default async function DeliveryHome() {
     <div className="mx-auto max-w-[760px] animate-rise space-y-4 px-6 pb-14 pt-7">
       <div>
         <h1 className="font-serif text-[28px] font-semibold leading-tight text-ink">
-          Salaam, {first}
+          {t("delivery.home.greeting")} {first}
         </h1>
         <p className="mt-1 text-[13px] text-muted">
-          Enter the invoice, print it, and snap a photo of the delivered package.
+          {t("delivery.home.subtitle")}
         </p>
       </div>
 
@@ -58,8 +60,8 @@ export default async function DeliveryHome() {
             +
           </span>
           <span>
-            <span className="block font-serif text-[18px] font-semibold">New invoice</span>
-            <span className="block text-[12px] opacity-80">goes to office for review</span>
+            <span className="block font-serif text-[18px] font-semibold">{t("delivery.home.newInvoiceTitle")}</span>
+            <span className="block text-[12px] opacity-80">{t("delivery.home.newInvoiceHint")}</span>
           </span>
         </Link>
         <Link
@@ -73,8 +75,8 @@ export default async function DeliveryHome() {
             </svg>
           </span>
           <span>
-            <span className="block font-serif text-[18px] font-semibold text-ink">My invoices</span>
-            <span className="block text-[12px] text-faint">view · print · add photo</span>
+            <span className="block font-serif text-[18px] font-semibold text-ink">{t("delivery.home.myInvoicesTitle")}</span>
+            <span className="block text-[12px] text-faint">{t("delivery.home.myInvoicesHint")}</span>
           </span>
         </Link>
       </div>
@@ -82,21 +84,21 @@ export default async function DeliveryHome() {
       {pendingReview > 0 && (
         <div className="rounded-xl border px-4 py-3 text-[13px]"
           style={{ borderColor: "var(--warn)", background: "var(--warn-bg)", color: "var(--warn)" }}>
-          {pendingReview} of your recent invoice{pendingReview === 1 ? " is" : "s are"} awaiting office approval.
+          {pendingReview} of your recent invoice{pendingReview === 1 ? " is" : "s are"} {t("delivery.home.pendingReviewSuffix")}
         </div>
       )}
 
       {/* Recent own invoices. */}
       <Card className="p-[18px]">
         <div className="mb-2 flex items-center justify-between">
-          <div className="font-serif text-[17px] font-semibold text-ink">Recent</div>
+          <div className="font-serif text-[17px] font-semibold text-ink">{t("delivery.home.recentHeading")}</div>
           <Link href="/delivery/invoices" className="p-1 text-[12px] font-semibold text-accent hover:text-accent-deep">
-            All my invoices →
+            {t("delivery.home.allMyInvoicesLink")}
           </Link>
         </div>
         {recent.length === 0 ? (
           <p className="text-[13px] text-faint">
-            Nothing yet — tap <strong>New invoice</strong> after your first delivery.
+            {t("delivery.home.emptyPrefix")} <strong>{t("delivery.home.emptyAction")}</strong> {t("delivery.home.emptySuffix")}
           </p>
         ) : (
           <div>
@@ -112,9 +114,9 @@ export default async function DeliveryHome() {
                   <div className="text-[11px] text-faint">{dateShort(inv.date)}</div>
                 </div>
                 {inv.deliveryRecords[0]?.optionalPhoto ? (
-                  <span title="photo attached" className="text-[15px]">📷</span>
+                  <span title={t("delivery.home.photoAttachedTitle")} className="text-[15px]">📷</span>
                 ) : null}
-                <StatusChip status={inv.status} label={inv.status === "draft" ? "awaiting review" : undefined} />
+                <StatusChip status={inv.status} label={inv.status === "draft" ? t("delivery.home.awaitingReviewChip") : undefined} />
                 <div className="w-24 text-right font-mono text-[13px] font-semibold text-text">
                   {pkr(Number(inv.totalAmount))}
                 </div>

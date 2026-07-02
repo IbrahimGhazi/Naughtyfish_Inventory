@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useCopy } from "@/lib/copy/CopyProvider";
 import { updateChequeStatus, createOutgoingCheque } from "./actions";
 
 const NEXT_BY_STATUS: Record<string, string[]> = {
@@ -12,15 +13,16 @@ const NEXT_BY_STATUS: Record<string, string[]> = {
   cleared: [],
 };
 
-const LABELS: Record<string, string> = {
-  cleared: "Mark cleared",
-  held: "Hold",
-  bounced: "Bounced",
+const LABEL_KEYS: Record<string, string> = {
+  cleared: "cheques.actionMarkCleared",
+  held: "cheques.actionHold",
+  bounced: "cheques.actionBounced",
 };
 
 /** Inline status-transition buttons for one cheque row. */
 export function ChequeStatusButtons({ id, status }: { id: string; status: string }) {
   const router = useRouter();
+  const t = useCopy();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const next = NEXT_BY_STATUS[status] ?? [];
@@ -52,7 +54,7 @@ export function ChequeStatusButtons({ id, status }: { id: string; status: string
           onClick={() => move(to)}
           className="rounded-lg border border-hair px-2 py-1 text-xs font-semibold text-muted transition-colors hover:border-accent hover:text-accent-deep disabled:opacity-40"
         >
-          {LABELS[to] ?? to}
+          {LABEL_KEYS[to] ? t(LABEL_KEYS[to]) : to}
         </button>
       ))}
       {error && <span className="text-xs text-neg">{error}</span>}
@@ -68,6 +70,7 @@ export interface FormBank {
 /** "New outgoing cheque" form — records which cheque was handed to whom. */
 export function OutgoingChequeForm({ banks }: { banks: FormBank[] }) {
   const router = useRouter();
+  const t = useCopy();
   const [isPending, startTransition] = useTransition();
   const [chequeNumber, setChequeNumber] = useState("");
   const [bankAccountId, setBankAccountId] = useState("");
@@ -112,32 +115,32 @@ export function OutgoingChequeForm({ banks }: { banks: FormBank[] }) {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Field label="Cheque number">
+        <Field label={t("cheques.fieldChequeNumber")}>
           <input className="input" data-testid="out-cheque-number" value={chequeNumber}
             onChange={(e) => setChequeNumber(e.target.value)} />
         </Field>
-        <Field label="Bank account">
+        <Field label={t("cheques.fieldBankAccount")}>
           <select className="input" data-testid="out-bank" value={bankAccountId}
             onChange={(e) => setBankAccountId(e.target.value)}>
-            <option value="">Select bank…</option>
+            <option value="">{t("cheques.selectBankPlaceholder")}</option>
             {banks.map((b) => (
               <option key={b.id} value={b.id}>{b.label}</option>
             ))}
           </select>
         </Field>
-        <Field label="Amount (PKR)">
+        <Field label={t("cheques.fieldAmount")}>
           <input className="input" data-testid="out-amount" inputMode="decimal" value={amount}
             onChange={(e) => setAmount(e.target.value)} />
         </Field>
-        <Field label="Recipient (handed to)">
+        <Field label={t("cheques.fieldRecipient")}>
           <input className="input" data-testid="out-recipient" value={recipientName}
             onChange={(e) => setRecipientName(e.target.value)} />
         </Field>
-        <Field label="Issue date">
+        <Field label={t("cheques.fieldIssueDate")}>
           <input type="date" className="input" data-testid="out-issue" value={issueDate}
             onChange={(e) => setIssueDate(e.target.value)} />
         </Field>
-        <Field label="Clearing due" hint="reminder 1 day before">
+        <Field label={t("cheques.fieldClearingDue")} hint={t("cheques.fieldClearingDueHint")}>
           <input type="date" className="input" data-testid="out-due" value={clearingDue}
             onChange={(e) => setClearingDue(e.target.value)} />
         </Field>
@@ -146,7 +149,7 @@ export function OutgoingChequeForm({ banks }: { banks: FormBank[] }) {
       <button onClick={submit} disabled={!canSubmit} data-testid="out-submit"
         className="rounded-lg px-4 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
         style={{ background: "var(--accent)" }}>
-        {isPending ? "Saving…" : "Add outgoing cheque"}
+        {isPending ? t("cheques.submitSaving") : t("cheques.submitAdd")}
       </button>
     </div>
   );

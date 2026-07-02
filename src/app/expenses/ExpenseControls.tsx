@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useCopy } from "@/lib/copy/CopyProvider";
 import { addExpenseCategory, addExpenseEntry } from "./actions";
 
 export interface FormCategory {
@@ -11,6 +12,7 @@ export interface FormCategory {
 
 /** Flat "add category" form (plan §4.8 — "give me an add option"). */
 export function AddCategoryForm() {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState("");
@@ -36,7 +38,7 @@ export function AddCategoryForm() {
       <input
         className="input max-w-xs"
         data-testid="exp-cat-name"
-        placeholder="New category (e.g. fuel, labor, cartons)"
+        placeholder={t("expenses.catPlaceholder")}
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => {
@@ -50,7 +52,7 @@ export function AddCategoryForm() {
         className="rounded-lg px-3 py-1.5 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
         style={{ background: "var(--accent)" }}
       >
-        {isPending ? "Adding…" : "+ Add category"}
+        {isPending ? t("expenses.catAdding") : t("expenses.catAdd")}
       </button>
       {error && <span className="text-xs text-neg">{error}</span>}
     </div>
@@ -59,6 +61,7 @@ export function AddCategoryForm() {
 
 /** Add an expense entry against a category. */
 export function AddEntryForm({ categories }: { categories: FormCategory[] }) {
+  const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [categoryId, setCategoryId] = useState("");
@@ -94,24 +97,24 @@ export function AddEntryForm({ categories }: { categories: FormCategory[] }) {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-        <Field label="Category">
+        <Field label={t("expenses.fieldCategory")}>
           <select className="input" data-testid="exp-entry-category" value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}>
-            <option value="">Select…</option>
+            <option value="">{t("expenses.selectOption")}</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
         </Field>
-        <Field label="Amount (PKR)">
+        <Field label={t("expenses.fieldAmount")}>
           <input className="input" data-testid="exp-entry-amount" inputMode="decimal" value={amount}
             onChange={(e) => setAmount(e.target.value)} />
         </Field>
-        <Field label="Date" hint="defaults to today">
+        <Field label={t("expenses.fieldDate")} hint={t("expenses.dateHint")}>
           <input type="date" className="input" data-testid="exp-entry-date" value={date}
             onChange={(e) => setDate(e.target.value)} />
         </Field>
-        <Field label="Note">
+        <Field label={t("expenses.fieldNote")}>
           <input className="input" data-testid="exp-entry-note" value={note}
             onChange={(e) => setNote(e.target.value)} />
         </Field>
@@ -120,9 +123,9 @@ export function AddEntryForm({ categories }: { categories: FormCategory[] }) {
         <button onClick={submit} disabled={!canSubmit} data-testid="exp-entry-add"
           className="rounded-lg px-4 py-2 text-sm font-semibold text-on-accent transition-colors disabled:opacity-40"
           style={{ background: "var(--accent)" }}>
-          {isPending ? "Saving…" : "Add expense"}
+          {isPending ? t("expenses.entrySaving") : t("expenses.entryAdd")}
         </button>
-        {ok && <span className="text-xs text-pos">✓ Saved.</span>}
+        {ok && <span className="text-xs text-pos">{t("expenses.entrySaved")}</span>}
         {error && <span className="text-xs text-neg">{error}</span>}
       </div>
     </div>

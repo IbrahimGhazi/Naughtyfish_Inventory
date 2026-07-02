@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requirePage, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
-import { getAppConfig } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import { pkr, kg, dateShort } from "@/lib/format";
 import { PageHeader, Card, Kpi, StatusChip, Th } from "@/components/ui";
 import { NewProcessForm, ProcessRowActions, CostChip } from "./ProcessControls";
@@ -19,6 +19,7 @@ export default async function ProcessesPage() {
   const ctx = await getActiveContext();
   requirePage(ctx, "processes");
   const cfg = await getAppConfig();
+  const t = await getCopy();
   if (!cfg.features.processes) redirect("/");
   const scope = entityScope(ctx);
 
@@ -52,9 +53,9 @@ export default async function ProcessesPage() {
   return (
     <div className="animate-rise space-y-4">
       <PageHeader
-        eyebrow="Operations"
-        title="Processes"
-        subtitle="Material sent out for work — expected turnaround, estimated vs actual cost. Optional: use it when it helps, ignore it when it doesn't."
+        eyebrow={t("processes.eyebrow")}
+        title={t("processes.title")}
+        subtitle={t("processes.subtitle")}
         action={
           <NewProcessForm
             items={items}
@@ -66,34 +67,34 @@ export default async function ProcessesPage() {
       />
 
       <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
-        <Kpi label="Active" value={String(active.length)} sub="planned + in progress" />
+        <Kpi label={t("processes.kpi.active")} value={String(active.length)} sub={t("processes.kpi.activeSub")} />
         <Kpi
-          label="Overdue"
+          label={t("processes.kpi.overdue")}
           value={String(overdue.length)}
-          sub="past expected ready date"
+          sub={t("processes.kpi.overdueSub")}
           valueColor={overdue.length > 0 ? "var(--neg)" : undefined}
         />
-        <Kpi label="Est. cost in pipeline" value={pkr(pipelineEst)} sub="active processes" />
-        <Kpi label="Spent this month" value={pkr(spentThisMonth)} sub="completed, actual cost" />
+        <Kpi label={t("processes.kpi.pipeline")} value={pkr(pipelineEst)} sub={t("processes.kpi.pipelineSub")} />
+        <Kpi label={t("processes.kpi.spent")} value={pkr(spentThisMonth)} sub={t("processes.kpi.spentSub")} />
       </div>
 
       {processes.length === 0 ? (
         <Card className="p-8 text-center text-[13.5px] text-faint">
-          Nothing here yet — “Add process” when raw material goes somewhere to be worked on.
+          {t("processes.empty.line1")}
           <br />
-          Everything stays optional: invoices, inventory and payments never require a process.
+          {t("processes.empty.line2")}
         </Card>
       ) : (
         <Card className="overflow-hidden">
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <Th>Process</Th>
-                <Th>Where</Th>
-                <Th>Material</Th>
-                <Th>Expected ready</Th>
-                <Th>Status</Th>
-                <Th align="right">Cost</Th>
+                <Th>{t("processes.col.process")}</Th>
+                <Th>{t("processes.col.where")}</Th>
+                <Th>{t("processes.col.material")}</Th>
+                <Th>{t("processes.col.expectedReady")}</Th>
+                <Th>{t("processes.col.status")}</Th>
+                <Th align="right">{t("processes.col.cost")}</Th>
                 <Th align="right" className="w-[240px]"></Th>
               </tr>
             </thead>
@@ -111,7 +112,7 @@ export default async function ProcessesPage() {
                     <td className="px-3.5 py-3 text-[13px] text-text">
                       {p.destination}
                       {p.fromStore && (
-                        <div className="text-[11.5px] text-faint">from {p.fromStore.name}</div>
+                        <div className="text-[11.5px] text-faint">{t("processes.cell.from")} {p.fromStore.name}</div>
                       )}
                     </td>
                     <td className="px-3.5 py-3 text-[13px] text-text">
@@ -124,13 +125,13 @@ export default async function ProcessesPage() {
                       {p.expectedReadyAt ? (
                         <span className={isLate ? "font-semibold text-neg" : "text-text"}>
                           {dateShort(p.expectedReadyAt)}
-                          {isLate ? " · late" : ""}
+                          {isLate ? t("processes.cell.late") : ""}
                         </span>
                       ) : (
                         <span className="text-faint">—</span>
                       )}
                       {p.completedAt && (
-                        <div className="text-[11.5px] text-faint">done {dateShort(p.completedAt)}</div>
+                        <div className="text-[11.5px] text-faint">{t("processes.cell.done")} {dateShort(p.completedAt)}</div>
                       )}
                     </td>
                     <td className="px-3.5 py-3">
@@ -143,7 +144,7 @@ export default async function ProcessesPage() {
                         actual={p.actualCost == null ? null : Number(p.actualCost)}
                       />
                       {p.expenseEntry && (
-                        <div className="mt-1 text-[10.5px] text-faint">posted to expenses ✓</div>
+                        <div className="mt-1 text-[10.5px] text-faint">{t("processes.cell.postedToExpenses")}</div>
                       )}
                     </td>
                     <td className="px-3.5 py-3">
