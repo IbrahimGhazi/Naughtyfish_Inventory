@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface Msg {
   role: "user" | "assistant";
@@ -29,15 +30,27 @@ const TOOL_LABEL: Record<string, string> = {
 };
 
 export default function Assistant({ book }: { book: string }) {
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Only render the portal after mount (document.body exists client-side only).
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, open]);
+
+  // Esc closes the panel.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
 
   async function send(text: string) {
     const q = text.trim();
@@ -82,46 +95,38 @@ export default function Assistant({ book }: { book: string }) {
     }
   }
 
-  return (
-    <>
-      {/* Floating launcher */}
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        data-testid="assistant-toggle"
-        aria-label="Ask the ledger"
-        className="fixed bottom-6 right-6 z-40 flex h-13 w-13 items-center justify-center rounded-full text-[#F6F2E6] shadow-lg transition-transform hover:scale-105"
-        style={{ background: "var(--accent)", height: 52, width: 52 }}
-      >
-        {open ? (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <path d="M6 6l12 12M18 6L6 18" />
-          </svg>
-        ) : (
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.6-.8L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5z" />
-          </svg>
-        )}
-      </button>
+  if (!mounted) return null;
 
+  const ui = (
+    <>
+      {/* Chat panel — anchored bottom-right, above the launcher. */}
       {open && (
         <div
           data-testid="assistant-panel"
-          className="animate-pop fixed bottom-24 right-6 z-40 flex w-[380px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border border-hair bg-card"
-          style={{ height: 520, maxHeight: "calc(100vh - 8rem)", boxShadow: "var(--shadow-pop)" }}
+          className="animate-pop fixed z-[70] flex flex-col overflow-hidden rounded-2xl border border-hair bg-card"
+          style={{
+            right: 20,
+            bottom: 88,
+            width: 380,
+            maxWidth: "calc(100vw - 2.5rem)",
+            height: 520,
+            maxHeight: "calc(100dvh - 7rem)",
+            boxShadow: "var(--shadow-pop)",
+          }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-hair2 bg-card2 px-4 py-3">
-            <div>
+          <div className="flex shrink-0 items-center justify-between border-b border-hair2 bg-card2 px-4 py-3">
+            <div className="min-w-0">
               <div className="font-serif text-[16px] font-semibold text-ink">Ask the ledger</div>
-              <div className="text-[11px] text-faint">
+              <div className="truncate text-[11px] text-faint">
                 Read-only · {book} book · answers from your data
               </div>
             </div>
             <button
               onClick={() => setOpen(false)}
-              className="text-faint hover:text-ink"
-              aria-label="Close"
+              data-testid="assistant-close"
+              aria-label="Close chat"
+              className="ml-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-faint hover:bg-card hover:text-ink"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M6 6l12 12M18 6L6 18" />
@@ -188,7 +193,7 @@ export default function Assistant({ book }: { book: string }) {
               e.preventDefault();
               send(input);
             }}
-            className="flex items-center gap-2 border-t border-hair2 bg-card px-3 py-3"
+            className="flex shrink-0 items-center gap-2 border-t border-hair2 bg-card px-3 py-3"
           >
             <input
               value={input}
@@ -214,8 +219,30 @@ export default function Assistant({ book }: { book: string }) {
           </form>
         </div>
       )}
+
+      {/* Floating launcher — rendered last so it always sits on top and is clickable. */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        data-testid="assistant-toggle"
+        aria-label={open ? "Close assistant" : "Ask the ledger"}
+        className="fixed z-[71] flex items-center justify-center rounded-full text-[#F6F2E6] transition-transform hover:scale-105"
+        style={{ right: 20, bottom: 20, height: 54, width: 54, background: "var(--accent)", boxShadow: "var(--shadow-pop)" }}
+      >
+        {open ? (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        ) : (
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.6-.8L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5z" />
+          </svg>
+        )}
+      </button>
     </>
   );
+
+  return createPortal(ui, document.body);
 }
 
 function Dot({ d = 0 }: { d?: number }) {
