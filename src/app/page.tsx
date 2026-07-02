@@ -5,6 +5,7 @@ import { entityScope } from "@/lib/scope";
 import { pkr, dateShort } from "@/lib/format";
 import { monthlyPnL } from "@/lib/analytics";
 import { cityByName, project } from "@/lib/geo";
+import { KARACHI_XY, progressFor } from "@/lib/mapgeo";
 import { BarChart, type BarDatum } from "@/components/charts/BarChart";
 import { PakistanMap, type MapRoute } from "@/components/PakistanMap";
 import { Card, Kpi, StatusChip, PrimaryButton } from "@/components/ui";
@@ -137,7 +138,7 @@ export default async function Dashboard() {
 
   // --- Map routes: project origin/dest cities, serialize to plain props. ---
   const routes: MapRoute[] = activeShipments.map((s) => {
-    const origin = cityByName(s.originCity);
+    const origin = cityByName(s.originCity ?? "Karachi");
     const dest = cityByName(s.destinationCity);
     const destXY = dest
       ? project(dest.lng, dest.lat)
@@ -145,11 +146,13 @@ export default async function Dashboard() {
     const eta = s.estimatedArrivalAt ? dateShort(s.estimatedArrivalAt) : null;
     return {
       id: s.id,
-      originXY: origin ? project(origin.lng, origin.lat) : null,
+      originXY: origin ? project(origin.lng, origin.lat) : KARACHI_XY,
       destXY,
+      destCity: s.destinationCity,
       status: s.status,
       label: s.destinationCity,
       eta,
+      prog: progressFor(s.status, s.departureAt, s.estimatedArrivalAt, now),
     };
   });
 

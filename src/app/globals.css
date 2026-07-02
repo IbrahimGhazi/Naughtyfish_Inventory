@@ -33,6 +33,7 @@
   --neg-bg: #f6e3db;
   --warn: #a16a1b;
   --warn-bg: #f4e8ce;
+  --map-prep: #c08a28; /* preparing route/marker/legend on the map (design gold) */
   --info: #3e5d7a;
   --info-bg: #e4e9f0;
   --neutral: #7a6e4f;
@@ -70,6 +71,7 @@
   --neg-bg: rgba(224, 121, 95, 0.15);
   --warn: #d6a24e;
   --warn-bg: rgba(214, 162, 78, 0.15);
+  --map-prep: #d8a83a;
   --info: #86a6c8;
   --info-bg: rgba(134, 166, 200, 0.15);
   --neutral: #b4a988;
@@ -202,8 +204,30 @@ body {
   70% { box-shadow: 0 0 0 7px rgba(194, 73, 47, 0); }
   100% { box-shadow: 0 0 0 0 rgba(194, 73, 47, 0); }
 }
+/* Shipment map: dashes flow along an in-transit route; the marker halo pulses. */
+@keyframes dashFlow {
+  to { stroke-dashoffset: -26; }
+}
+@keyframes svgPulse {
+  0% { opacity: 0.55; transform: scale(1); }
+  80% { opacity: 0; transform: scale(3); }
+  100% { opacity: 0; transform: scale(3); }
+}
 .animate-rise { animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .animate-pop { animation: popIn 0.4s ease both; }
+
+/* Respect OS-level reduce-motion: neutralize looping map animations (dashFlow,
+   svgPulse) and all entrance/pulse motion, keeping status legible statically. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 /* Printable documents stay light paper regardless of theme. */
 @media print {

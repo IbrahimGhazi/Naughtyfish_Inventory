@@ -1,99 +1,51 @@
 import { borderPath, project, CITIES, MAP_W, MAP_H } from "@/lib/geo";
+import {
+  KARACHI_XY,
+  cityMeta,
+  controlPoint,
+  curvePath,
+  pointOnCurve,
+  mapColor,
+  MAP_LEGEND,
+  type Pt,
+} from "@/lib/mapgeo";
 
 /** A shipment route already projected into map coordinates (serializable). */
 export interface MapRoute {
   id: string;
-  originXY: { x: number; y: number } | null;
-  destXY: { x: number; y: number };
+  originXY: Pt;
+  destXY: Pt;
+  destCity: string; // for curve-bow / label lookup
   status: string; // preparing | in_transit | delayed | delivered
-  label: string; // destination city (+ short hint)
+  label: string; // destination city name
   eta: string | null; // formatted ETA date, already a string
+  prog: number; // 0–100 progress along the route
 }
-
-/** Status → Tailwind class pairs (fill/stroke/text), light + dark aware, plus
- *  light-mode hex FALLBACKS used as SVG presentation attributes — classes
- *  override them in healthy browsers; stale/unsupported stylesheets still get
- *  a readable light map instead of default-black SVG. */
-const STATUS_STYLE: Record<
-  string,
-  {
-    dot: string;
-    line: string;
-    text: string;
-    legendSwatch: string;
-    name: string;
-    hex: string;
-    textHex: string;
-  }
-> = {
-  in_transit: {
-    dot: "fill-cyan-500 dark:fill-cyan-400",
-    line: "stroke-cyan-500 dark:stroke-cyan-400",
-    text: "fill-cyan-700 dark:fill-cyan-300",
-    legendSwatch: "bg-cyan-500 dark:bg-cyan-400",
-    name: "In transit",
-    hex: "#06b6d4",
-    textHex: "#0e7490",
-  },
-  preparing: {
-    dot: "fill-slate-400 dark:fill-slate-500",
-    line: "stroke-slate-400 dark:stroke-slate-500",
-    text: "fill-slate-600 dark:fill-slate-300",
-    legendSwatch: "bg-slate-400 dark:bg-slate-500",
-    name: "Preparing",
-    hex: "#94a3b8",
-    textHex: "#475569",
-  },
-  delayed: {
-    dot: "fill-amber-500 dark:fill-amber-400",
-    line: "stroke-amber-500 dark:stroke-amber-400",
-    text: "fill-amber-700 dark:fill-amber-300",
-    legendSwatch: "bg-amber-500 dark:bg-amber-400",
-    name: "Delayed",
-    hex: "#f59e0b",
-    textHex: "#b45309",
-  },
-  delivered: {
-    dot: "fill-emerald-500 dark:fill-emerald-400",
-    line: "stroke-emerald-500 dark:stroke-emerald-400",
-    text: "fill-emerald-700 dark:fill-emerald-300",
-    legendSwatch: "bg-emerald-500 dark:bg-emerald-400",
-    name: "Delivered",
-    hex: "#10b981",
-    textHex: "#047857",
-  },
-};
-
-function styleFor(status: string) {
-  return STATUS_STYLE[status] ?? STATUS_STYLE.preparing;
-}
-
-/** Legend statuses shown under the map (in a stable order). */
-const LEGEND_ORDER = ["in_transit", "preparing", "delayed", "delivered"] as const;
 
 /**
- * Rendered map of Pakistan with active shipment routes plotted as dashed lines
- * from origin → destination city, each marked by a status-colored dot and label.
- * Pure server component: props in, themeable SVG out. Land + borders theme via
- * Tailwind dark: variants; hardcoded #fff/#000 avoided.
+ * Static Pakistan map with shipment routes drawn as bowed, dashed curves from
+ * Karachi → destination, each with a marker riding the curve at its progress and
+ * a labelled destination pin. Pure server component: serialized props in,
+ * themeable SVG out. Colours use semantic tokens (dark-mode aware) with light
+ * hex fallbacks on the presentation attributes so a dead stylesheet still reads.
+ *
+ * The interactive sibling (selection, rail, detail card) is ShipmentTracker.
  */
 export function PakistanMap({ routes }: { routes: MapRoute[] }) {
   const d = borderPath();
-  const hasRoutes = routes.length > 0;
+  const destCitySet = new Set(routes.map((r) => r.destCity));
 
   return (
     <div>
-      {/* max-w caps the map at large desktop widths; hex fills/strokes are
-          fallback presentation attributes (any CSS class overrides them). */}
       <div className="relative mx-auto max-w-3xl">
         <svg
           viewBox={`0 0 ${MAP_W} ${MAP_H}`}
           width="100%"
-          className="h-auto w-full"
+          className="block h-auto w-full"
           role="img"
           aria-label="Shipment tracker map of Pakistan"
         >
-          {/* Country landmass. */}
+          {/* Landmass */}
           <path
             d={d}
             fill="#faf6ea"
@@ -103,24 +55,19 @@ export function PakistanMap({ routes }: { routes: MapRoute[] }) {
             strokeLinejoin="round"
           />
 
-          {/* City reference dots + faint labels. */}
-          {CITIES.map((c) => {
-            const { x, y } = project(c.lng, c.lat);
+          {/* Context cities (non-destinations) as faint reference dots. */}
+          {CITIES.filter((c) => c.name !== "Karachi" && !destCitySet.has(c.name)).map((c) => {
+            const p = project(c.lng, c.lat);
             return (
-              <g key={c.name}>
-                <circle
-                  cx={x}
-                  cy={y}
-                  r={4}
-                  fill="#e4dbc5"
-                  className="fill-[var(--hair)]"
-                />
+              <g key={`ctx-${c.name}`}>
+                <circle cx={p.x} cy={p.y} r={3.5} fill="#c9be9f" className="fill-[var(--hair)]" />
                 <text
-                  x={x + 7}
-                  y={y + 4}
-                  fill="#98937e"
+                  x={p.x + 10}
+                  y={p.y + 4}
+                  fill="#a79d82"
                   className="fill-[var(--faint)]"
-                  fontSize={13}
+                  fontSize={12.5}
+                  style={{ paintOrder: "stroke", stroke: "var(--card)", strokeWidth: 3 }}
                 >
                   {c.name}
                 </text>
@@ -128,71 +75,77 @@ export function PakistanMap({ routes }: { routes: MapRoute[] }) {
             );
           })}
 
-          {/* Shipment routes: dashed origin → dest line + destination marker. */}
+          {/* Routes + markers */}
           {routes.map((r) => {
-            const st = styleFor(r.status);
+            const meta = cityMeta(r.destCity);
+            const q = controlPoint(r.originXY, r.destXY, meta.bow);
+            const path = curvePath(r.originXY, q, r.destXY);
+            const mk = pointOnCurve(r.originXY, q, r.destXY, r.prog / 100);
+            const col = mapColor(r.status);
+            const moving = r.status === "in_transit" || r.status === "delayed";
+            const delivered = r.status === "delivered";
+            const lx = r.destXY.x + meta.ldx;
+            const ly = r.destXY.y + meta.ldy;
             return (
               <g key={r.id}>
-                {r.originXY && (
-                  <line
-                    x1={r.originXY.x}
-                    y1={r.originXY.y}
-                    x2={r.destXY.x}
-                    y2={r.destXY.y}
-                    stroke={st.hex}
-                    className={st.line}
-                    strokeWidth={2.5}
-                    strokeDasharray="8 6"
-                    strokeLinecap="round"
-                    opacity={0.85}
-                  />
-                )}
-                {r.originXY && (
+                <path
+                  d={path}
+                  fill="none"
+                  stroke={col.hex}
+                  strokeWidth={2.4}
+                  strokeLinecap="round"
+                  strokeDasharray={delivered ? undefined : "7 6"}
+                  style={{
+                    stroke: col.token,
+                    opacity: delivered ? 0.55 : 0.95,
+                    animation: moving
+                      ? `dashFlow ${r.status === "delayed" ? "2.4s" : "1.2s"} linear infinite`
+                      : undefined,
+                  }}
+                />
+                {!delivered && (
                   <circle
-                    cx={r.originXY.x}
-                    cy={r.originXY.y}
+                    cx={mk.x}
+                    cy={mk.y}
                     r={5}
-                    fill="#fdfbf4"
-                    stroke="#98937e"
-                    className="fill-[var(--card)] stroke-[var(--faint)]"
+                    fill={col.hex}
+                    stroke="#fdfbf4"
+                    className="stroke-[var(--card)]"
                     strokeWidth={2}
+                    style={{ fill: col.token }}
                   />
                 )}
-                {/* Destination marker: a halo + solid dot for emphasis. */}
                 <circle
                   cx={r.destXY.x}
                   cy={r.destXY.y}
-                  r={11}
-                  fill={st.hex}
-                  className={st.dot}
-                  opacity={0.18}
+                  r={9}
+                  fill="none"
+                  stroke={col.hex}
+                  strokeWidth={1.5}
+                  style={{ stroke: col.token, opacity: 0.5 }}
                 />
-                <circle
-                  cx={r.destXY.x}
-                  cy={r.destXY.y}
-                  r={6}
-                  fill={st.hex}
-                  stroke="#fdfbf4"
-                  className={`${st.dot} stroke-[var(--card)]`}
-                  strokeWidth={2}
-                />
+                <circle cx={r.destXY.x} cy={r.destXY.y} r={4.5} fill={col.hex} style={{ fill: col.token }} />
                 <text
-                  x={r.destXY.x + 10}
-                  y={r.destXY.y - 10}
-                  fill={st.textHex}
-                  className={st.text}
-                  fontSize={14}
-                  fontWeight={700}
+                  x={lx}
+                  y={ly}
+                  textAnchor={meta.anchor}
+                  fill="#16262e"
+                  className="fill-[var(--ink)]"
+                  fontSize={13}
+                  fontWeight={600}
+                  style={{ paintOrder: "stroke", stroke: "var(--card)", strokeWidth: 3 }}
                 >
                   {r.label}
                 </text>
                 {r.eta && (
                   <text
-                    x={r.destXY.x + 10}
-                    y={r.destXY.y + 6}
-                    fill="#98937e"
-                    className="fill-[var(--faint)] font-mono"
-                    fontSize={12}
+                    x={lx}
+                    y={meta.ldy < 0 ? ly - 13 : ly + 14}
+                    textAnchor={meta.anchor}
+                    fill="#5f6b60"
+                    className="fill-[var(--muted)] font-mono"
+                    fontSize={10.5}
+                    style={{ paintOrder: "stroke", stroke: "var(--card)", strokeWidth: 3 }}
                   >
                     ETA {r.eta}
                   </text>
@@ -200,9 +153,36 @@ export function PakistanMap({ routes }: { routes: MapRoute[] }) {
               </g>
             );
           })}
+
+          {/* Karachi origin */}
+          <g>
+            <circle
+              cx={KARACHI_XY.x}
+              cy={KARACHI_XY.y}
+              r={10}
+              fill="none"
+              stroke="#16262e"
+              className="stroke-[var(--ink)]"
+              strokeWidth={1.2}
+              opacity={0.35}
+            />
+            <circle cx={KARACHI_XY.x} cy={KARACHI_XY.y} r={5} fill="#16262e" className="fill-[var(--ink)]" />
+            <text
+              x={KARACHI_XY.x}
+              y={KARACHI_XY.y + 26}
+              textAnchor="middle"
+              fill="#16262e"
+              className="fill-[var(--ink)]"
+              fontSize={12.5}
+              fontWeight={700}
+              style={{ paintOrder: "stroke", stroke: "var(--card)", strokeWidth: 3 }}
+            >
+              Karachi
+            </text>
+          </g>
         </svg>
 
-        {!hasRoutes && (
+        {routes.length === 0 && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <span className="rounded-md border border-hair bg-card px-3 py-1.5 text-sm text-muted shadow-sm">
               No active shipments
@@ -211,12 +191,15 @@ export function PakistanMap({ routes }: { routes: MapRoute[] }) {
         )}
       </div>
 
-      {/* Legend. */}
+      {/* Legend */}
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-faint">
-        {LEGEND_ORDER.map((s) => (
-          <span key={s} className="flex items-center gap-1.5">
-            <span className={`inline-block h-2.5 w-2.5 rounded-full ${styleFor(s).legendSwatch}`} />
-            {styleFor(s).name}
+        {MAP_LEGEND.map((l) => (
+          <span key={l.status} className="flex items-center gap-1.5">
+            <span
+              className="inline-block h-2.5 w-2.5 rounded-full"
+              style={{ background: mapColor(l.status).token }}
+            />
+            {l.label}
           </span>
         ))}
       </div>
