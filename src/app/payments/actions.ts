@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { assertRole, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope, assertEntityAccess } from "@/lib/scope";
+import { requireFeature } from "@/lib/config";
 import { priorPaidAgainstInvoice, isPartialPayment } from "@/lib/payments";
 import { revalidatePath } from "next/cache";
 
@@ -13,7 +14,7 @@ const PaymentSchema = z
     partyId: z.string().min(1),
     type: z.enum(["cash", "transfer", "cheque"]),
     amount: z.coerce.number().positive(),
-    date: z.string().optional(),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date.").optional(),
     invoiceId: z.string().optional(),
     purchaseId: z.string().optional(),
     note: z.string().optional(),
@@ -34,7 +35,11 @@ const PaymentSchema = z
       message: "Cheque payments require a cheque number and a bank account.",
       path: ["chequeNumber"],
     },
-  );
+  )
+  .refine((v) => !(v.invoiceId && v.purchaseId), {
+    message: "A payment can settle an invoice or a purchase, not both.",
+    path: ["purchaseId"],
+  });
 
 export type CreatePaymentInput = z.infer<typeof PaymentSchema>;
 
@@ -50,7 +55,9 @@ export async function createPayment(input: CreatePaymentInput) {
   const party = await prisma.party.findFirst({ where: { id: parsed.partyId, ...scope } });
   if (!party) throw new Error("Party is not in the active book.");
 
-  const date = parsed.date ? new Date(parsed.date) : new Date();
+  // Same convention as purchases (local noon) so a charge and its same-day
+  // payment sort charge-first in the ledger instead of straddling midnight UTC.
+  const date = parsed.date ? new Date(`${parsed.date}T12:00:00`) : new Date();
 
   // Optional invoice link: must belong to this party (and book). Compute isPartial.
   let isPartial = false;
@@ -72,6 +79,7 @@ export async function createPayment(input: CreatePaymentInput) {
 
   // Optional purchase link (supplier payments): same shape as the invoice link.
   if (parsed.purchaseId) {
+    await requireFeature("purchases");
     const purchase = await prisma.purchase.findFirst({
       where: { id: parsed.purchaseId, partyId: parsed.partyId, ...scope },
     });

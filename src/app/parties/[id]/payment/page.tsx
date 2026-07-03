@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
-import { requirePage } from "@/lib/roles";
+import { requirePage, canAccessPage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { priorPaidAgainstInvoice, invoiceOutstanding } from "@/lib/payments";
-import { getCopy } from "@/lib/config";
+import { getAppConfig, getCopy } from "@/lib/config";
 import { BackLink } from "@/components/ui";
 import PaymentForm, { type FormInvoice, type FormPurchase, type FormBank } from "./PaymentForm";
 
@@ -26,17 +26,24 @@ export default async function RecordPaymentPage({
 
   const party = await prisma.party.findFirst({ where: { id, ...scope } });
   if (!party) notFound();
-  const isSupplier = party.partyType === "supplier";
+  const cfg = await getAppConfig();
+  // Purchase data is only fetched (and the supplier purchase-mode only shown)
+  // when the module is enabled AND this role holds the purchases grant —
+  // otherwise the module would be readable through a parties-granted page.
+  const purchaseMode =
+    party.partyType === "supplier" &&
+    cfg.features.purchases &&
+    canAccessPage(ctx.user.role, "purchases");
 
   const [invoices, purchases, banks] = await Promise.all([
-    isSupplier
+    party.partyType === "supplier"
       ? Promise.resolve([])
       : prisma.invoice.findMany({
           where: { ...scope, partyId: id },
           include: { payments: { select: { amount: true } } },
           orderBy: { invoiceNumber: "desc" },
         }),
-    isSupplier
+    purchaseMode
       ? prisma.purchase.findMany({
           where: { ...scope, partyId: id },
           include: { payments: { select: { amount: true } } },
@@ -99,7 +106,7 @@ export default async function RecordPaymentPage({
         invoices={formInvoices}
         banks={formBanks}
         purchases={formPurchases}
-        isSupplier={isSupplier}
+        isSupplier={purchaseMode}
         defaultPurchaseId={sp.purchase && formPurchases.some((p) => p.id === sp.purchase) ? sp.purchase : ""}
       />
     </div>

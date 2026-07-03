@@ -25,9 +25,16 @@ interface Line {
   weightKg: string;
   ratePerKg: string;
   cartons: string;
+  packets: string;
 }
 
-const EMPTY_LINE: Line = { itemId: "", weightKg: "", ratePerKg: "", cartons: "" };
+const EMPTY_LINE: Line = { itemId: "", weightKg: "", ratePerKg: "", cartons: "", packets: "" };
+
+/** Fully-blank rows are ignored; any partially-filled row must be complete. */
+const rowIsEmpty = (l: Line) => !l.itemId && !l.weightKg && !l.ratePerKg && !l.cartons && !l.packets;
+const intOk = (v: string) => v === "" || (Number.isInteger(Number(v)) && Number(v) >= 0);
+const rowIsValid = (l: Line) =>
+  !!l.itemId && Number(l.weightKg) > 0 && Number(l.ratePerKg) > 0 && intOk(l.cartons) && intOk(l.packets);
 
 const round2 = (x: number) => Math.round((x + Number.EPSILON) * 100) / 100;
 const round3 = (x: number) => Math.round((x + Number.EPSILON) * 1000) / 1000;
@@ -65,12 +72,16 @@ export default function PurchaseForm({
     return w > 0 && r > 0 ? round2(w * r) : 0;
   };
 
-  const validLines = lines.filter(
-    (l) => l.itemId && Number(l.weightKg) > 0 && Number(l.ratePerKg) > 0,
+  // Rows the user actually touched: ALL of them must be valid to save — a
+  // half-filled line blocks submission instead of being silently dropped.
+  const activeLines = lines.filter((l) => !rowIsEmpty(l));
+  const allActiveValid = activeLines.every(rowIsValid);
+  const total = round2(activeLines.filter(rowIsValid).reduce((s, l) => s + lineAmount(l), 0));
+  const totalWeight = round3(
+    activeLines.filter(rowIsValid).reduce((s, l) => s + Number(l.weightKg), 0),
   );
-  const total = round2(validLines.reduce((s, l) => s + lineAmount(l), 0));
-  const totalWeight = round3(validLines.reduce((s, l) => s + Number(l.weightKg), 0));
-  const canSubmit = !!partyId && !!storeId && validLines.length > 0 && !isPending;
+  const canSubmit =
+    !!partyId && !!storeId && activeLines.length > 0 && allActiveValid && !isPending;
 
   function submit() {
     setError(null);
@@ -82,11 +93,12 @@ export default function PurchaseForm({
           supplierBillNo: supplierBillNo || undefined,
           date: date || undefined,
           notes: notes || undefined,
-          lines: validLines.map((l) => ({
+          lines: activeLines.map((l) => ({
             itemId: l.itemId,
             weightKg: Number(l.weightKg),
             ratePerKg: Number(l.ratePerKg),
             cartons: l.cartons ? Number(l.cartons) : undefined,
+            packets: l.packets ? Number(l.packets) : undefined,
           })),
         });
         setSaved(res);
@@ -201,18 +213,19 @@ export default function PurchaseForm({
 
         {/* Lines */}
         <div className="overflow-hidden rounded-xl border border-hair bg-card">
-          <div className="grid grid-cols-[1fr_92px_92px_76px_100px_30px] items-center gap-2 border-b border-hair2 bg-card2 px-3.5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-faint2">
+          <div className="grid grid-cols-[1fr_88px_88px_70px_70px_96px_30px] items-center gap-2 border-b border-hair2 bg-card2 px-3.5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-faint2">
             <span>{t("purchases.new.colItem")}</span>
             <span>{t("purchases.new.colWeight")}</span>
             <span>{t("purchases.new.colRate")}</span>
             <span>{t("purchases.new.colCartons")}</span>
+            <span>{t("purchases.new.colPackets")}</span>
             <span className="text-right">{t("purchases.new.colAmount")}</span>
             <span />
           </div>
           {lines.map((l, ix) => (
             <div
               key={ix}
-              className="animate-pop grid grid-cols-[1fr_92px_92px_76px_100px_30px] items-center gap-2 border-b border-row px-3.5 py-2.5"
+              className="animate-pop grid grid-cols-[1fr_88px_88px_70px_70px_96px_30px] items-center gap-2 border-b border-row px-3.5 py-2.5"
             >
               <select
                 className="input"
@@ -256,8 +269,24 @@ export default function PurchaseForm({
                 value={l.cartons}
                 onChange={(e) => patchLine(ix, { cartons: e.target.value })}
               />
-              <span className="text-right font-mono text-[13px] font-semibold text-text">
-                {lineAmount(l) ? pkr(lineAmount(l)) : "—"}
+              <input
+                className="input font-mono"
+                data-testid={`pur-line-packets-${ix}`}
+                inputMode="numeric"
+                value={l.packets}
+                onChange={(e) => patchLine(ix, { packets: e.target.value })}
+              />
+              <span
+                className="text-right font-mono text-[13px] font-semibold text-text"
+                title={!rowIsEmpty(l) && !rowIsValid(l) ? t("purchases.new.lineInvalid") : undefined}
+              >
+                {!rowIsEmpty(l) && !rowIsValid(l) ? (
+                  <span className="text-warn">!</span>
+                ) : lineAmount(l) ? (
+                  pkr(lineAmount(l))
+                ) : (
+                  "—"
+                )}
               </span>
               <button
                 type="button"
@@ -295,7 +324,7 @@ export default function PurchaseForm({
             <span className="font-mono" style={{ color: "#d9b98a" }}>{nextReference}</span>
           </SummaryRow>
           <SummaryRow label={t("purchases.new.sumLines")}>
-            <span className="font-mono">{validLines.length}</span>
+            <span className="font-mono">{activeLines.length}</span>
           </SummaryRow>
           <SummaryRow label={t("purchases.new.sumWeight")}>
             <span className="font-mono">{kg(totalWeight)}</span>

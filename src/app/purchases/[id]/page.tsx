@@ -86,6 +86,7 @@ export default async function PurchaseDetailPage({
               <Th align="right">{t("purchases.detail.colWeight")}</Th>
               <Th align="right">{t("purchases.detail.colRate")}</Th>
               <Th align="right">{t("purchases.detail.colCartons")}</Th>
+              <Th align="right">{t("purchases.detail.colPackets")}</Th>
               <Th align="right">{t("purchases.detail.colAmount")}</Th>
             </tr>
           </thead>
@@ -102,6 +103,9 @@ export default async function PurchaseDetailPage({
                 <td className="px-3.5 py-3 text-right font-mono text-[13px] text-muted">
                   {l.cartons ?? "—"}
                 </td>
+                <td className="px-3.5 py-3 text-right font-mono text-[13px] text-muted">
+                  {l.packets ?? "—"}
+                </td>
                 <td className="px-3.5 py-3 text-right font-mono text-[13px] font-semibold text-text">
                   {pkr(Number(l.amount))}
                 </td>
@@ -111,7 +115,7 @@ export default async function PurchaseDetailPage({
           <tfoot>
             <tr>
               <td
-                colSpan={4}
+                colSpan={5}
                 className="bg-card2 px-3.5 py-3 text-right text-[10.5px] font-semibold uppercase tracking-[0.08em] text-faint2"
               >
                 {t("purchases.detail.totalLabel")}

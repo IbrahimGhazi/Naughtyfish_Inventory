@@ -57,12 +57,17 @@ export async function updateChequeStatus(input: z.infer<typeof StatusSchema>) {
   await prisma.$transaction(async (tx) => {
     if (parsed.status === "bounced" && net > 0 && first) {
       const invoiceIds = new Set(positives.map((p) => p.invoiceId ?? null));
+      // Reversals must carry the SAME document links as the payments they
+      // offset — an unlinked reversal would leave the invoice/purchase reading
+      // "settled" while the party ledger shows the debt restored.
+      const purchaseIds = new Set(positives.map((p) => p.purchaseId ?? null));
       await tx.payment.create({
         data: {
           type: "cheque",
           amount: -net,
           partyId: first.partyId,
           invoiceId: invoiceIds.size === 1 ? first.invoiceId : null,
+          purchaseId: purchaseIds.size === 1 ? first.purchaseId : null,
           chequeId: cheque.id,
           entityId: ctx.entityId,
           note: `Reversal — cheque ${cheque.chequeNumber} bounced`,
@@ -79,12 +84,14 @@ export async function updateChequeStatus(input: z.infer<typeof StatusSchema>) {
       const reinstate = Number(cheque.amount) - net;
       if (reinstate > 0) {
         const invoiceIds = new Set(positives.map((p) => p.invoiceId ?? null));
+        const purchaseIds = new Set(positives.map((p) => p.purchaseId ?? null));
         await tx.payment.create({
           data: {
             type: "cheque",
             amount: reinstate,
             partyId: first.partyId,
             invoiceId: invoiceIds.size === 1 ? first.invoiceId : null,
+            purchaseId: purchaseIds.size === 1 ? first.purchaseId : null,
             chequeId: cheque.id,
             entityId: ctx.entityId,
             note: `Cheque ${cheque.chequeNumber} re-presented and honored`,
@@ -100,6 +107,7 @@ export async function updateChequeStatus(input: z.infer<typeof StatusSchema>) {
   });
 
   revalidatePath("/cheques");
+  revalidatePath("/purchases");
   revalidatePath("/");
 }
 

@@ -16,18 +16,20 @@ const round2 = (x: number) => Math.round((x + Number.EPSILON) * 100) / 100;
 
 const LineSchema = z.object({
   itemId: z.string().min(1),
-  weightKg: z.coerce.number().positive("Weight must be greater than zero."),
+  // ≥ 1 gram so round3 can never collapse a "positive" weight to zero.
+  weightKg: z.coerce.number().min(0.001, "Weight must be greater than zero."),
   ratePerKg: z.coerce.number().positive("Rate must be greater than zero."),
   cartons: z.coerce.number().int().min(0).optional(),
+  packets: z.coerce.number().int().min(0).optional(),
 });
 
 const CreateSchema = z.object({
   partyId: z.string().min(1, "Pick a supplier."),
   storeId: z.string().min(1, "Pick a receiving store."),
   supplierBillNo: z.string().trim().max(60).optional(),
-  date: z.string().optional(), // yyyy-mm-dd; defaults to now
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date.").optional(), // defaults to now
   notes: z.string().trim().max(500).optional(),
-  lines: z.array(LineSchema).min(1, "Add at least one line."),
+  lines: z.array(LineSchema).min(1, "Add at least one line.").max(100),
 });
 
 export type CreatePurchaseInput = z.infer<typeof CreateSchema>;
@@ -43,14 +45,15 @@ async function applyReceiveToStore(
   storeId: string,
   purchaseId: string,
   reference: string,
-  lines: { itemId: string; weightKg: number; cartons: number }[],
+  lines: { itemId: string; weightKg: number; cartons: number; packets: number }[],
 ): Promise<void> {
   // Aggregate per item so two lines of the same item upsert once.
-  const byItem = new Map<string, { itemId: string; kg: number; cartons: number }>();
+  const byItem = new Map<string, { itemId: string; kg: number; cartons: number; packets: number }>();
   for (const l of lines) {
-    const q = byItem.get(l.itemId) ?? { itemId: l.itemId, kg: 0, cartons: 0 };
+    const q = byItem.get(l.itemId) ?? { itemId: l.itemId, kg: 0, cartons: 0, packets: 0 };
     q.kg = round3(q.kg + l.weightKg);
     q.cartons += l.cartons;
+    q.packets += l.packets;
     byItem.set(l.itemId, q);
   }
 
@@ -64,12 +67,14 @@ async function applyReceiveToStore(
         storeId,
         itemId: q.itemId,
         cartonCount: q.cartons,
-        packetCount: 0,
-        kgPerCarton: existing?.kgPerCarton ?? 0,
+        packetCount: q.packets,
+        // A brand-new line learns its kg-per-carton from this purchase.
+        kgPerCarton: q.cartons > 0 ? round3(q.kg / q.cartons) : 0,
         totalKg: q.kg,
       },
       update: {
         cartonCount: (existing?.cartonCount ?? 0) + q.cartons,
+        packetCount: (existing?.packetCount ?? 0) + q.packets,
         totalKg: round3(Number(existing?.totalKg ?? 0) + q.kg),
       },
     });
@@ -77,7 +82,7 @@ async function applyReceiveToStore(
       data: {
         type: "receive",
         cartons: q.cartons,
-        packets: 0,
+        packets: q.packets,
         kg: q.kg,
         note: `Purchase ${reference}`,
         toStoreId: storeId,
@@ -127,61 +132,88 @@ export async function createPurchase(input: CreatePurchaseInput): Promise<{
   const date = parsed.date ? new Date(`${parsed.date}T12:00:00`) : new Date();
   if (Number.isNaN(date.getTime())) throw new Error("Invalid date.");
 
-  const lines = parsed.lines.map((l) => ({
-    itemId: l.itemId,
-    weightKg: round3(l.weightKg),
-    ratePerKg: l.ratePerKg,
-    cartons: l.cartons ?? 0,
-    amount: round2(l.weightKg * l.ratePerKg),
-  }));
+  // Round the weight FIRST, then price it (matching billing.ts) — so the
+  // stored line always recomputes: amount === round2(weightKg × ratePerKg).
+  const lines = parsed.lines.map((l) => {
+    const w = round3(l.weightKg);
+    return {
+      itemId: l.itemId,
+      weightKg: w,
+      ratePerKg: l.ratePerKg,
+      cartons: l.cartons ?? 0,
+      packets: l.packets ?? 0,
+      amount: round2(w * l.ratePerKg),
+    };
+  });
   const total = round2(lines.reduce((s, l) => s + l.amount, 0));
 
-  const result = await prisma.$transaction(async (tx) => {
-    // Per-book sequence (scoped to entityId; @@unique([entityId, purchaseNumber])
-    // makes a lost race fail loudly instead of double-numbering).
-    const last = await tx.purchase.findFirst({
-      where: { entityId: ctx.entityId },
-      orderBy: { purchaseNumber: "desc" },
-      select: { purchaseNumber: true },
-    });
-    const purchaseNumber = (last?.purchaseNumber ?? 0) + 1;
-    const reference = `PUR-${String(purchaseNumber).padStart(6, "0")}`;
+  const runCreate = () =>
+    prisma.$transaction(async (tx) => {
+      // Per-book sequence (scoped to entityId; @@unique([entityId, purchaseNumber])
+      // makes a lost race fail loudly instead of double-numbering).
+      const last = await tx.purchase.findFirst({
+        where: { entityId: ctx.entityId },
+        orderBy: { purchaseNumber: "desc" },
+        select: { purchaseNumber: true },
+      });
+      const purchaseNumber = (last?.purchaseNumber ?? 0) + 1;
+      const reference = `PUR-${String(purchaseNumber).padStart(6, "0")}`;
 
-    const purchase = await tx.purchase.create({
-      data: {
-        purchaseNumber,
-        reference,
-        supplierBillNo: parsed.supplierBillNo || null,
-        date,
-        notes: parsed.notes || null,
-        totalAmount: total,
-        entityId: ctx.entityId,
-        partyId: supplier.id,
-        storeId: store.id,
-        enteredById: ctx.user.id,
-        lineItems: {
-          create: lines.map((l) => ({
-            itemId: l.itemId,
-            weightKg: l.weightKg,
-            ratePerKg: l.ratePerKg,
-            cartons: l.cartons || null,
-            amount: l.amount,
-          })),
+      const purchase = await tx.purchase.create({
+        data: {
+          purchaseNumber,
+          reference,
+          supplierBillNo: parsed.supplierBillNo || null,
+          date,
+          notes: parsed.notes || null,
+          totalAmount: total,
+          entityId: ctx.entityId,
+          partyId: supplier.id,
+          storeId: store.id,
+          enteredById: ctx.user.id,
+          lineItems: {
+            create: lines.map((l) => ({
+              itemId: l.itemId,
+              weightKg: l.weightKg,
+              ratePerKg: l.ratePerKg,
+              cartons: l.cartons || null,
+              packets: l.packets || null,
+              amount: l.amount,
+            })),
+          },
         },
-      },
+      });
+
+      await applyReceiveToStore(
+        tx,
+        ctx.entityId,
+        store.id,
+        purchase.id,
+        reference,
+        lines.map((l) => ({
+          itemId: l.itemId,
+          weightKg: l.weightKg,
+          cartons: l.cartons,
+          packets: l.packets,
+        })),
+      );
+
+      return purchase;
     });
 
-    await applyReceiveToStore(
-      tx,
-      ctx.entityId,
-      store.id,
-      purchase.id,
-      reference,
-      lines.map((l) => ({ itemId: l.itemId, weightKg: l.weightKg, cartons: l.cartons })),
-    );
-
-    return purchase;
-  });
+  // A lost numbering race rolls the whole transaction back (unique index) —
+  // retry a couple of times so the collision is invisible to the user.
+  let result: Awaited<ReturnType<typeof runCreate>> | null = null;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      result = await runCreate();
+      break;
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      if ((code === "P2002" || code === "P2034") && attempt < 2) continue;
+      throw e;
+    }
+  }
 
   revalidatePath("/purchases");
   revalidatePath("/inventory");

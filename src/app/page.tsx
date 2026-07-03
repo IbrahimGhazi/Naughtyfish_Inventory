@@ -107,8 +107,14 @@ export default async function Dashboard() {
       where: scope,
       _count: { _all: true },
     }),
-    // Supplier purchases: charges on the payables side.
-    prisma.purchase.aggregate({ where: scope, _sum: { totalAmount: true } }),
+    // Supplier purchases: charges on the payables side. Filtered by the
+    // party's CURRENT type so this stays consistent with the weekly
+    // statement's categorize-by-type behavior (type flips are also blocked
+    // once transactions exist — updateParty guard).
+    prisma.purchase.aggregate({
+      where: { ...scope, supplier: { partyType: "supplier" } },
+      _sum: { totalAmount: true },
+    }),
   ]);
 
   // Split payments by the party's type.

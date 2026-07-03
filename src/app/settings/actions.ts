@@ -170,6 +170,21 @@ export async function updateParty(input: z.input<typeof PartyUpdateSchema>) {
   });
   if (!existing) throw new Error("Party not found in this book.");
 
+  // A party's type decides which DIRECTION its ledger reads (customer owes us
+  // vs we owe supplier). Flipping it after transactions exist would silently
+  // invert history across the dashboard, statement and party ledger.
+  if (parsed.partyType !== existing.partyType) {
+    const [nPurchases, nInvoices] = await Promise.all([
+      prisma.purchase.count({ where: { partyId: existing.id } }),
+      prisma.invoice.count({ where: { partyId: existing.id } }),
+    ]);
+    if (nPurchases > 0 || nInvoices > 0) {
+      throw new Error(
+        "Cannot change this party's type — it already has invoices or purchases recorded. Create a separate party instead.",
+      );
+    }
+  }
+
   const { subType, channel } = normalisePartyFields(parsed);
 
   await prisma.party.update({

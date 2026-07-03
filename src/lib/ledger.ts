@@ -27,7 +27,14 @@ export async function buildPartyLedger(
   entityId: string,
   partyId: string,
   asOf?: Date,
+  opts?: {
+    /** Set false for roles WITHOUT the purchases page grant — purchase rows
+     *  (and their debits) are then excluded so the module stays unreadable
+     *  through party pages. The balance shown is partial for such roles. */
+    includePurchases?: boolean;
+  },
 ): Promise<PartyLedger> {
+  const includePurchases = opts?.includePurchases ?? true;
   const party = await prisma.party.findFirst({ where: { id: partyId, entityId } });
   if (!party) throw new Error("Party not found in this book.");
 
@@ -43,10 +50,12 @@ export async function buildPartyLedger(
       include: { cheque: true },
       orderBy: { date: "asc" },
     }),
-    prisma.purchase.findMany({
-      where: { entityId, partyId, ...(dateFilter ? { date: dateFilter } : {}) },
-      orderBy: { date: "asc" },
-    }),
+    includePurchases
+      ? prisma.purchase.findMany({
+          where: { entityId, partyId, ...(dateFilter ? { date: dateFilter } : {}) },
+          orderBy: { date: "asc" },
+        })
+      : Promise.resolve([]),
   ]);
 
   const events: LedgerRow[] = [
@@ -89,7 +98,13 @@ export async function buildPartyLedger(
         meta: p.note ?? undefined,
       };
     }),
-  ].sort((a, b) => a.date.getTime() - b.date.getTime());
+  ].sort(
+    (a, b) =>
+      a.date.getTime() - b.date.getTime() ||
+      // Same-timestamp tiebreak: charges (invoice/purchase) before payments,
+      // so a same-day settlement never renders as a prepayment.
+      (a.kind === "payment" ? 1 : 0) - (b.kind === "payment" ? 1 : 0),
+  );
 
   const opening = Number(party.openingBalance);
   let balance = opening;

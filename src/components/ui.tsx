@@ -126,22 +126,24 @@ export function PageHeader({
   );
 }
 
-/** Primary (accent) button — as a <button> or a <Link> when `href` is given. */
-export function PrimaryButton({
-  children,
-  href,
-  className = "",
-  ...rest
-}: {
+/** Attributes valid on BOTH branches (button element or Link/anchor), so
+ *  data-testid/aria/onClick survive whichever way the component renders. */
+type DualButtonProps = {
   children: ReactNode;
   href?: string;
   className?: string;
-} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+} & Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement> & React.AnchorHTMLAttributes<HTMLAnchorElement>,
+  "href"
+>;
+
+/** Primary (accent) button — as a <button> or a <Link> when `href` is given. */
+export function PrimaryButton({ children, href, className = "", ...rest }: DualButtonProps) {
   const cls = `inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-on-accent transition-colors ${className}`;
   const style: CSSProperties = { background: "var(--accent)" };
   if (href) {
     return (
-      <Link href={href} className={cls} style={style}>
+      <Link href={href} className={cls} style={style} {...rest}>
         {children}
       </Link>
     );
@@ -154,20 +156,11 @@ export function PrimaryButton({
 }
 
 /** Ghost / secondary button. */
-export function GhostButton({
-  children,
-  href,
-  className = "",
-  ...rest
-}: {
-  children: ReactNode;
-  href?: string;
-  className?: string;
-} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+export function GhostButton({ children, href, className = "", ...rest }: DualButtonProps) {
   const cls = `inline-flex items-center justify-center gap-2 rounded-lg border border-hair bg-card px-3.5 py-2 text-sm font-semibold text-text transition-colors hover:bg-card2 ${className}`;
   if (href) {
     return (
-      <Link href={href} className={cls}>
+      <Link href={href} className={cls} {...rest}>
         {children}
       </Link>
     );

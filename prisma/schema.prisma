@@ -564,6 +564,7 @@ model PurchaseLineItem {
   weightKg  Decimal
   ratePerKg Decimal
   cartons   Int?
+  packets   Int?
   amount    Decimal // round2(weightKg × ratePerKg)
 
   purchase   Purchase @relation(fields: [purchaseId], references: [id])
