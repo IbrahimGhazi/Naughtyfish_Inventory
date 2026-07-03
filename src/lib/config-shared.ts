@@ -79,6 +79,8 @@ export interface FeatureFlags {
   glazing: boolean;
   /** Carton/packet count fields (packaged-goods specific). */
   packaging: boolean;
+  /** Purchases module: supplier purchase invoices that receive stock + payables. */
+  purchases: boolean;
   /** Shipments page + dashboard map + "on the road". */
   shipments: boolean;
   /** Cheque tracking (page + due reminders). */
@@ -150,6 +152,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   features: {
     glazing: true,
     packaging: true,
+    purchases: true,
     shipments: true,
     cheques: true,
     banks: true,

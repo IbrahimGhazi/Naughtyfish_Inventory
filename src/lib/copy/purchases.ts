@@ -1,0 +1,91 @@
+import type { CopyFragment } from "./types";
+
+/**
+ * Copy for the Purchases module (supplier purchase invoices). Keys MUST be
+ * globally unique; defaults are the exact on-screen English.
+ */
+export const purchasesCopy: CopyFragment = [
+  // Nav
+  { key: "purchases.nav.section", default: "Purchases", group: "Purchases", label: "Sidebar section label" },
+  { key: "purchases.nav.item", default: "Purchases", group: "Purchases", label: "Sidebar item label" },
+
+  // List page
+  { key: "purchases.list.eyebrow", default: "Purchases", group: "Purchases", label: "List page eyebrow" },
+  { key: "purchases.list.title", default: "Purchases", group: "Purchases", label: "List page title" },
+  { key: "purchases.list.subtitle", default: "What you bought from suppliers — each purchase adds stock and to what you owe.", group: "Purchases", label: "List page subtitle", multiline: true },
+  { key: "purchases.list.new", default: "+ New purchase", group: "Purchases", label: "'New purchase' button" },
+  { key: "purchases.list.empty", default: "No purchases yet.", group: "Purchases", label: "Empty state" },
+  { key: "purchases.list.emptyCta", default: "Record the first one →", group: "Purchases", label: "Empty state link" },
+  { key: "purchases.list.colPurchase", default: "Purchase", group: "Purchases", label: "Column: purchase ref" },
+  { key: "purchases.list.colSupplier", default: "Supplier", group: "Purchases", label: "Column: supplier" },
+  { key: "purchases.list.colStore", default: "Into store", group: "Purchases", label: "Column: receiving store" },
+  { key: "purchases.list.colDate", default: "Date", group: "Purchases", label: "Column: date" },
+  { key: "purchases.list.colDue", default: "Balance due", group: "Purchases", label: "Column: balance due" },
+  { key: "purchases.list.colTotal", default: "Total", group: "Purchases", label: "Column: total" },
+  { key: "purchases.list.billPrefix", default: "bill", group: "Purchases", label: "Supplier bill number prefix" },
+  { key: "purchases.list.countSuffix", default: "recorded", group: "Purchases", label: "Footer count suffix" },
+  { key: "purchases.list.owedPrefix", default: "open on purchases", group: "Purchases", label: "Footer open-balance label" },
+
+  // New purchase form
+  { key: "purchases.new.eyebrow", default: "Purchases", group: "New Purchase", label: "Page eyebrow" },
+  { key: "purchases.new.title", default: "New purchase", group: "New Purchase", label: "Page title" },
+  { key: "purchases.new.subtitle", default: "Record what came in from a supplier. Saving adds the stock to the store and to the supplier's ledger.", group: "New Purchase", label: "Page subtitle", multiline: true },
+  { key: "purchases.new.back", default: "← All purchases", group: "New Purchase", label: "Back link" },
+  { key: "purchases.new.supplier", default: "Supplier", group: "New Purchase", label: "Supplier field label" },
+  { key: "purchases.new.supplierPick", default: "Select supplier…", group: "New Purchase", label: "Supplier placeholder option" },
+  { key: "purchases.new.store", default: "Receiving store", group: "New Purchase", label: "Store field label" },
+  { key: "purchases.new.storePick", default: "Select store…", group: "New Purchase", label: "Store placeholder option" },
+  { key: "purchases.new.billNo", default: "Supplier bill no.", group: "New Purchase", label: "Bill number field label" },
+  { key: "purchases.new.billNoHint", default: "optional — the number on their bill", group: "New Purchase", label: "Bill number hint" },
+  { key: "purchases.new.date", default: "Date", group: "New Purchase", label: "Date field label" },
+  { key: "purchases.new.notes", default: "Notes", group: "New Purchase", label: "Notes field label" },
+  { key: "purchases.new.notesHint", default: "optional", group: "New Purchase", label: "Notes hint" },
+  { key: "purchases.new.colItem", default: "Item", group: "New Purchase", label: "Line column: item" },
+  { key: "purchases.new.colWeight", default: "Weight", group: "New Purchase", label: "Line column: weight" },
+  { key: "purchases.new.colRate", default: "Rate", group: "New Purchase", label: "Line column: rate" },
+  { key: "purchases.new.colCartons", default: "Cartons", group: "New Purchase", label: "Line column: cartons (optional)" },
+  { key: "purchases.new.colAmount", default: "Amount", group: "New Purchase", label: "Line column: amount" },
+  { key: "purchases.new.itemPick", default: "Select…", group: "New Purchase", label: "Item placeholder option" },
+  { key: "purchases.new.addLine", default: "+ Add line", group: "New Purchase", label: "Add line button" },
+  { key: "purchases.new.removeLine", default: "Remove line", group: "New Purchase", label: "Remove line tooltip" },
+  { key: "purchases.new.summary", default: "Summary", group: "New Purchase", label: "Summary card title" },
+  { key: "purchases.new.sumReference", default: "Reference", group: "New Purchase", label: "Summary: reference row" },
+  { key: "purchases.new.sumLines", default: "Lines", group: "New Purchase", label: "Summary: line count row" },
+  { key: "purchases.new.sumWeight", default: "Total weight", group: "New Purchase", label: "Summary: weight row" },
+  { key: "purchases.new.sumTotal", default: "Total", group: "New Purchase", label: "Summary: total row" },
+  { key: "purchases.new.save", default: "Save purchase", group: "New Purchase", label: "Save button" },
+  { key: "purchases.new.saving", default: "Saving…", group: "New Purchase", label: "Save button (pending)" },
+  { key: "purchases.new.recompute", default: "Amounts recompute live — weight × rate per line.", group: "New Purchase", label: "Helper line under the table" },
+  { key: "purchases.new.successPrefix", default: "Purchase", group: "New Purchase", label: "Success message prefix (before reference)" },
+  { key: "purchases.new.successSuffix", default: "recorded — stock received and supplier ledger updated.", group: "New Purchase", label: "Success message suffix" },
+  { key: "purchases.new.viewIt", default: "View it →", group: "New Purchase", label: "Success: view link" },
+  { key: "purchases.new.another", default: "Record another", group: "New Purchase", label: "Success: record another" },
+
+  // Detail page
+  { key: "purchases.detail.back", default: "← All purchases", group: "Purchase Detail", label: "Back link" },
+  { key: "purchases.detail.eyebrow", default: "Purchases", group: "Purchase Detail", label: "Page eyebrow" },
+  { key: "purchases.detail.supplierBill", default: "Supplier bill", group: "Purchase Detail", label: "Meta: supplier bill" },
+  { key: "purchases.detail.store", default: "Into store", group: "Purchase Detail", label: "Meta: receiving store" },
+  { key: "purchases.detail.date", default: "Date", group: "Purchase Detail", label: "Meta: date" },
+  { key: "purchases.detail.enteredBy", default: "Entered by", group: "Purchase Detail", label: "Meta: entered by" },
+  { key: "purchases.detail.colItem", default: "Item", group: "Purchase Detail", label: "Line column: item" },
+  { key: "purchases.detail.colWeight", default: "Weight", group: "Purchase Detail", label: "Line column: weight" },
+  { key: "purchases.detail.colRate", default: "Rate / kg", group: "Purchase Detail", label: "Line column: rate" },
+  { key: "purchases.detail.colCartons", default: "Cartons", group: "Purchase Detail", label: "Line column: cartons" },
+  { key: "purchases.detail.colAmount", default: "Amount", group: "Purchase Detail", label: "Line column: amount" },
+  { key: "purchases.detail.totalLabel", default: "Total", group: "Purchase Detail", label: "Lines total label" },
+  { key: "purchases.detail.payments", default: "Payments against this purchase", group: "Purchase Detail", label: "Payments card title" },
+  { key: "purchases.detail.noPayments", default: "None recorded yet.", group: "Purchase Detail", label: "Payments empty state" },
+  { key: "purchases.detail.balanceDue", default: "Balance due", group: "Purchase Detail", label: "Balance card label" },
+  { key: "purchases.detail.ofTotalPrefix", default: "of", group: "Purchase Detail", label: "Balance card: 'of <total>' prefix" },
+  { key: "purchases.detail.paidSuffix", default: "% paid", group: "Purchase Detail", label: "Balance card: percent-paid suffix" },
+  { key: "purchases.detail.payButton", default: "Record payment", group: "Purchase Detail", label: "Record payment button" },
+  { key: "purchases.detail.notes", default: "Notes", group: "Purchase Detail", label: "Notes card title" },
+  { key: "purchases.detail.settled", default: "Settled", group: "Purchase Detail", label: "Settled chip" },
+  { key: "purchases.detail.open", default: "Open", group: "Purchase Detail", label: "Open (unpaid) chip" },
+
+  // Supplier payment linkage (PaymentForm)
+  { key: "purchases.pay.against", default: "Against purchase", group: "Pay Supplier", label: "Purchase select label" },
+  { key: "purchases.pay.general", default: "General (no specific purchase)", group: "Pay Supplier", label: "General option" },
+  { key: "purchases.pay.duePrefix", default: "due", group: "Pay Supplier", label: "Option: 'due <amount>' prefix" },
+];

@@ -2,11 +2,11 @@ import { prisma } from "./prisma";
 
 export interface LedgerRow {
   date: Date;
-  kind: "invoice" | "payment";
-  ref: string; // invoice number or payment/cheque note
-  debit: number; // invoice amount (party owes us)
-  credit: number; // payment received
-  balance: number; // running net outstanding (party owes us if positive)
+  kind: "invoice" | "payment" | "purchase";
+  ref: string; // invoice/purchase number or payment/cheque note
+  debit: number; // charge: invoice (customer owes us) / purchase (we owe supplier)
+  credit: number; // payment
+  balance: number; // running net outstanding (positive = owed, in the party's direction)
   meta?: string;
 }
 
@@ -17,9 +17,11 @@ export interface PartyLedger {
 }
 
 /**
- * Build a party's ledger: opening balance, then invoices (debit) and payments
- * (credit) in date order with a running balance. `asOf` (optional) cuts the
- * ledger at end-of-day for the "as of 27 June, who owes me" report (plan §4.5).
+ * Build a party's ledger: opening balance, then charges (debit: customer
+ * invoices / supplier purchases) and payments (credit) in date order with a
+ * running balance. Positive balance = outstanding in the party's direction
+ * (customer owes us / we owe the supplier). `asOf` (optional) cuts the ledger
+ * at end-of-day for the "as of 27 June, who owes me" report (plan §4.5).
  */
 export async function buildPartyLedger(
   entityId: string,
@@ -31,7 +33,7 @@ export async function buildPartyLedger(
 
   const dateFilter = asOf ? { lte: asOf } : undefined;
 
-  const [invoices, payments] = await Promise.all([
+  const [invoices, payments, purchases] = await Promise.all([
     prisma.invoice.findMany({
       where: { entityId, partyId, ...(dateFilter ? { date: dateFilter } : {}) },
       orderBy: { date: "asc" },
@@ -39,6 +41,10 @@ export async function buildPartyLedger(
     prisma.payment.findMany({
       where: { entityId, partyId, ...(dateFilter ? { date: dateFilter } : {}) },
       include: { cheque: true },
+      orderBy: { date: "asc" },
+    }),
+    prisma.purchase.findMany({
+      where: { entityId, partyId, ...(dateFilter ? { date: dateFilter } : {}) },
       orderBy: { date: "asc" },
     }),
   ]);
@@ -52,6 +58,16 @@ export async function buildPartyLedger(
       credit: 0,
       balance: 0,
       meta: inv.channel,
+    })),
+    // A purchase charges the ledger in the supplier's direction (we owe more).
+    ...purchases.map((pur) => ({
+      date: pur.date,
+      kind: "purchase" as const,
+      ref: `${pur.reference}${pur.supplierBillNo ? ` · bill ${pur.supplierBillNo}` : ""}`,
+      debit: Number(pur.totalAmount),
+      credit: 0,
+      balance: 0,
+      meta: pur.notes ?? undefined,
     })),
     ...payments.map((p) => {
       const amt = Number(p.amount);

@@ -16,6 +16,7 @@ import type { CopyEntry, CopyMap, TFn } from "./types";
 import { commonCopy } from "./common";
 import { dashboardCopy } from "./dashboard";
 import { invoicesCopy } from "./invoices";
+import { purchasesCopy } from "./purchases";
 import { partiesCopy } from "./parties";
 import { inventoryCopy } from "./inventory";
 import { shipmentsCopy } from "./shipments";
@@ -35,6 +36,7 @@ export const COPY_CATALOG: readonly CopyEntry[] = [
   ...commonCopy,
   ...dashboardCopy,
   ...invoicesCopy,
+  ...purchasesCopy,
   ...partiesCopy,
   ...inventoryCopy,
   ...shipmentsCopy,

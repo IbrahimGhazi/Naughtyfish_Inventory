@@ -15,6 +15,7 @@ import type { ActiveContext } from "./session";
 export type PageKey =
   | "dashboard"
   | "invoices"
+  | "purchases"
   | "parties"
   | "shipments"
   | "inventory"
@@ -28,7 +29,7 @@ export type PageKey =
   | "delivery";
 
 const ALL_CLIENT_PAGES: PageKey[] = [
-  "dashboard", "invoices", "parties", "shipments", "inventory", "processes",
+  "dashboard", "invoices", "purchases", "parties", "shipments", "inventory", "processes",
   "cheques", "banks", "expenses", "reports", "settings",
 ];
 

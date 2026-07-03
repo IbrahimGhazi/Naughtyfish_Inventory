@@ -62,6 +62,7 @@ const ConfigSchema = z.object({
   features: z.object({
     glazing: z.boolean(),
     packaging: z.boolean(),
+    purchases: z.boolean(),
     shipments: z.boolean(),
     cheques: z.boolean(),
     banks: z.boolean(),

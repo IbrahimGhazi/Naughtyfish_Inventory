@@ -14,6 +14,14 @@ export interface FormInvoice {
   total: number;
   outstanding: number;
 }
+export interface FormPurchase {
+  id: string;
+  reference: string;
+  supplierBillNo: string | null;
+  date: string;
+  total: number;
+  outstanding: number;
+}
 export interface FormBank {
   id: string;
   label: string;
@@ -25,10 +33,17 @@ export default function PaymentForm({
   partyId,
   invoices,
   banks,
+  purchases = [],
+  isSupplier = false,
+  defaultPurchaseId = "",
 }: {
   partyId: string;
   invoices: FormInvoice[];
   banks: FormBank[];
+  /** Supplier mode: open purchases to settle instead of invoices. */
+  purchases?: FormPurchase[];
+  isSupplier?: boolean;
+  defaultPurchaseId?: string;
 }) {
   const t = useCopy();
   const router = useRouter();
@@ -38,6 +53,7 @@ export default function PaymentForm({
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [invoiceId, setInvoiceId] = useState("");
+  const [purchaseId, setPurchaseId] = useState(defaultPurchaseId);
   const [note, setNote] = useState("");
   const [promiseOfCheque, setPromiseOfCheque] = useState(false);
   const [isPrecautionaryCash, setIsPrecautionaryCash] = useState(false);
@@ -66,7 +82,8 @@ export default function PaymentForm({
           type,
           amount: Number(amount),
           date: date || undefined,
-          invoiceId: invoiceId || undefined,
+          invoiceId: isSupplier ? undefined : invoiceId || undefined,
+          purchaseId: isSupplier ? purchaseId || undefined : undefined,
           note: note || undefined,
           promiseOfCheque: type === "cash" ? promiseOfCheque : undefined,
           isPrecautionaryCash: type === "cash" ? isPrecautionaryCash : undefined,
@@ -124,22 +141,41 @@ export default function PaymentForm({
             onChange={(e) => setDate(e.target.value)}
           />
         </Field>
-        <Field label={t("parties.form.againstInvoice")}>
-          <select
-            className="input"
-            data-testid="invoice"
-            value={invoiceId}
-            onChange={(e) => setInvoiceId(e.target.value)}
-          >
-            <option value="">{t("parties.form.notLinked")}</option>
-            {invoices.map((inv) => (
-              <option key={inv.id} value={inv.id}>
-                #{inv.invoiceNumber}
-                {inv.referenceNumber ? ` · ${inv.referenceNumber}` : ""} · {dateShort(inv.date)} · {t("parties.form.outstanding")} {pkr(inv.outstanding)}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {isSupplier ? (
+          <Field label={t("purchases.pay.against")}>
+            <select
+              className="input"
+              data-testid="purchase"
+              value={purchaseId}
+              onChange={(e) => setPurchaseId(e.target.value)}
+            >
+              <option value="">{t("purchases.pay.general")}</option>
+              {purchases.map((pur) => (
+                <option key={pur.id} value={pur.id}>
+                  {pur.reference}
+                  {pur.supplierBillNo ? ` · ${pur.supplierBillNo}` : ""} · {dateShort(pur.date)} · {t("purchases.pay.duePrefix")} {pkr(pur.outstanding)}
+                </option>
+              ))}
+            </select>
+          </Field>
+        ) : (
+          <Field label={t("parties.form.againstInvoice")}>
+            <select
+              className="input"
+              data-testid="invoice"
+              value={invoiceId}
+              onChange={(e) => setInvoiceId(e.target.value)}
+            >
+              <option value="">{t("parties.form.notLinked")}</option>
+              {invoices.map((inv) => (
+                <option key={inv.id} value={inv.id}>
+                  #{inv.invoiceNumber}
+                  {inv.referenceNumber ? ` · ${inv.referenceNumber}` : ""} · {dateShort(inv.date)} · {t("parties.form.outstanding")} {pkr(inv.outstanding)}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
       </div>
 
       {/* Cash proof flags (the tape: cash recorded "ehtiyaatan") */}

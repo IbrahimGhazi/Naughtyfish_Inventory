@@ -38,6 +38,7 @@ model Entity {
   stockMovements   StockMovement[]
   shipments        Shipment[]
   processes        Process[]
+  purchases        Purchase[]
 }
 
 /// Per-deployment white-label configuration (platform panel). Exactly one row
@@ -69,6 +70,7 @@ model User {
   deliveryRecords DeliveryRecord[] @relation("DeliveredBy")
   invoicesCreated Invoice[]        @relation("CreatedBy")
   expenseEntries  ExpenseEntry[]
+  purchasesEntered Purchase[]      @relation("PurchaseEnteredBy")
 }
 
 /// Join: which stores a (store-scoped) user may see.
@@ -104,6 +106,7 @@ model Party {
   glazingSettings GlazingSetting[]
   shipments       Shipment[]
   badDebts        BadDebtEntry[]
+  purchases       Purchase[]
 
   @@index([entityId, partyType])
 }
@@ -128,6 +131,7 @@ model Item {
   inventoryLines   StoreInventoryLine[]
   stockMovements   StockMovement[]
   processes        Process[]
+  purchaseLines    PurchaseLineItem[]
 
   @@index([entityId])
 }
@@ -168,6 +172,7 @@ model Store {
   stockMovementsTo   StockMovement[] @relation("StockTo")
   originShipments Shipment[] @relation("ShipmentOrigin")
   processes      Process[]
+  purchases      Purchase[]
 
   @@index([entityId])
 }
@@ -212,11 +217,15 @@ model StockMovement {
   itemId      String
   invoice     Invoice? @relation(fields: [invoiceId], references: [id])
   invoiceId   String?
+  // "receive" movements created by a purchase keep their provenance.
+  purchase    Purchase? @relation(fields: [purchaseId], references: [id])
+  purchaseId  String?
   entity      Entity   @relation(fields: [entityId], references: [id])
   entityId    String
 
   @@index([entityId, itemId])
   @@index([invoiceId])
+  @@index([purchaseId])
 }
 
 /// Per-book/region manual invoice reference series (e.g. SSI-000001).
@@ -384,12 +393,16 @@ model Payment {
   partyId   String
   invoice   Invoice? @relation(fields: [invoiceId], references: [id])
   invoiceId String?
+  // Supplier payments may settle a specific purchase (mirrors invoiceId).
+  purchase   Purchase? @relation(fields: [purchaseId], references: [id])
+  purchaseId String?
   cheque    Cheque?  @relation(fields: [chequeId], references: [id])
   chequeId  String?
   entity    Entity   @relation(fields: [entityId], references: [id])
   entityId  String
 
   @@index([entityId, partyId])
+  @@index([purchaseId])
 }
 
 /// subCategory: "bad_debt" | "dispute"
@@ -511,4 +524,52 @@ model Process {
   expenseEntryId String?       @unique
 
   @@index([entityId, status])
+}
+
+/// A purchase from a supplier (payables side of the ledger). Line items priced
+/// weight × rate; saving RECEIVES the goods into `store` (StoreInventoryLine +
+/// "receive" StockMovements) and increases what we owe the supplier. Numbered
+/// per book (PUR-000001); `supplierBillNo` records the supplier's own bill.
+model Purchase {
+  id             String   @id @default(cuid())
+  purchaseNumber Int
+  reference      String // "PUR-000001" (derived from purchaseNumber)
+  supplierBillNo String?
+  date           DateTime @default(now())
+  notes          String?
+  totalAmount    Decimal
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  entity      Entity  @relation(fields: [entityId], references: [id])
+  entityId    String
+  supplier    Party   @relation(fields: [partyId], references: [id])
+  partyId     String
+  store       Store   @relation(fields: [storeId], references: [id])
+  storeId     String
+  enteredBy   User?   @relation("PurchaseEnteredBy", fields: [enteredById], references: [id])
+  enteredById String?
+
+  lineItems      PurchaseLineItem[]
+  payments       Payment[]
+  stockMovements StockMovement[]
+
+  @@unique([entityId, purchaseNumber])
+  @@index([entityId, partyId])
+  @@index([entityId, date])
+}
+
+model PurchaseLineItem {
+  id        String  @id @default(cuid())
+  weightKg  Decimal
+  ratePerKg Decimal
+  cartons   Int?
+  amount    Decimal // round2(weightKg × ratePerKg)
+
+  purchase   Purchase @relation(fields: [purchaseId], references: [id])
+  purchaseId String
+  item       Item     @relation(fields: [itemId], references: [id])
+  itemId     String
+
+  @@index([purchaseId])
 }

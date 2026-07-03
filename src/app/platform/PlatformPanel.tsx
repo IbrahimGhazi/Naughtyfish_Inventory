@@ -57,6 +57,7 @@ const BUSINESS_PRESETS: Record<string, Partial<TerminologyConfig> & { businessTy
 const FEATURE_LABELS: Record<keyof FeatureFlags, [string, string]> = {
   glazing: ["Glazing / weight adjustment", "Per-line % fields + over-deduction alerts on invoices"],
   packaging: ["Packaging counts", "Carton/packet fields + short-count alerts"],
+  purchases: ["Purchases", "Supplier purchase invoices — stock in + payables ledger"],
   shipments: ["Shipments", "Shipment tracking page, dashboard map and 'on the road' card"],
   cheques: ["Cheques", "Cheque registry, due-soon reminders"],
   banks: ["Banks", "Bank accounts + estimated balance KPI"],

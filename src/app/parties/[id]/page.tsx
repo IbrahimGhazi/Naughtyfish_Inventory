@@ -120,7 +120,10 @@ export default async function PartyLedgerPage({
                     {dateShort(r.date)}
                   </td>
                   <td className="px-3.5 py-3 text-[13px] text-text">
-                    <Chip tone={r.kind === "invoice" ? "accent" : "pos"} className="mr-2">
+                    <Chip
+                      tone={r.kind === "invoice" ? "accent" : r.kind === "purchase" ? "warn" : "pos"}
+                      className="mr-2"
+                    >
                       {r.kind}
                     </Chip>
                     {r.ref}

@@ -39,6 +39,7 @@ export default async function Dashboard() {
     expensesForChart,
     activeShipments,
     channelCounts,
+    purchaseAgg,
   ] = await Promise.all([
     prisma.party.findMany({ where: scope }),
     // All payments in the book, tagged with party type (customer receipts vs
@@ -106,6 +107,8 @@ export default async function Dashboard() {
       where: scope,
       _count: { _all: true },
     }),
+    // Supplier purchases: charges on the payables side.
+    prisma.purchase.aggregate({ where: scope, _sum: { totalAmount: true } }),
   ]);
 
   // Split payments by the party's type.
@@ -127,11 +130,14 @@ export default async function Dashboard() {
     .reduce((s, i) => s + Number(i.totalAmount), 0);
   const receivablesNet = round2(customerOpening + customerInvoiceTotal - paymentsFromCustomers);
 
-  // Supplier payables = Σ supplier opening balances − Σ payments made to suppliers.
+  // Supplier payables = Σ supplier opening balances + Σ purchases − Σ payments
+  // made to suppliers (MUST match buildPartyLedger, which charges purchases as
+  // supplier-direction debits).
   const supplierOpening = parties
     .filter((p) => p.partyType === "supplier")
     .reduce((s, p) => s + Number(p.openingBalance), 0);
-  const supplierPayables = round2(supplierOpening - paymentsToSuppliers);
+  const purchasesTotal = Number(purchaseAgg._sum.totalAmount ?? 0);
+  const supplierPayables = round2(supplierOpening + purchasesTotal - paymentsToSuppliers);
 
   // Net position includes suppliers (plan §3): receivables_net − supplier_payables.
   const netPosition = round2(receivablesNet - supplierPayables);

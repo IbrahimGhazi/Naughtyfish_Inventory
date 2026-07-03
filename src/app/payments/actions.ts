@@ -15,6 +15,7 @@ const PaymentSchema = z
     amount: z.coerce.number().positive(),
     date: z.string().optional(),
     invoiceId: z.string().optional(),
+    purchaseId: z.string().optional(),
     note: z.string().optional(),
     promiseOfCheque: z.coerce.boolean().optional(),
     isPrecautionaryCash: z.coerce.boolean().optional(),
@@ -69,6 +70,23 @@ export async function createPayment(input: CreatePaymentInput) {
     isPartial = isPartialPayment(parsed.amount, Number(invoice.totalAmount), priorPaid);
   }
 
+  // Optional purchase link (supplier payments): same shape as the invoice link.
+  if (parsed.purchaseId) {
+    const purchase = await prisma.purchase.findFirst({
+      where: { id: parsed.purchaseId, partyId: parsed.partyId, ...scope },
+    });
+    if (!purchase) throw new Error("Purchase does not belong to this party.");
+
+    const priorPayments = await prisma.payment.findMany({
+      where: { purchaseId: purchase.id, ...scope },
+      select: { amount: true },
+    });
+    const priorPaid = priorPaidAgainstInvoice(
+      priorPayments.map((p) => ({ amount: Number(p.amount) })),
+    );
+    isPartial = isPartialPayment(parsed.amount, Number(purchase.totalAmount), priorPaid);
+  }
+
   const created = await prisma.$transaction(async (tx) => {
     let chequeId: string | null = null;
 
@@ -84,6 +102,9 @@ export async function createPayment(input: CreatePaymentInput) {
         ? new Date(clearingDue.getTime() - 24 * 60 * 60 * 1000) // 1 day before due
         : null;
 
+      // Direction follows the money: customers hand US a cheque (incoming);
+      // paying a supplier means WE issue one (outgoing, recipient = supplier).
+      const outgoing = party.partyType === "supplier";
       const cheque = await tx.cheque.create({
         data: {
           chequeNumber: parsed.chequeNumber!,
@@ -91,8 +112,9 @@ export async function createPayment(input: CreatePaymentInput) {
           issueDate: parsed.issueDate ? new Date(parsed.issueDate) : null,
           clearingDue,
           reminderDate,
-          direction: "incoming",
-          status: "pending",
+          direction: outgoing ? "outgoing" : "incoming",
+          status: outgoing ? "issued" : "pending",
+          recipientName: outgoing ? party.name : null,
           note: parsed.note ?? null,
           bankAccountId: bank.id,
           entityId: ctx.entityId,
@@ -112,6 +134,7 @@ export async function createPayment(input: CreatePaymentInput) {
         note: parsed.note ?? null,
         partyId: parsed.partyId,
         invoiceId: parsed.invoiceId || null,
+        purchaseId: parsed.purchaseId || null,
         chequeId,
         entityId: ctx.entityId,
       },
@@ -120,6 +143,7 @@ export async function createPayment(input: CreatePaymentInput) {
 
   revalidatePath("/");
   revalidatePath("/cheques");
+  revalidatePath("/purchases");
   revalidatePath(`/parties/${parsed.partyId}`);
   return { id: created.id, isPartial };
 }

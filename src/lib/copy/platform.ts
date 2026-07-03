@@ -77,6 +77,8 @@ export const platformCopy: CopyFragment = [
   { key: "platform.feature.glazing.desc", default: "Per-line % fields + over-deduction alerts on invoices", group: "Platform", label: "Module · Glazing description" },
   { key: "platform.feature.packaging.label", default: "Packaging counts", group: "Platform", label: "Module · Packaging label" },
   { key: "platform.feature.packaging.desc", default: "Carton/packet fields + short-count alerts", group: "Platform", label: "Module · Packaging description" },
+  { key: "platform.feature.purchases.label", default: "Purchases", group: "Platform", label: "Module · Purchases label" },
+  { key: "platform.feature.purchases.desc", default: "Supplier purchase invoices — stock in + payables ledger", group: "Platform", label: "Module · Purchases description" },
   { key: "platform.feature.shipments.label", default: "Shipments", group: "Platform", label: "Module · Shipments label" },
   { key: "platform.feature.shipments.desc", default: "Shipment tracking page, dashboard map and 'on the road' card", group: "Platform", label: "Module · Shipments description" },
   { key: "platform.feature.cheques.label", default: "Cheques", group: "Platform", label: "Module · Cheques label" },

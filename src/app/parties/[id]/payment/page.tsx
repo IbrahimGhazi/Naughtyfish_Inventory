@@ -6,16 +6,19 @@ import { entityScope } from "@/lib/scope";
 import { priorPaidAgainstInvoice, invoiceOutstanding } from "@/lib/payments";
 import { getCopy } from "@/lib/config";
 import { BackLink } from "@/components/ui";
-import PaymentForm, { type FormInvoice, type FormBank } from "./PaymentForm";
+import PaymentForm, { type FormInvoice, type FormPurchase, type FormBank } from "./PaymentForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function RecordPaymentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ purchase?: string }>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
   const ctx = await getActiveContext();
   requirePage(ctx, "parties");
   const t = await getCopy();
@@ -23,13 +26,23 @@ export default async function RecordPaymentPage({
 
   const party = await prisma.party.findFirst({ where: { id, ...scope } });
   if (!party) notFound();
+  const isSupplier = party.partyType === "supplier";
 
-  const [invoices, banks] = await Promise.all([
-    prisma.invoice.findMany({
-      where: { ...scope, partyId: id },
-      include: { payments: { select: { amount: true } } },
-      orderBy: { invoiceNumber: "desc" },
-    }),
+  const [invoices, purchases, banks] = await Promise.all([
+    isSupplier
+      ? Promise.resolve([])
+      : prisma.invoice.findMany({
+          where: { ...scope, partyId: id },
+          include: { payments: { select: { amount: true } } },
+          orderBy: { invoiceNumber: "desc" },
+        }),
+    isSupplier
+      ? prisma.purchase.findMany({
+          where: { ...scope, partyId: id },
+          include: { payments: { select: { amount: true } } },
+          orderBy: { purchaseNumber: "desc" },
+        })
+      : Promise.resolve([]),
     prisma.bankAccount.findMany({ where: scope, orderBy: { bankName: "asc" } }),
   ]);
 
@@ -43,6 +56,21 @@ export default async function RecordPaymentPage({
       invoiceNumber: inv.invoiceNumber,
       referenceNumber: inv.referenceNumber,
       date: inv.date.toISOString(),
+      total,
+      outstanding: invoiceOutstanding(total, priorPaid),
+    };
+  });
+
+  const formPurchases: FormPurchase[] = purchases.map((pur) => {
+    const total = Number(pur.totalAmount);
+    const priorPaid = priorPaidAgainstInvoice(
+      pur.payments.map((p) => ({ amount: Number(p.amount) })),
+    );
+    return {
+      id: pur.id,
+      reference: pur.reference,
+      supplierBillNo: pur.supplierBillNo,
+      date: pur.date.toISOString(),
       total,
       outstanding: invoiceOutstanding(total, priorPaid),
     };
@@ -66,7 +94,14 @@ export default async function RecordPaymentPage({
         </p>
       </div>
 
-      <PaymentForm partyId={id} invoices={formInvoices} banks={formBanks} />
+      <PaymentForm
+        partyId={id}
+        invoices={formInvoices}
+        banks={formBanks}
+        purchases={formPurchases}
+        isSupplier={isSupplier}
+        defaultPurchaseId={sp.purchase && formPurchases.some((p) => p.id === sp.purchase) ? sp.purchase : ""}
+      />
     </div>
   );
 }

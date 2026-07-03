@@ -19,6 +19,7 @@ const ICONS: Record<string, string> = {
   expenses: "M3 7h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7V6a2 2 0 0 1 2-2h11v3M16.5 13.5h.01",
   reports: "M18 20V10M12 20V4M6 20v-6",
   settings: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M2 14h4M10 8h4M18 16h4",
+  purchases: "M6 6h15l-1.5 9h-12L6 6zM6 6L5 3H2M9.5 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3M17.5 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3",
   platform: "M12 2l9 5v10l-9 5-9-5V7l9-5zM12 22V12M3 7l9 5 9-5",
   delivery: "M3 7h11v10H3zM14 10h4l3 3v4h-7v-7M6.5 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3M17.5 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3",
   camera: "M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8",
@@ -78,6 +79,10 @@ export default async function Sidebar({
     if (can("parties"))
       sales.push({ href: "/parties", key: "parties", label: t("shell.nav.parties"), d: ICONS.parties });
 
+    const buying: NavItem[] = [];
+    if (f.purchases && can("purchases"))
+      buying.push({ href: "/purchases", key: "purchases", label: t("purchases.nav.item"), d: ICONS.purchases });
+
     const ops: NavItem[] = [];
     if (f.shipments && can("shipments"))
       ops.push({ href: "/shipments", key: "shipments", label: t("shell.nav.shipments"), d: ICONS.shipments });
@@ -106,6 +111,7 @@ export default async function Sidebar({
         items: [{ href: "/", key: "dashboard", label: t("shell.nav.dashboard"), d: ICONS.dashboard }],
       },
       ...(sales.length ? [{ label: t("shell.nav.section.sales"), items: sales }] : []),
+      ...(buying.length ? [{ label: t("purchases.nav.section"), items: buying }] : []),
       ...(ops.length ? [{ label: t("shell.nav.section.operations"), items: ops }] : []),
       ...(money.length ? [{ label: t("shell.nav.section.money"), items: money }] : []),
       ...(insight.length ? [{ label: t("shell.nav.section.insight"), items: insight }] : []),
