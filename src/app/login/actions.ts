@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import {
   SESSION_COOKIE,
-  SESSION_COOKIE_OPTIONS,
+  sessionCookieOptions,
   signSession,
 } from "@/lib/auth";
 import { allowedBookNames } from "@/lib/session";
@@ -85,7 +85,7 @@ export async function login(
 
   const token = signSession({ userId: user.id, entityName: activeBook });
   const store = await cookies();
-  store.set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS);
+  store.set(SESSION_COOKIE, token, await sessionCookieOptions());
 
   redirect(roleHome(user.role));
 }

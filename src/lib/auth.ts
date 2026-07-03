@@ -11,6 +11,7 @@
  * sessions at once (the recovery lever if a cookie ever leaks).
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { headers } from "next/headers";
 
 /** Session lifetime: 30 days, refreshed on every login/book-switch. */
 export const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -86,11 +87,38 @@ export function verifySession(token: string | undefined | null): SessionPayload 
 
 /** Cookie name + options shared by login/logout/switch actions. */
 export const SESSION_COOKIE = "nf_session";
-export const SESSION_COOKIE_OPTIONS = {
+
+const SESSION_COOKIE_BASE = {
   httpOnly: true,
   sameSite: "lax" as const,
   path: "/",
-  // Cookie only over HTTPS in production; localhost dev stays plain HTTP.
-  secure: process.env.NODE_ENV === "production",
   maxAge: SESSION_TTL_SECONDS,
 };
+
+/**
+ * Session-cookie options with `secure` decided from the ACTUAL request rather
+ * than just NODE_ENV. A `secure` cookie is silently dropped by the browser over
+ * plain HTTP, so `secure: NODE_ENV === "production"` breaks a local production
+ * build served on http://localhost (login "succeeds" but the cookie never
+ * stores → every click bounces back to /login). Real deployments are HTTPS
+ * (Vercel sets x-forwarded-proto=https), so they still get a secure cookie.
+ *
+ * Rule: honor x-forwarded-proto when a proxy sets it; otherwise require secure
+ * only for a production server on a non-localhost host.
+ */
+export async function sessionCookieOptions() {
+  return { ...SESSION_COOKIE_BASE, secure: await requestIsHttps() };
+}
+
+async function requestIsHttps(): Promise<boolean> {
+  try {
+    const h = await headers();
+    const proto = h.get("x-forwarded-proto");
+    if (proto) return proto.split(",")[0]!.trim() === "https";
+    const host = (h.get("host") ?? "").toLowerCase();
+    const local = /^(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)(:|$)/.test(host);
+    return process.env.NODE_ENV === "production" && !local;
+  } catch {
+    return process.env.NODE_ENV === "production";
+  }
+}

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
   SESSION_COOKIE,
-  SESSION_COOKIE_OPTIONS,
+  sessionCookieOptions,
   signSession,
 } from "@/lib/auth";
 import { allowedBookNames, getActiveContext } from "@/lib/session";
@@ -20,7 +20,7 @@ export async function switchBook(entityName: string): Promise<void> {
 
   const token = signSession({ userId: ctx.user.id, entityName });
   const store = await cookies();
-  store.set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS);
+  store.set(SESSION_COOKIE, token, await sessionCookieOptions());
 
   revalidatePath("/", "layout");
 }

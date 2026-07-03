@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "/Users/ghazi/NaughtyFish/naughtyfish-app", "run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "naughtyfish-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "/Users/ghazi/NaughtyFish/naughtyfish-app", "run", "start"],
+      "port": 3000
     }
   ]
 }
