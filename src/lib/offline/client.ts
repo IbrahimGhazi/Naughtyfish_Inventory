@@ -81,6 +81,7 @@ export const getParties = db.getParties;
 export const getItems = db.getItems;
 export const getStores = db.getStores;
 export const getLedger = db.getLedger;
+export const getCachedLedgerPartyIds = db.getCachedLedgerPartyIds;
 export const getOutbox = db.getOutbox;
 export const countPending = db.countPendingOutbox;
 export const clearAll = db.clearAll;

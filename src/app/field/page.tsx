@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getParties,
+  getItems,
   getInfo,
   getOutbox,
+  getCachedLedgerPartyIds,
   hydrate,
   cacheLedger,
   flush,
@@ -28,12 +30,23 @@ export default function FieldHome() {
   const [selected, setSelected] = useState<string | null>(null);
   const online = useOnline();
   const [busy, setBusy] = useState<null | "save" | "sync">(null);
+  const [ledgerCount, setLedgerCount] = useState(0);
+  const [itemCount, setItemCount] = useState(0);
+  const [saveResult, setSaveResult] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [ps, ob, nfo] = await Promise.all([getParties(), getOutbox(), getInfo()]);
+    const [ps, ob, nfo, ledgerIds, its] = await Promise.all([
+      getParties(),
+      getOutbox(),
+      getInfo(),
+      getCachedLedgerPartyIds(),
+      getItems(),
+    ]);
     setParties(ps);
     setOutbox(ob);
     setInfoState(nfo ?? null);
+    setLedgerCount(ledgerIds.length);
+    setItemCount(its.length);
   }, []);
 
   useEffect(() => {
@@ -54,12 +67,25 @@ export default function FieldHome() {
 
   const saveAll = async () => {
     setBusy("save");
+    setSaveResult(null);
     try {
-      await hydrate();
+      const hydrated = await hydrate();
       // Warm the hub's own page shell so /field can cold-open offline too.
       await fetch("/field", { headers: { Accept: "text/html" }, cache: "no-store" }).catch(() => {});
       const ps = await getParties();
-      for (const p of ps) await cacheLedger(p.id); // one at a time — gentle on the API
+      let ok = 0;
+      let failed = 0;
+      for (const p of ps) {
+        // Per-customer catch so one failure can't abort the whole save.
+        const led = await cacheLedger(p.id).catch(() => null);
+        if (led) ok += 1;
+        else failed += 1;
+      }
+      setSaveResult(
+        `${hydrated ? "" : "Couldn't refresh customers. "}Saved ${ok} ledger${ok === 1 ? "" : "s"}` +
+          (failed ? `, ${failed} failed` : "") +
+          ".",
+      );
       await load();
     } finally {
       setBusy(null);
@@ -114,6 +140,13 @@ export default function FieldHome() {
           {busy === "save" ? "Saving…" : "Save all for offline"}
         </button>
       </div>
+
+      {/* Cache diagnostics — so it's clear what's available offline. */}
+      <p className="text-[11.5px] text-faint">
+        Offline cache: {parties.length} customer{parties.length === 1 ? "" : "s"} · {ledgerCount}{" "}
+        ledger{ledgerCount === 1 ? "" : "s"} · {itemCount} item{itemCount === 1 ? "" : "s"}
+        {saveResult ? ` — ${saveResult}` : ""}
+      </p>
 
       {/* Pending sync queue */}
       {outbox.length > 0 && (
