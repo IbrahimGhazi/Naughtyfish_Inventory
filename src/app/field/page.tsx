@@ -12,17 +12,20 @@ import {
 import type { OfflineInfo } from "@/lib/offline/client";
 import { useOnline } from "@/lib/offline/useOnline";
 import type { CachedParty, OutboxItem } from "@/lib/offline/types";
+import PartyDetail from "./PartyDetail";
 
 /*
- * Field mode — the offline-capable workspace. Reads everything from the
- * IndexedDB cache so it works with no signal; writes go to the outbox and sync
- * on reconnect. First visit must be online (to cache the page + pull data).
+ * Field mode — a single-page offline workspace. Selecting a customer switches
+ * the view via in-app STATE (no route navigation), so once /field is open,
+ * browsing customers + recording payments/invoices works fully offline
+ * regardless of the service worker. Reads/writes go through IndexedDB.
  */
 export default function FieldHome() {
   const [parties, setParties] = useState<CachedParty[]>([]);
   const [outbox, setOutbox] = useState<OutboxItem[]>([]);
   const [info, setInfoState] = useState<OfflineInfo | null>(null);
   const [q, setQ] = useState("");
+  const [selected, setSelected] = useState<string | null>(null);
   const online = useOnline();
   const [busy, setBusy] = useState<null | "save" | "sync">(null);
 
@@ -53,19 +56,10 @@ export default function FieldHome() {
     setBusy("save");
     try {
       await hydrate();
-      // Warm the hub's page shell (document + RSC) so it opens offline.
-      await Promise.allSettled([
-        fetch("/field", { headers: { Accept: "text/html" }, cache: "no-store" }),
-        fetch("/field", { headers: { RSC: "1" }, cache: "no-store" }),
-      ]);
+      // Warm the hub's own page shell so /field can cold-open offline too.
+      await fetch("/field", { headers: { Accept: "text/html" }, cache: "no-store" }).catch(() => {});
       const ps = await getParties();
-      for (const p of ps) {
-        await cacheLedger(p.id); // one at a time — gentle on the API
-        // Warm each customer's page shell so their ledger opens offline.
-        await fetch(`/field/${p.id}`, { headers: { Accept: "text/html" }, cache: "no-store" }).catch(
-          () => {},
-        );
-      }
+      for (const p of ps) await cacheLedger(p.id); // one at a time — gentle on the API
       await load();
     } finally {
       setBusy(null);
@@ -82,9 +76,22 @@ export default function FieldHome() {
     }
   };
 
-  const savedLabel = info?.serverTime
-    ? new Date(info.serverTime).toLocaleString()
-    : null;
+  // Customer detail — rendered inline, no navigation.
+  if (selected) {
+    return (
+      <div className="mx-auto max-w-[760px]">
+        <PartyDetail
+          partyId={selected}
+          onBack={() => {
+            setSelected(null);
+            void load();
+          }}
+        />
+      </div>
+    );
+  }
+
+  const savedLabel = info?.serverTime ? new Date(info.serverTime).toLocaleString() : null;
 
   return (
     <div className="mx-auto max-w-[760px] space-y-5">
@@ -93,9 +100,7 @@ export default function FieldHome() {
           <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
             Offline field mode
           </div>
-          <h1 className="mt-0.5 font-serif text-[26px] font-semibold leading-tight text-ink">
-            Field
-          </h1>
+          <h1 className="mt-0.5 font-serif text-[26px] font-semibold leading-tight text-ink">Field</h1>
           <p className="mt-1 text-sm text-muted">
             Look up a customer&apos;s ledger and record payments even with no signal.
             {savedLabel ? ` Saved for offline: ${savedLabel}.` : " Not saved for offline yet."}
@@ -171,9 +176,9 @@ export default function FieldHome() {
           <ul className="divide-y divide-row">
             {filtered.map((p) => (
               <li key={p.id}>
-                <a
-                  href={`/field/${p.id}`}
-                  className="flex items-center justify-between gap-3 px-3.5 py-3 transition-colors hover:bg-card2"
+                <button
+                  onClick={() => setSelected(p.id)}
+                  className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left transition-colors hover:bg-card2"
                 >
                   <div className="min-w-0">
                     <div className="truncate text-[13.5px] font-semibold text-ink">{p.name}</div>
@@ -182,7 +187,7 @@ export default function FieldHome() {
                     </div>
                   </div>
                   <span className="shrink-0 text-faint">›</span>
-                </a>
+                </button>
               </li>
             ))}
           </ul>
