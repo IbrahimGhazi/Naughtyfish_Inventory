@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   Newsreader, IBM_Plex_Sans, IBM_Plex_Mono,
   Playfair_Display, Inter, JetBrains_Mono,
@@ -8,6 +8,7 @@ import {
 import { cookies } from "next/headers";
 import "./globals.css";
 import AppShell from "./AppShell";
+import PwaManager from "./PwaManager";
 import { getAppConfig, themeCss, unitsScript, resolveCopy } from "@/lib/config";
 import { CopyProvider } from "@/lib/copy/CopyProvider";
 
@@ -113,11 +114,23 @@ const FONT_TRIOS: Record<string, string> = {
   "lora-karla": `${lora.variable} ${karla.variable} ${spaceMono.variable}`,
 };
 
+export const viewport: Viewport = {
+  themeColor: "#0d1f26",
+  viewportFit: "cover",
+};
+
 export async function generateMetadata(): Promise<Metadata> {
   const cfg = await getAppConfig();
   return {
     title: cfg.branding.appName,
     description: `${cfg.branding.businessType} — ${cfg.branding.tagline}`,
+    manifest: "/manifest.webmanifest",
+    icons: { apple: "/icons/apple-touch-icon.png" },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: cfg.branding.appName,
+    },
   };
 }
 
@@ -147,6 +160,7 @@ export default async function RootLayout({
         <CopyProvider map={resolveCopy(cfg.copy)}>
           <AppShell>{children}</AppShell>
         </CopyProvider>
+        <PwaManager />
       </body>
     </html>
   );
