@@ -9,6 +9,8 @@ import { pkr, dateShort } from "@/lib/format";
 import type { TFn } from "@/lib/copy";
 import { BAD_DEBT_SUBCATEGORIES } from "@/lib/enums";
 import { BackLink, Card, Chip, Th } from "@/components/ui";
+import SharePdfButton from "@/components/SharePdfButton";
+import type { BadDebtsPdfData } from "@/lib/pdf/types";
 import {
   totalBadDebts,
   type BadDebtRow,
@@ -101,6 +103,21 @@ export default async function BadDebtsPage({
 
   const totals = totalBadDebts(rows);
 
+  const badDebtsPdf: BadDebtsPdfData = {
+    businessName: cfg.branding.appName,
+    rows: rows.map((r) => ({
+      dateISO: r.date,
+      name: r.partyName ?? r.personName,
+      invoiceNumber: r.invoiceNumber != null ? String(r.invoiceNumber) : null,
+      type: r.subCategory === "dispute" ? "Dispute" : "Bad debt",
+      amount: r.amount,
+      note: r.note,
+    })),
+    badDebtTotal: totals.badDebt,
+    disputeTotal: totals.dispute,
+    grandTotal: totals.grand,
+  };
+
   const formParties: FormParty[] = parties.map((p) => ({
     id: p.id,
     name: p.name,
@@ -138,6 +155,13 @@ export default async function BadDebtsPage({
             >
               {t("reports.badDebts.printSummary")}
             </Link>
+            <SharePdfButton
+              kind="badDebts"
+              payload={badDebtsPdf}
+              filename="Bad-debts-and-disputes.pdf"
+              shareText={`${cfg.branding.appName} — bad debts & disputes summary`}
+              testid="share-bad-debts"
+            />
             <AddBadDebtForm parties={formParties} invoices={formInvoices} />
           </div>
         </div>

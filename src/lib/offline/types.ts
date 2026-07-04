@@ -48,6 +48,7 @@ export interface Bootstrap {
   serverTime: string;
   entityId: string;
   entityName: string;
+  appName: string;
   userId: string;
   userRole: string;
   canInvoice: boolean;

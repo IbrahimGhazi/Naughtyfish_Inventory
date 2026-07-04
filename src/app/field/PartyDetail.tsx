@@ -16,6 +16,8 @@ import {
 import type { OfflineInfo } from "@/lib/offline/client";
 import type { CachedLedger, CachedItem, CachedStore, OutboxItem } from "@/lib/offline/types";
 import type { CreatePaymentInput } from "@/app/payments/actions";
+import SharePdfButton from "@/components/SharePdfButton";
+import type { StatementPdfData } from "@/lib/pdf/types";
 import InvoiceForm from "./InvoiceForm";
 
 type Channel = "north" | "local";
@@ -36,6 +38,7 @@ export default function PartyDetail({
 }) {
   const [ledger, setLedger] = useState<CachedLedger | null>(null);
   const [partyName, setPartyName] = useState<string>("");
+  const [partyMeta, setPartyMeta] = useState<string>("");
   const [info, setInfo] = useState<OfflineInfo | null>(null);
   const [pending, setPending] = useState<OutboxItem[]>([]);
   const [items, setItems] = useState<CachedItem[]>([]);
@@ -59,6 +62,12 @@ export default function PartyDetail({
     setStores(sts);
     const party = parties.find((p) => p.id === partyId);
     setPartyName(led?.partyName ?? party?.name ?? "Customer");
+    setPartyMeta(
+      party
+        ? [party.partyType, party.subType, party.channel].filter(Boolean).join(" · ") +
+            (party.ntn ? ` · NTN ${party.ntn}` : "")
+        : "",
+    );
     if (party?.channel === "north" || party?.channel === "local") setDefaultChannel(party.channel);
   }, [partyId]);
 
@@ -85,6 +94,27 @@ export default function PartyDetail({
       ),
     [pending],
   );
+
+  const statementPdf = useMemo<StatementPdfData | null>(() => {
+    if (!ledger) return null;
+    return {
+      businessName: info?.appName ?? "Statement",
+      partyName,
+      partyMeta,
+      asOfISO: ledger.syncedAt,
+      opening: ledger.opening,
+      rows: ledger.rows.map((r) => ({
+        dateISO: r.date,
+        kind: r.kind,
+        ref: r.ref,
+        meta: r.meta ?? null,
+        debit: r.debit,
+        credit: r.credit,
+        balance: r.balance,
+      })),
+      netOutstanding: ledger.netOutstanding,
+    };
+  }, [ledger, info, partyName, partyMeta]);
 
   return (
     <div className="space-y-4">
@@ -118,6 +148,17 @@ export default function PartyDetail({
           </div>
         </div>
       </div>
+
+      {statementPdf && (
+        <SharePdfButton
+          kind="statement"
+          payload={statementPdf}
+          filename={`Statement-${partyName.replace(/[^\w-]+/g, "_")}.pdf`}
+          shareText={`${info?.appName ?? ""} — account statement for ${partyName}`.trim()}
+          label="Share statement"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-hair bg-card px-3.5 py-2 text-sm font-semibold text-text transition-colors hover:bg-card2 disabled:opacity-60"
+        />
+      )}
 
       {info && (info.canPay || info.canInvoice) && (
         <div className="space-y-3">

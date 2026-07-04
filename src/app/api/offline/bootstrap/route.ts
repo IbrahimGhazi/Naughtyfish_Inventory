@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
 import { OFFICE_ROLES } from "@/lib/roles";
+import { getAppConfig } from "@/lib/config";
 import type { Bootstrap } from "@/lib/offline/types";
 
 // Reference data the field surface needs cached so it works with no signal.
@@ -14,6 +15,7 @@ const PAY_ROLES = new Set<string>([...OFFICE_ROLES]); // payments are office-onl
 export async function GET() {
   const ctx = await getActiveContext();
   const scope = entityScope(ctx);
+  const cfg = await getAppConfig();
 
   const [parties, items, stores, series] = await Promise.all([
     prisma.party.findMany({
@@ -45,6 +47,7 @@ export async function GET() {
     serverTime: new Date().toISOString(),
     entityId: ctx.entityId,
     entityName: ctx.entityName,
+    appName: cfg.branding.appName,
     userId: ctx.user.id,
     userRole: ctx.user.role,
     canInvoice: INVOICE_ROLES.has(ctx.user.role),

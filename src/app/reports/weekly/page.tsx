@@ -6,6 +6,8 @@ import { getAppConfig, getCopy } from "@/lib/config";
 import { pkr, dateShort } from "@/lib/format";
 import type { TFn } from "@/lib/copy";
 import { BackLink, Card, PrimaryButton, Th } from "@/components/ui";
+import SharePdfButton from "@/components/SharePdfButton";
+import type { WeeklyPdfData } from "@/lib/pdf/types";
 import {
   buildWeeklyStatement,
   defaultWeekRange,
@@ -83,6 +85,25 @@ export default async function WeeklyStatementPage({
 
   const printHref = `/reports/weekly/print?from=${fromValue}&to=${toValue}`;
 
+  const toRow = (r: StatementRow) => ({
+    name: r.name,
+    detail: r.invoices.length
+      ? r.invoices.map((i) => `#${i.number}${i.reference ? " " + i.reference : ""}`).join(", ")
+      : "—",
+    outstanding: r.outstanding,
+  });
+  const weeklyPdf: WeeklyPdfData = {
+    businessName: cfg.branding.appName,
+    fromISO: range.from.toISOString(),
+    toISO: range.to.toISOString(),
+    corporate: stmt.corporate.map(toRow),
+    local: stmt.local.map(toRow),
+    suppliers: stmt.suppliers.map(toRow),
+    receivablesTotal: stmt.receivablesTotal,
+    payablesTotal: stmt.payablesTotal,
+    net: stmt.net,
+  };
+
   return (
     <div className="animate-rise space-y-5">
       <div>
@@ -100,13 +121,22 @@ export default async function WeeklyStatementPage({
               {dateShort(range.to)}
             </p>
           </div>
-          <PrimaryButton
-            href={printHref}
-            data-testid="wk-print"
-            style={{ background: "var(--ink)", color: "var(--card)" }}
-          >
-            {t("reports.weekly.print")}
-          </PrimaryButton>
+          <div className="flex flex-wrap items-center gap-2">
+            <SharePdfButton
+              kind="weekly"
+              payload={weeklyPdf}
+              filename={`Weekly-${fromValue}_to_${toValue}.pdf`}
+              shareText={`${cfg.branding.appName} — weekly statement ${fromValue} to ${toValue}`}
+              testid="share-weekly"
+            />
+            <PrimaryButton
+              href={printHref}
+              data-testid="wk-print"
+              style={{ background: "var(--ink)", color: "var(--card)" }}
+            >
+              {t("reports.weekly.print")}
+            </PrimaryButton>
+          </div>
         </div>
       </div>
 

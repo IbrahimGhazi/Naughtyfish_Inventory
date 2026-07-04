@@ -5,9 +5,11 @@ import { getActiveContext } from "@/lib/session";
 import { requirePage, canAccessPage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { buildPartyLedger } from "@/lib/ledger";
-import { getCopy } from "@/lib/config";
+import { getCopy, getAppConfig } from "@/lib/config";
 import { pkr, dateShort } from "@/lib/format";
 import { BackLink, Card, Chip, PrimaryButton, Th } from "@/components/ui";
+import SharePdfButton from "@/components/SharePdfButton";
+import type { StatementPdfData } from "@/lib/pdf/types";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +40,25 @@ export default async function PartyLedgerPage({
     [party.partyType, party.subType, party.channel].filter(Boolean).join(" · ") +
     (party.ntn ? ` · NTN ${party.ntn}` : " · no NTN (local)");
 
+  const cfg = await getAppConfig();
+  const statementPdf: StatementPdfData = {
+    businessName: cfg.branding.appName,
+    partyName: party.name,
+    partyMeta: meta,
+    asOfISO: asOfDate ? asOfDate.toISOString() : null,
+    opening: ledger.opening,
+    rows: ledger.rows.map((r) => ({
+      dateISO: r.date.toISOString(),
+      kind: r.kind,
+      ref: r.ref,
+      meta: r.meta ?? null,
+      debit: r.debit,
+      credit: r.credit,
+      balance: r.balance,
+    })),
+    netOutstanding: ledger.netOutstanding,
+  };
+
   return (
     <div className="animate-rise space-y-4">
       <div>
@@ -49,9 +70,18 @@ export default async function PartyLedgerPage({
             </h1>
             <p className="mt-1 text-sm text-muted">{meta}</p>
           </div>
-          <PrimaryButton href={`/parties/${id}/payment`} data-testid="record-payment">
-            {t("parties.ledger.recordPayment")}
-          </PrimaryButton>
+          <div className="flex flex-wrap items-center gap-2">
+            <SharePdfButton
+              kind="statement"
+              payload={statementPdf}
+              filename={`Statement-${party.name.replace(/[^\w-]+/g, "_")}.pdf`}
+              shareText={`${cfg.branding.appName} — account statement for ${party.name}`}
+              testid="share-statement"
+            />
+            <PrimaryButton href={`/parties/${id}/payment`} data-testid="record-payment">
+              {t("parties.ledger.recordPayment")}
+            </PrimaryButton>
+          </div>
         </div>
       </div>
 

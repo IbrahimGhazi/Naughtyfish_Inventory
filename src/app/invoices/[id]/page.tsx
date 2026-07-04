@@ -5,7 +5,7 @@ import { getActiveContext } from "@/lib/session";
 import { canAccessPage, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { pkr, kg, pct, dateShort } from "@/lib/format";
-import { getCopy } from "@/lib/config";
+import { getCopy, getAppConfig } from "@/lib/config";
 import {
   Card,
   Chip,
@@ -14,6 +14,8 @@ import {
   GhostButton,
   Th,
 } from "@/components/ui";
+import SharePdfButton from "@/components/SharePdfButton";
+import type { InvoicePdfData } from "@/lib/pdf/types";
 import { ApproveButton, PhotoSection } from "./ReviewControls";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +27,7 @@ export default async function InvoiceDetailPage({
 }) {
   const { id } = await params;
   const ctx = await getActiveContext();
-  const t = await getCopy();
+  const [t, cfg] = await Promise.all([getCopy(), getAppConfig()]);
 
   const invoice = await prisma.invoice.findFirst({
     where: { id, ...entityScope(ctx) },
@@ -54,6 +56,33 @@ export default async function InvoiceDetailPage({
   const paid = invoice.payments.reduce((s, p) => s + Number(p.amount), 0);
   const balance = total - paid;
   const paidPct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+
+  const pdfData: InvoicePdfData = {
+    businessName: cfg.branding.appName,
+    invoiceNumber: invoice.invoiceNumber,
+    referenceNumber: invoice.referenceNumber,
+    dateISO: invoice.date.toISOString(),
+    channel: invoice.channel,
+    status: invoice.status,
+    partyName: invoice.party.name,
+    partyMeta: [invoice.party.partyType, invoice.party.ntn ? `NTN ${invoice.party.ntn}` : null]
+      .filter(Boolean)
+      .join(" · "),
+    lines: invoice.lineItems.map((li) => ({
+      itemName: li.item.name,
+      grossKg: Number(li.grossWeightKg),
+      netKg: Number(li.netWeightKg),
+      glazingPct: Number(li.glazingPct),
+      ratePerKg: Number(li.ratePerKg),
+      cartonCount: li.cartonCount,
+      packetCount: li.packetCount,
+      amount: Number(li.amount),
+    })),
+    total,
+    paid,
+    balance,
+    notes: invoice.notes,
+  };
 
   return (
     <div className="animate-rise space-y-3.5">
@@ -106,6 +135,13 @@ export default async function InvoiceDetailPage({
             >
               {t("invoices.detail.print")}
             </Link>
+            <SharePdfButton
+              kind="invoice"
+              payload={pdfData}
+              filename={`Invoice-${invoice.invoiceNumber}.pdf`}
+              shareText={`${cfg.branding.appName} — Invoice #${invoice.invoiceNumber} for ${invoice.party.name}`}
+              testid="share-invoice"
+            />
           </div>
         </div>
       </div>

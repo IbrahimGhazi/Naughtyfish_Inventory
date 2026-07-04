@@ -13,6 +13,7 @@ export interface OfflineInfo {
   serverTime: string;
   entityId: string;
   entityName: string;
+  appName: string;
   userId: string;
   userRole: string;
   canInvoice: boolean;
@@ -51,6 +52,7 @@ export async function hydrate(): Promise<boolean> {
     serverTime: boot.serverTime,
     entityId: boot.entityId,
     entityName: boot.entityName,
+    appName: boot.appName,
     userId: boot.userId,
     userRole: boot.userRole,
     canInvoice: boot.canInvoice,
