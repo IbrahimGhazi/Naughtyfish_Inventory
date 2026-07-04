@@ -4,8 +4,9 @@ import { getActiveContext } from "@/lib/session";
 import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { pkr, dateShort } from "@/lib/format";
-import { getCopy } from "@/lib/config";
+import { getCopy, getAppConfig } from "@/lib/config";
 import { Card, StatusChip } from "@/components/ui";
+import RiderTracking, { type RiderShipment } from "./RiderTracking";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,36 @@ export default async function DeliveryHome() {
   const first = ctx.user.name.split(" ")[0] || ctx.user.name;
   const pendingReview = recent.filter((i) => i.status === "draft").length;
 
+  // Active truck deliveries the rider can drive + share location for.
+  const cfg = await getAppConfig();
+  let assigned: RiderShipment[] = [];
+  let claimable: RiderShipment[] = [];
+  if (cfg.features.shipments) {
+    const ships = await prisma.shipment.findMany({
+      where: { ...entityScope(ctx), status: { in: ["preparing", "in_transit", "delayed"] } },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        reference: true,
+        originCity: true,
+        destinationCity: true,
+        destinationName: true,
+        status: true,
+        assignedRiderId: true,
+      },
+    });
+    const toRider = (s: (typeof ships)[number]): RiderShipment => ({
+      id: s.id,
+      reference: s.reference,
+      originCity: s.originCity,
+      destinationCity: s.destinationCity,
+      destinationName: s.destinationName,
+      status: s.status,
+    });
+    assigned = ships.filter((s) => s.assignedRiderId === ctx.user.id).map(toRider);
+    claimable = ships.filter((s) => !s.assignedRiderId).map(toRider);
+  }
+
   return (
     <div className="mx-auto max-w-[760px] animate-rise space-y-4">
       <div>
@@ -47,6 +78,8 @@ export default async function DeliveryHome() {
           {t("delivery.home.subtitle")}
         </p>
       </div>
+
+      {cfg.features.shipments && <RiderTracking assigned={assigned} claimable={claimable} />}
 
       {/* Big actions — thumb-sized for phone use in the field. */}
       <div className="grid gap-3.5 sm:grid-cols-2">

@@ -2,11 +2,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
-import { requirePage } from "@/lib/roles";
+import { requirePage, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { getAppConfig, getCopy } from "@/lib/config";
 import { dateShort } from "@/lib/format";
 import { BackLink, Card, StatusChip } from "@/components/ui";
+import RiderAssign from "./RiderAssign";
 import {
   STATUS_LABELS,
   STATUS_TIMELINE,
@@ -57,11 +58,27 @@ export default async function ShipmentDetailPage({
       party: true,
       invoice: true,
       originStore: true,
+      assignedRider: { select: { id: true, name: true } },
     },
   });
   if (!shipment) notFound();
 
+  const isOffice = OFFICE_ROLES.includes(ctx.user.role);
+  const riders = isOffice
+    ? await prisma.user.findMany({
+        where: { entityId: ctx.entityId, role: "delivery" },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      })
+    : [];
+
+  const hasLocation = shipment.currentLat != null && shipment.currentLng != null;
+
   const now = new Date();
+  const locAgeMin = shipment.locationUpdatedAt
+    ? (now.getTime() - new Date(shipment.locationUpdatedAt).getTime()) / 60000
+    : null;
+  const locFresh = locAgeMin != null && locAgeMin < 3;
   const hint = etaHint(shipment.estimatedArrivalAt, shipment.status, now);
   const statusLabel = STATUS_LABELS[shipment.status as ShipmentStatus] ?? shipment.status;
 
@@ -236,6 +253,60 @@ export default async function ShipmentDetailPage({
             <div className="text-xs font-medium text-muted">{t("shipments.detail.notesLabel")}</div>
             <p className="mt-1 whitespace-pre-wrap text-sm text-text">{shipment.notes}</p>
           </div>
+        )}
+      </Card>
+
+      {/* Rider & live location */}
+      <Card className="p-[18px]">
+        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">Rider &amp; live location</h2>
+        <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="text-xs font-medium text-muted">Rider</span>
+          {isOffice ? (
+            <RiderAssign
+              shipmentId={shipment.id}
+              riders={riders}
+              current={shipment.assignedRiderId}
+            />
+          ) : (
+            <span className="text-sm text-text">{shipment.assignedRider?.name ?? "—"}</span>
+          )}
+        </div>
+
+        {hasLocation ? (
+          <div className="rounded-xl border border-hair2 bg-card2 p-3.5">
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ background: locFresh ? "var(--pos)" : "var(--warn)" }}
+              />
+              <span className="text-[13px] font-semibold text-ink">
+                {locFresh ? "Live" : "Last known location"}
+              </span>
+              {shipment.locationUpdatedAt && (
+                <span className="text-[12px] text-faint">· updated {dateTime(shipment.locationUpdatedAt)}</span>
+              )}
+            </div>
+            <div className="mt-2 font-mono text-[12.5px] text-muted">
+              {shipment.currentLat!.toFixed(5)}, {shipment.currentLng!.toFixed(5)}
+              {shipment.locationAccuracyM != null && (
+                <span className="text-faint"> · ±{Math.round(shipment.locationAccuracyM)} m</span>
+              )}
+            </div>
+            <a
+              href={`https://www.google.com/maps?q=${shipment.currentLat},${shipment.currentLng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2.5 inline-flex items-center rounded-lg px-3 py-1.5 text-[13px] font-semibold text-on-accent"
+              style={{ background: "var(--accent)" }}
+            >
+              View on map
+            </a>
+          </div>
+        ) : (
+          <p className="text-[13px] text-faint">
+            No location yet. It appears here once the assigned rider shares their location from the
+            field (while their app is open).
+          </p>
         )}
       </Card>
 

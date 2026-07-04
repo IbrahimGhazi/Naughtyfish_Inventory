@@ -71,6 +71,7 @@ model User {
   invoicesCreated Invoice[]        @relation("CreatedBy")
   expenseEntries  ExpenseEntry[]
   purchasesEntered Purchase[]      @relation("PurchaseEnteredBy")
+  shipmentsAssigned Shipment[]     @relation("AssignedRider")
 }
 
 /// Join: which stores a (store-scoped) user may see.
@@ -476,6 +477,12 @@ model Shipment {
   driverName         String?
   driverPhone        String?
   notes              String?
+  // Live rider GPS (populated while the assigned rider shares location from the
+  // field; foreground-only — web apps can't track in the background). Nullable.
+  currentLat         Float?
+  currentLng         Float?
+  locationAccuracyM  Float? // reported accuracy radius in metres
+  locationUpdatedAt  DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -487,8 +494,12 @@ model Shipment {
   invoiceId     String?
   originStore   Store?   @relation("ShipmentOrigin", fields: [originStoreId], references: [id])
   originStoreId String?
+  // The rider (delivery user) currently driving this truck delivery.
+  assignedRider   User?   @relation("AssignedRider", fields: [assignedRiderId], references: [id])
+  assignedRiderId String?
 
   @@index([entityId, status])
+  @@index([assignedRiderId])
 }
 
 /// OPTIONAL production/processing step: raw material sent somewhere (a vendor,
