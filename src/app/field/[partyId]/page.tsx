@@ -7,6 +7,8 @@ import { pkr, dateShort } from "@/lib/format";
 import {
   getLedger,
   getParties,
+  getItems,
+  getStores,
   getInfo,
   getOutbox,
   cacheLedger,
@@ -14,8 +16,11 @@ import {
   flush,
 } from "@/lib/offline/client";
 import type { OfflineInfo } from "@/lib/offline/client";
-import type { CachedLedger, OutboxItem } from "@/lib/offline/types";
+import type { CachedLedger, CachedItem, CachedStore, OutboxItem } from "@/lib/offline/types";
 import type { CreatePaymentInput } from "@/app/payments/actions";
+import InvoiceForm from "./InvoiceForm";
+
+type Channel = "north" | "local";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -25,19 +30,28 @@ export default function FieldLedger() {
   const [partyName, setPartyName] = useState<string>("");
   const [info, setInfo] = useState<OfflineInfo | null>(null);
   const [pending, setPending] = useState<OutboxItem[]>([]);
-  const [showForm, setShowForm] = useState(false);
+  const [items, setItems] = useState<CachedItem[]>([]);
+  const [stores, setStores] = useState<CachedStore[]>([]);
+  const [defaultChannel, setDefaultChannel] = useState<Channel>("local");
+  const [mode, setMode] = useState<null | "payment" | "invoice">(null);
 
   const load = useCallback(async () => {
-    const [led, nfo, ob, parties] = await Promise.all([
+    const [led, nfo, ob, parties, its, sts] = await Promise.all([
       getLedger(partyId),
       getInfo(),
       getOutbox(),
       getParties(),
+      getItems(),
+      getStores(),
     ]);
     setLedger(led ?? null);
     setInfo(nfo ?? null);
     setPending(ob.filter((o) => o.partyId === partyId));
-    setPartyName(led?.partyName ?? parties.find((p) => p.id === partyId)?.name ?? "Customer");
+    setItems(its);
+    setStores(sts);
+    const party = parties.find((p) => p.id === partyId);
+    setPartyName(led?.partyName ?? party?.name ?? "Customer");
+    if (party?.channel === "north" || party?.channel === "local") setDefaultChannel(party.channel);
   }, [partyId]);
 
   useEffect(() => {
@@ -94,27 +108,57 @@ export default function FieldLedger() {
         </div>
       </div>
 
-      {info?.canPay && (
-        <div>
-          {showForm ? (
+      {info && (info.canPay || info.canInvoice) && (
+        <div className="space-y-3">
+          {mode === null && (
+            <div className="flex flex-wrap gap-2">
+              {info.canPay && (
+                <button
+                  onClick={() => setMode("payment")}
+                  className="rounded-lg px-4 py-2 text-sm font-semibold text-on-accent"
+                  style={{ background: "var(--accent)" }}
+                >
+                  Record payment
+                </button>
+              )}
+              {info.canInvoice && (
+                <button
+                  onClick={() => setMode("invoice")}
+                  className="rounded-lg border border-hair bg-card px-4 py-2 text-sm font-semibold text-text transition-colors hover:bg-card2"
+                >
+                  New invoice
+                </button>
+              )}
+            </div>
+          )}
+
+          {mode === "payment" && (
             <PaymentForm
               partyId={partyId}
               partyName={partyName}
               entityId={info.entityId}
               onDone={async () => {
-                setShowForm(false);
+                setMode(null);
                 await load();
               }}
-              onCancel={() => setShowForm(false)}
+              onCancel={() => setMode(null)}
             />
-          ) : (
-            <button
-              onClick={() => setShowForm(true)}
-              className="rounded-lg px-4 py-2 text-sm font-semibold text-on-accent"
-              style={{ background: "var(--accent)" }}
-            >
-              Record payment
-            </button>
+          )}
+
+          {mode === "invoice" && (
+            <InvoiceForm
+              partyId={partyId}
+              partyName={partyName}
+              entityId={info.entityId}
+              items={items}
+              stores={stores}
+              defaultChannel={defaultChannel}
+              onDone={async () => {
+                setMode(null);
+                await load();
+              }}
+              onCancel={() => setMode(null)}
+            />
           )}
         </div>
       )}
