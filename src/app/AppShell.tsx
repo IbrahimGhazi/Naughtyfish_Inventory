@@ -6,6 +6,7 @@ import SidebarDrawer from "./SidebarDrawer";
 import { MobileSidebarProvider } from "./MobileSidebarContext";
 import Topbar from "./Topbar";
 import Assistant from "./Assistant";
+import OfflineSync from "./OfflineSync";
 import { assistantConfigured } from "@/lib/assistant/llm";
 
 /**
@@ -53,6 +54,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
           </div>
         </main>
         {cfg.features.assistant && assistantConfigured() && <Assistant book={ctx.entityName} />}
+        <OfflineSync />
       </div>
     </MobileSidebarProvider>
   );

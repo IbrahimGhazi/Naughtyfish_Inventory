@@ -1,23 +1,23 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useOnline } from "@/lib/offline/useOnline";
 
 /*
  * Registers the service worker and shows a small connectivity pill:
  *   - offline  → persistent "Offline — your work is saved on this device"
  *   - online   → transient  "Back online"
  *   - synced   → transient  "Synced ✓ N changes" (fired by the sync engine via
- *                the `nf:synced` window event once offline writes exist)
+ *                the `nf:synced` window event)
+ * The persistent offline pill is DERIVED from useOnline (no setState); only the
+ * transient toasts use state, and they're set inside event callbacks.
  * Mounted at the layout root so it runs on every route, including /login.
  */
-type Toast =
-  | { kind: "offline" }
-  | { kind: "online" }
-  | { kind: "synced"; count: number }
-  | null;
+type Transient = { kind: "online" } | { kind: "synced"; count: number } | null;
 
 export default function PwaManager() {
-  const [toast, setToast] = useState<Toast>(null);
+  const online = useOnline();
+  const [transient, setTransient] = useState<Transient>(null);
   const hideTimer = useRef<number | null>(null);
 
   // Register the SW after load so it never competes with first paint.
@@ -33,7 +33,7 @@ export default function PwaManager() {
     }
   }, []);
 
-  // Connectivity + sync toasts.
+  // Transient toasts, driven entirely by events (setState only in callbacks).
   useEffect(() => {
     const clearHide = () => {
       if (hideTimer.current) {
@@ -41,45 +41,39 @@ export default function PwaManager() {
         hideTimer.current = null;
       }
     };
-    const showTransient = (t: Toast) => {
+    const show = (t: Transient) => {
       clearHide();
-      setToast(t);
-      hideTimer.current = window.setTimeout(() => setToast(null), 3400);
+      setTransient(t);
+      hideTimer.current = window.setTimeout(() => setTransient(null), 3400);
     };
+    const onOnline = () => show({ kind: "online" });
+    const onSynced = (e: Event) =>
+      show({ kind: "synced", count: (e as CustomEvent<{ count?: number }>).detail?.count ?? 0 });
 
-    const goOffline = () => {
-      clearHide();
-      setToast({ kind: "offline" }); // stays until reconnect
-    };
-    const goOnline = () => showTransient({ kind: "online" });
-    const onSynced = (e: Event) => {
-      const count = (e as CustomEvent<{ count?: number }>).detail?.count ?? 0;
-      showTransient({ kind: "synced", count });
-    };
-
-    if (!navigator.onLine) setToast({ kind: "offline" });
-
-    window.addEventListener("offline", goOffline);
-    window.addEventListener("online", goOnline);
+    window.addEventListener("online", onOnline);
     window.addEventListener("nf:synced", onSynced as EventListener);
     return () => {
-      window.removeEventListener("offline", goOffline);
-      window.removeEventListener("online", goOnline);
+      window.removeEventListener("online", onOnline);
       window.removeEventListener("nf:synced", onSynced as EventListener);
       clearHide();
     };
   }, []);
 
+  // Transient wins; otherwise show the persistent offline pill when offline.
+  const toast: { kind: "offline" | "online" | "synced"; count?: number } | null = transient
+    ? transient
+    : !online
+      ? { kind: "offline" }
+      : null;
   if (!toast) return null;
 
-  const dot =
-    toast.kind === "offline" ? "var(--warn)" : "var(--pos)";
+  const dot = toast.kind === "offline" ? "var(--warn)" : "var(--pos)";
   const label =
     toast.kind === "offline"
       ? "Offline — your work is saved on this device"
       : toast.kind === "online"
         ? "Back online"
-        : toast.count > 0
+        : (toast.count ?? 0) > 0
           ? `Synced ✓ ${toast.count} change${toast.count === 1 ? "" : "s"}`
           : "Synced ✓";
 
@@ -93,10 +87,7 @@ export default function PwaManager() {
         className="pointer-events-auto flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold shadow-pop"
         style={{ background: "var(--ink)", color: "var(--paper)" }}
       >
-        <span
-          className="inline-block h-2 w-2 shrink-0 rounded-full"
-          style={{ background: dot }}
-        />
+        <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: dot }} />
         {label}
       </div>
     </div>

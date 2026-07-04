@@ -23,6 +23,7 @@ const ICONS: Record<string, string> = {
   platform: "M12 2l9 5v10l-9 5-9-5V7l9-5zM12 22V12M3 7l9 5 9-5",
   delivery: "M3 7h11v10H3zM14 10h4l3 3v4h-7v-7M6.5 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3M17.5 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3",
   camera: "M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8",
+  field: "M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01",
 };
 
 export default async function Sidebar({
@@ -108,7 +109,12 @@ export default async function Sidebar({
     sections = [
       {
         label: t("shell.nav.section.overview"),
-        items: [{ href: "/", key: "dashboard", label: t("shell.nav.dashboard"), d: ICONS.dashboard }],
+        items: [
+          { href: "/", key: "dashboard", label: t("shell.nav.dashboard"), d: ICONS.dashboard },
+          ...(can("parties")
+            ? [{ href: "/field", key: "field", label: "Field", d: ICONS.field }]
+            : []),
+        ],
       },
       ...(sales.length ? [{ label: t("shell.nav.section.sales"), items: sales }] : []),
       ...(buying.length ? [{ label: t("purchases.nav.section"), items: buying }] : []),

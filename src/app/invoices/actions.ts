@@ -136,10 +136,29 @@ const InvoiceSchema = z.object({
 
 export type CreateInvoiceInput = z.infer<typeof InvoiceSchema>;
 
-export async function createInvoice(input: CreateInvoiceInput) {
+export async function createInvoice(input: CreateInvoiceInput, clientId?: string) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
   assertRole(ctx, [...OFFICE_ROLES, "north_employee", "delivery"]);
+
+  // Idempotent replay of an offline-queued invoice: the client generated the
+  // invoice id, so if it already exists this sync already landed (with its
+  // server-assigned number). Return it instead of creating a duplicate + a
+  // second stock deduction. (Online callers pass no clientId → unchanged.)
+  if (clientId) {
+    const existing = await prisma.invoice.findUnique({
+      where: { id: clientId },
+      select: { id: true, invoiceNumber: true, referenceNumber: true, totalAmount: true },
+    });
+    if (existing) {
+      return {
+        id: existing.id,
+        invoiceNumber: existing.invoiceNumber,
+        referenceNumber: existing.referenceNumber,
+        total: Number(existing.totalAmount),
+      };
+    }
+  }
 
   // Roadmap M3.2: a delivery login's invoice lands as a DRAFT the office
   // reviews before it counts as final. Stock + the immutable delivery record
@@ -230,6 +249,7 @@ export async function createInvoice(input: CreateInvoiceInput) {
 
     const invoice = await tx.invoice.create({
       data: {
+        ...(clientId ? { id: clientId } : {}),
         invoiceNumber,
         referenceNumber,
         channel: parsed.channel,

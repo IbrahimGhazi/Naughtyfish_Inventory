@@ -43,13 +43,24 @@ const PaymentSchema = z
 
 export type CreatePaymentInput = z.infer<typeof PaymentSchema>;
 
-export async function createPayment(input: CreatePaymentInput) {
+export async function createPayment(input: CreatePaymentInput, clientId?: string) {
   const ctx = await getActiveContext();
   assertRole(ctx, OFFICE_ROLES);
   await assertEntityAccess(ctx);
 
   const parsed = PaymentSchema.parse(input);
   const scope = entityScope(ctx);
+
+  // Idempotent replay of an offline-queued payment: the client generated the
+  // row id, so if it already exists this sync already landed — return it as-is
+  // instead of double-posting. (Online callers pass no clientId → unchanged.)
+  if (clientId) {
+    const existing = await prisma.payment.findUnique({
+      where: { id: clientId },
+      select: { id: true, isPartial: true },
+    });
+    if (existing) return { id: existing.id, isPartial: existing.isPartial };
+  }
 
   // Party must be in the active book.
   const party = await prisma.party.findFirst({ where: { id: parsed.partyId, ...scope } });
@@ -133,6 +144,7 @@ export async function createPayment(input: CreatePaymentInput) {
 
     return tx.payment.create({
       data: {
+        ...(clientId ? { id: clientId } : {}),
         type: parsed.type,
         amount: parsed.amount,
         date,
