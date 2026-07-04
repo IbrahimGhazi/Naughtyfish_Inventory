@@ -100,6 +100,7 @@ export default async function PartyLedgerPage({
 
       {/* Paper ledger table. */}
       <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
             <tr>
@@ -147,6 +148,7 @@ export default async function PartyLedgerPage({
             )}
           </tbody>
         </table>
+        </div>
       </Card>
     </div>
   );

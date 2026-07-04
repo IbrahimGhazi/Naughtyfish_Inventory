@@ -74,6 +74,7 @@ export default async function InvoicesPage({
         <p className="text-sm text-faint">{draftsOnly ? t("invoices.list.emptyDrafts") : t("invoices.list.empty")}</p>
       ) : (
         <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -145,6 +146,7 @@ export default async function InvoicesPage({
               })}
             </tbody>
           </table>
+        </div>
           <div className="flex justify-between border-t border-hair2 bg-card2 px-3.5 py-2.5 text-xs text-muted">
             <span>
               {invoices.length} invoice{invoices.length === 1 ? "" : "s"}

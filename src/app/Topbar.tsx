@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { usePathname } from "next/navigation";
 import { switchBook } from "./session-actions";
 import ThemeToggle from "./ThemeToggle";
+import { useMobileSidebar } from "./MobileSidebarContext";
 import { useCopy } from "@/lib/copy/CopyProvider";
 import type { TFn } from "@/lib/copy";
 
@@ -56,6 +57,7 @@ export default function Topbar({
   const [isPending, startTransition] = useTransition();
   const t = useCopy();
   const { eyebrow, title } = titleFor(pathname, appName, t);
+  const { setOpen } = useMobileSidebar();
 
   const seg = (book: string) => {
     const on = book === activeBook;
@@ -87,16 +89,27 @@ export default function Topbar({
 
   return (
     <div
-      className="sticky top-0 z-20 flex items-center gap-3.5 border-b border-hair2 px-8 py-3.5"
+      className="sticky top-0 z-20 flex items-center gap-2.5 border-b border-hair2 px-4 py-3 sm:gap-3.5 sm:px-6 sm:py-3.5 lg:px-8"
       style={{ background: "color-mix(in srgb, var(--paper-2) 92%, transparent)", backdropFilter: "blur(8px)" }}
     >
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Open menu"
+        data-testid="mobile-menu-toggle"
+        className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink lg:hidden"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
       <div className="min-w-0 flex-1">
-        <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-accent">
+        <div className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-accent">
           {eyebrow}
         </div>
-        <div className="font-serif text-[19px] font-semibold leading-tight text-ink">{title}</div>
+        <div className="truncate font-serif text-[17px] font-semibold leading-tight text-ink sm:text-[19px]">{title}</div>
       </div>
-      <div className="hidden font-mono text-xs text-muted sm:block">{today}</div>
+      <div className="hidden font-mono text-xs text-muted md:block">{today}</div>
       {canSwitch && (
         <div
           className="flex gap-0.5 rounded-lg border border-hair p-[3px]"

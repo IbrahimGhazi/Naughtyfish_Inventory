@@ -38,7 +38,7 @@ export default async function DeliveryHome() {
   const pendingReview = recent.filter((i) => i.status === "draft").length;
 
   return (
-    <div className="mx-auto max-w-[760px] animate-rise space-y-4 px-6 pb-14 pt-7">
+    <div className="mx-auto max-w-[760px] animate-rise space-y-4">
       <div>
         <h1 className="font-serif text-[28px] font-semibold leading-tight text-ink">
           {t("delivery.home.greeting")} {first}

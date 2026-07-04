@@ -168,6 +168,7 @@ export default async function InvoiceDetailPage({
 
       {/* Line items */}
       <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
             <tr>
@@ -225,6 +226,7 @@ export default async function InvoiceDetailPage({
             </tr>
           </tfoot>
         </table>
+        </div>
       </Card>
 
       {invoice.notes && (
@@ -343,6 +345,7 @@ export default async function InvoiceDetailPage({
             {t("invoices.detail.historyEmpty")}
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="mt-3 w-full border-collapse">
             <thead>
               <tr>
@@ -372,6 +375,7 @@ export default async function InvoiceDetailPage({
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </Card>
     </div>

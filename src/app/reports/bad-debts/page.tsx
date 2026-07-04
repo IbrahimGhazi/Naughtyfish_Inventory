@@ -175,6 +175,7 @@ export default async function BadDebtsPage({
 
       {/* Ledger table. */}
       <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
             <tr>
@@ -236,6 +237,7 @@ export default async function BadDebtsPage({
             )}
           </tbody>
         </table>
+        </div>
       </Card>
     </div>
   );

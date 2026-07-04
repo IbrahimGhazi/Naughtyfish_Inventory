@@ -236,6 +236,7 @@ function ReceivablesTable({
       <div className="border-b border-hair2 bg-card2 px-3.5 py-2.5 font-serif text-[15px] font-semibold text-ink">
         {title}
       </div>
+      <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
           <tr>
@@ -289,6 +290,7 @@ function ReceivablesTable({
           </tfoot>
         )}
       </table>
+      </div>
     </Card>
   );
 }
@@ -302,6 +304,7 @@ function PayablesTable({ rows, t }: { rows: StatementRow[]; t: TFn }) {
       <div className="border-b border-hair2 bg-card2 px-3.5 py-2.5 font-serif text-[15px] font-semibold text-ink">
         {t("reports.weekly.suppliers")}
       </div>
+      <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
           <tr>
@@ -344,6 +347,7 @@ function PayablesTable({ rows, t }: { rows: StatementRow[]; t: TFn }) {
           </tfoot>
         )}
       </table>
+      </div>
     </Card>
   );
 }

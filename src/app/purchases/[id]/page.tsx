@@ -79,6 +79,7 @@ export default async function PurchaseDetailPage({
 
       {/* Lines */}
       <div className="overflow-hidden rounded-xl border border-hair bg-card">
+        <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
             <tr>
@@ -126,6 +127,7 @@ export default async function PurchaseDetailPage({
             </tr>
           </tfoot>
         </table>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 items-start gap-3.5 lg:grid-cols-[minmax(0,1fr)_300px]">

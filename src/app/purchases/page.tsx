@@ -59,6 +59,7 @@ export default async function PurchasesPage() {
         </p>
       ) : (
         <div className="overflow-hidden rounded-xl border border-hair bg-card">
+        <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -104,6 +105,7 @@ export default async function PurchasesPage() {
               ))}
             </tbody>
           </table>
+        </div>
           <div className="flex justify-between border-t border-hair2 bg-card2 px-3.5 py-2.5 text-[12px] text-muted">
             <span>
               {rows.length} {t("purchases.list.countSuffix")}

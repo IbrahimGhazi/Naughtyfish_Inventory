@@ -10,7 +10,7 @@ export default async function PasswordPage() {
   const t = await getCopy();
 
   return (
-    <div className="mx-auto max-w-md animate-rise px-8 pb-14 pt-7">
+    <div className="mx-auto max-w-md animate-rise">
       <BackLink href="/settings">{t("settings.backLink")}</BackLink>
       <PageHeader
         eyebrow={t("settings.password.eyebrow")}

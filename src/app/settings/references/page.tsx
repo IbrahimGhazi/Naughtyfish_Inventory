@@ -28,7 +28,7 @@ export default async function ReferencesSettingsPage() {
   }));
 
   return (
-    <div className="mx-auto max-w-[1000px] animate-rise px-8 pb-14 pt-7">
+    <div className="mx-auto max-w-[1000px] animate-rise">
       <BackLink />
       <PageHeader
         eyebrow={t("settings.references.eyebrow")}

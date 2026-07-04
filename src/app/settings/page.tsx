@@ -31,7 +31,7 @@ export default async function SettingsPage() {
     ]);
 
   return (
-    <div className="mx-auto max-w-[1000px] animate-rise px-8 pb-14 pt-7">
+    <div className="mx-auto max-w-[1000px] animate-rise">
       <PageHeader
         eyebrow={t("settings.hub.eyebrow")}
         title={t("settings.hub.title")}

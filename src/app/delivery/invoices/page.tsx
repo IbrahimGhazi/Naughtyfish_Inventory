@@ -50,7 +50,7 @@ export default async function DeliveryInvoicesPage() {
   const photoRecordIds = new Set(photoRecords.map((r) => r.id));
 
   return (
-    <div className="mx-auto max-w-[900px] animate-rise space-y-4 px-6 pb-14 pt-7">
+    <div className="mx-auto max-w-[900px] animate-rise space-y-4">
       <div>
         <BackLink href="/delivery">{t("delivery.invoices.back")}</BackLink>
         <PageHeader
@@ -69,6 +69,7 @@ export default async function DeliveryInvoicesPage() {
         <p className="text-sm text-faint">{t("delivery.invoices.empty")}</p>
       ) : (
         <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -120,6 +121,7 @@ export default async function DeliveryInvoicesPage() {
               ))}
             </tbody>
           </table>
+        </div>
           <div className="border-t border-hair2 bg-card2 px-3.5 py-2.5 text-xs text-muted">
             {invoices.length} invoice{invoices.length === 1 ? "" : "s"}
           </div>

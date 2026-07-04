@@ -211,8 +211,12 @@ export default function PurchaseForm({
           </div>
         </div>
 
-        {/* Lines */}
+        {/* Lines. Fixed-pixel column grid — wrapped in a shared horizontal-
+            scroll region (mobile) so header + rows stay column-aligned; the
+            Add-line button stays outside it, full width. */}
         <div className="overflow-hidden rounded-xl border border-hair bg-card">
+        <div className="overflow-x-auto">
+        <div className="min-w-[640px]">
           <div className="grid grid-cols-[1fr_88px_88px_70px_70px_96px_30px] items-center gap-2 border-b border-hair2 bg-card2 px-3.5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-faint2">
             <span>{t("purchases.new.colItem")}</span>
             <span>{t("purchases.new.colWeight")}</span>
@@ -298,6 +302,8 @@ export default function PurchaseForm({
               </button>
             </div>
           ))}
+        </div>
+        </div>
           <button
             type="button"
             data-testid="pur-add-line"

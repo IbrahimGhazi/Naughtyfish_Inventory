@@ -68,7 +68,7 @@ export default async function DeliveryNewInvoicePage() {
   };
 
   return (
-    <div className="animate-rise space-y-4 px-6 pb-14 pt-7">
+    <div className="animate-rise space-y-4">
       <div>
         <BackLink href="/delivery">{t("delivery.new.back")}</BackLink>
         <PageHeader

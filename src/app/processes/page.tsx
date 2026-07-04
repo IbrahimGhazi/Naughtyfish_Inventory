@@ -86,6 +86,7 @@ export default async function ProcessesPage() {
         </Card>
       ) : (
         <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -160,6 +161,7 @@ export default async function ProcessesPage() {
               })}
             </tbody>
           </table>
+        </div>
         </Card>
       )}
     </div>

@@ -133,7 +133,7 @@ export default async function Sidebar({
 
   return (
     <aside
-      className="flex w-[232px] flex-none flex-col overflow-y-auto"
+      className="flex h-full w-[232px] flex-none flex-col overflow-y-auto"
       style={{ background: "var(--side-bg)", userSelect: "none" }}
     >
       {/* Brand */}

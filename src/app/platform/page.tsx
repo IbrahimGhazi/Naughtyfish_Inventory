@@ -19,7 +19,7 @@ export default async function PlatformPage() {
   const t = await getCopy();
 
   return (
-    <div className="mx-auto max-w-[1100px] animate-rise px-8 pb-14 pt-7">
+    <div className="mx-auto max-w-[1100px] animate-rise">
       <PageHeader
         eyebrow={t("platform.eyebrow")}
         title={t("platform.title")}

@@ -287,8 +287,12 @@ export default function InvoiceForm({
           </div>
         </Card>
 
-        {/* Line-items table */}
+        {/* Line-items table. Fixed-pixel column grid — wrapped in a shared
+            horizontal-scroll region (mobile) so header + rows always stay
+            column-aligned; the Add-line button stays outside it, full width. */}
         <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
+        <div className="min-w-[760px]">
           <div className="grid grid-cols-[1fr_76px_92px_84px_88px_90px_100px_30px] items-center gap-2 border-b border-hair2 bg-card2 px-3.5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-faint2">
             <span>{t("invoices.form.colItem")}</span>
             <span>{labels.packagePlural}</span>
@@ -379,6 +383,8 @@ export default function InvoiceForm({
               );
             })}
           </div>
+        </div>
+        </div>
           <button type="button" onClick={() => setRows((rs) => [...rs, { ...emptyLine }])}
             className="block w-full px-3.5 py-3 text-left text-[13px] font-semibold text-accent transition-colors hover:bg-card2"
             style={{ background: "var(--card-2)" }}>
