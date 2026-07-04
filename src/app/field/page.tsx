@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import {
   getParties,
   getInfo,
@@ -54,8 +53,19 @@ export default function FieldHome() {
     setBusy("save");
     try {
       await hydrate();
+      // Warm the hub's page shell (document + RSC) so it opens offline.
+      await Promise.allSettled([
+        fetch("/field", { headers: { Accept: "text/html" }, cache: "no-store" }),
+        fetch("/field", { headers: { RSC: "1" }, cache: "no-store" }),
+      ]);
       const ps = await getParties();
-      for (const p of ps) await cacheLedger(p.id); // one at a time — gentle on the API
+      for (const p of ps) {
+        await cacheLedger(p.id); // one at a time — gentle on the API
+        // Warm each customer's page shell so their ledger opens offline.
+        await fetch(`/field/${p.id}`, { headers: { Accept: "text/html" }, cache: "no-store" }).catch(
+          () => {},
+        );
+      }
       await load();
     } finally {
       setBusy(null);
@@ -161,7 +171,7 @@ export default function FieldHome() {
           <ul className="divide-y divide-row">
             {filtered.map((p) => (
               <li key={p.id}>
-                <Link
+                <a
                   href={`/field/${p.id}`}
                   className="flex items-center justify-between gap-3 px-3.5 py-3 transition-colors hover:bg-card2"
                 >
@@ -172,7 +182,7 @@ export default function FieldHome() {
                     </div>
                   </div>
                   <span className="shrink-0 text-faint">›</span>
-                </Link>
+                </a>
               </li>
             ))}
           </ul>

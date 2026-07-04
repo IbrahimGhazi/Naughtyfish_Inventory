@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { pkr, dateShort } from "@/lib/format";
 import {
   getLedger,
@@ -81,9 +80,11 @@ export default function FieldLedger() {
   return (
     <div className="mx-auto max-w-[760px] space-y-4">
       <div>
-        <Link href="/field" className="text-[12.5px] font-semibold text-muted hover:text-accent-deep">
+        {/* Full document load (not <Link>) so the hub renders from the SW cache offline. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        <a href="/field" className="text-[12.5px] font-semibold text-muted hover:text-accent-deep">
           ‹ All customers
-        </Link>
+        </a>
         <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-serif text-[24px] font-semibold leading-tight text-ink">{partyName}</h1>
