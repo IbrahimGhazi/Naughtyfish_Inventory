@@ -4,6 +4,7 @@ export interface LedgerRow {
   date: Date;
   kind: "invoice" | "payment" | "purchase";
   ref: string; // invoice/purchase number or payment/cheque note
+  href?: string; // link to the source document (invoice/purchase); payments have none
   debit: number; // charge: invoice (customer owes us) / purchase (we owe supplier)
   credit: number; // payment
   balance: number; // running net outstanding (positive = owed, in the party's direction)
@@ -63,6 +64,7 @@ export async function buildPartyLedger(
       date: inv.date,
       kind: "invoice" as const,
       ref: `#${inv.invoiceNumber}${inv.referenceNumber ? ` · ${inv.referenceNumber}` : ""}`,
+      href: `/invoices/${inv.id}`,
       debit: Number(inv.totalAmount),
       credit: 0,
       balance: 0,
@@ -73,6 +75,7 @@ export async function buildPartyLedger(
       date: pur.date,
       kind: "purchase" as const,
       ref: `${pur.reference}${pur.supplierBillNo ? ` · bill ${pur.supplierBillNo}` : ""}`,
+      href: `/purchases/${pur.id}`,
       debit: Number(pur.totalAmount),
       credit: 0,
       balance: 0,

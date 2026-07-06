@@ -85,11 +85,18 @@ describe("computeLine — SECONDARY path (gross + glazing% → derive net)", () 
 });
 
 describe("computeLine — LOCAL (Karachi, fresh)", () => {
-  it("forces zero glazing; net = gross even if a % is passed", () => {
-    const line = computeLine({ grossWeightKg: 300, glazingPercent: 9, ratePerKg: 200, channel: "local" });
+  it("defaults to zero glazing (net = gross) when no glazing is entered", () => {
+    const line = computeLine({ grossWeightKg: 300, ratePerKg: 200, channel: "local" });
     expect(line.glazingPercent).toBe(0);
     expect(line.netWeightKg).toBe(300);
     expect(line.amount).toBe(roundMoney(200 * 300));
+  });
+
+  it("HONORS an entered glazing % on local (glazing is no longer forced to 0)", () => {
+    const line = computeLine({ grossWeightKg: 300, glazingPercent: 9, ratePerKg: 200, channel: "local" });
+    expect(line.glazingPercent).toBe(9);
+    expect(line.netWeightKg).toBe(273); // 300 × (1 − 0.09)
+    expect(line.amount).toBe(roundMoney(200 * 273));
   });
 });
 

@@ -206,10 +206,9 @@ export default function InvoiceForm({
               <LineField label="Gross kg" value={l.grossWeightKg} onChange={(v) => setLine(l.key, { grossWeightKg: v })} />
               <LineField label="Rate/kg" value={l.ratePerKg} onChange={(v) => setLine(l.key, { ratePerKg: v })} />
               <LineField
-                label={channel === "north" ? "Glaze %" : "Glaze % (n/a)"}
+                label="Glaze %"
                 value={l.glazingPercent}
                 onChange={(v) => setLine(l.key, { glazingPercent: v })}
-                disabled={channel === "local"}
               />
               <LineField label="Cartons" value={l.cartonCount} onChange={(v) => setLine(l.key, { cartonCount: v })} />
               <LineField label="Packets" value={l.packetCount} onChange={(v) => setLine(l.key, { packetCount: v })} />

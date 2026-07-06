@@ -140,9 +140,9 @@ export interface LineResult {
 
 /**
  * Compute one invoice/delivery line. Handles both input paths, the local
- * zero-glazing rule, the prawn override, the glazing variance alert, and the
- * packet short-count alert. This is THE function to call — do not re-derive
- * net/amount anywhere else.
+ * zero-glazing DEFAULT (an entered glazing % is still honored on local), the
+ * prawn override, the glazing variance alert, and the packet short-count alert.
+ * This is THE function to call — do not re-derive net/amount anywhere else.
  */
 export function computeLine(input: LineInput): LineResult {
   const { grossWeightKg, ratePerKg, channel } = input;
@@ -152,22 +152,24 @@ export function computeLine(input: LineInput): LineResult {
   let glazingPercent: number;
   let netWeightKg: number;
 
-  if (channel === "local") {
-    // Fresh / Karachi — no glazing deduction, ever.
-    glazingPercent = 0;
-    netWeightKg = roundKg(grossWeightKg);
-  } else if (input.finalWeightKg !== undefined) {
+  if (input.finalWeightKg !== undefined) {
     // PRIMARY path — derive % from the two weighings, net is the buyer's final weight.
     glazingPercent = glazingFromWeights(grossWeightKg, input.finalWeightKg);
     netWeightKg = roundKg(input.finalWeightKg);
   } else if (input.glazingPercent !== undefined) {
-    // SECONDARY path — derive net from a supplied %.
+    // SECONDARY path — derive net from a supplied %. Honored on BOTH channels:
+    // local is fresh by DEFAULT (see the fallback below) but an explicitly
+    // entered glazing % is always applied.
     glazingPercent = roundPercent(input.glazingPercent);
     netWeightKg = netFromGlazing(grossWeightKg, glazingPercent);
   } else if (input.isPrawn) {
     // Prawn override — ~50% water when nothing measured was supplied.
     glazingPercent = PRAWN_DEFAULT_WATER_PERCENT;
     netWeightKg = netFromGlazing(grossWeightKg, glazingPercent);
+  } else if (channel === "local") {
+    // Local DEFAULT — fresh / Karachi, no glazing deduction when none entered.
+    glazingPercent = 0;
+    netWeightKg = roundKg(grossWeightKg);
   } else {
     throw new BillingError(
       "North line needs either finalWeightKg (primary) or glazingPercent (secondary)",

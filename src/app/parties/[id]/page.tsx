@@ -161,7 +161,13 @@ export default async function PartyLedgerPage({
                     >
                       {r.kind}
                     </Chip>
-                    {r.ref}
+                    {r.href ? (
+                      <Link href={r.href} className="font-semibold text-accent-deep hover:underline">
+                        {r.ref}
+                      </Link>
+                    ) : (
+                      r.ref
+                    )}
                     {r.meta && <span className="ml-1 text-[12px] text-muted">· {r.meta}</span>}
                   </td>
                   <td className="px-3.5 py-3 text-right font-mono text-[12.5px] text-neg">

@@ -193,7 +193,8 @@ export default function EditInvoiceForm({
                       <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-final-${i}`} inputMode="decimal" value={r.finalWeightKg}
                         onChange={(e) => updateRow(i, { finalWeightKg: e.target.value })} placeholder={t("invoices.editForm.netKgPlaceholder")} />
                     ) : (
-                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-glazing-${i}`} inputMode="decimal" value={r.glazingPercent} disabled placeholder="0" />
+                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-glazing-${i}`} inputMode="decimal" value={r.glazingPercent}
+                        onChange={(e) => updateRow(i, { glazingPercent: e.target.value })} placeholder="0" />
                     )}
                     <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-rate-${i}`} inputMode="decimal" value={r.ratePerKg}
                       onChange={(e) => updateRow(i, { ratePerKg: e.target.value })} />
