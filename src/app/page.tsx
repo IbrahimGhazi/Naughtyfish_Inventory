@@ -13,6 +13,7 @@ import { BarChart, type BarDatum } from "@/components/charts/BarChart";
 import { Donut, type DonutSlice } from "@/components/charts/Donut";
 import { PakistanMap, type MapRoute } from "@/components/PakistanMap";
 import { Card, Kpi, StatusChip, PrimaryButton } from "@/components/ui";
+import SalesReportSection from "./SalesReportSection";
 
 export const dynamic = "force-dynamic";
 
@@ -316,6 +317,9 @@ export default async function Dashboard() {
           <Kpi label={t("dashboard.kpi.draftsToReview")} value={String(draftCount)} sub={t("dashboard.kpi.draftsToReviewSub")} />
         )}
       </div>
+
+      {/* Imported annual sales report (SeaStar Impex FY 2025–26). */}
+      <SalesReportSection />
 
       {/* Row: Profit & loss (wide) + cheques-due / channel column. */}
       <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[1fr_340px]">
