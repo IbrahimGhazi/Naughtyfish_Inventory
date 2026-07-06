@@ -7,7 +7,7 @@ import { assertRole, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope, assertEntityAccess, storeScope } from "@/lib/scope";
 import { requireFeature } from "@/lib/config";
 import { CITY_NAMES } from "@/lib/geo";
-import { SHIPMENT_STATUSES } from "@/lib/shipments";
+import { SHIPMENT_STATUSES, SHIPMENT_TYPES, TRANSPORT_MODES } from "@/lib/shipments";
 import { revalidatePath } from "next/cache";
 
 const CityEnum = z.enum(CITY_NAMES as [string, ...string[]]);
@@ -21,6 +21,8 @@ const OptionalDateTime = z
 
 const CreateShipmentSchema = z.object({
   reference: z.string().trim().max(120).optional(),
+  shipmentType: z.enum(SHIPMENT_TYPES).default("bulk_long_haul"),
+  transportMode: z.enum(TRANSPORT_MODES).default("road"),
   originName: z.string().trim().min(1, "Origin name is required").max(200),
   originCity: CityEnum,
   originStoreId: z.string().optional(),
@@ -91,6 +93,8 @@ export async function createShipment(input: CreateShipmentInput) {
     data: {
       reference: emptyToNull(parsed.reference),
       status: "preparing",
+      shipmentType: parsed.shipmentType,
+      transportMode: parsed.transportMode,
       originName: parsed.originName,
       originCity: parsed.originCity,
       destinationName: emptyToNull(parsed.destinationName),

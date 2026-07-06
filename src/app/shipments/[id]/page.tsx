@@ -11,8 +11,12 @@ import RiderAssign from "./RiderAssign";
 import {
   STATUS_LABELS,
   STATUS_TIMELINE,
+  SHIPMENT_TYPE_LABELS,
+  TRANSPORT_MODE_LABELS,
   etaHint,
   type ShipmentStatus,
+  type ShipmentType,
+  type TransportMode,
   type EtaTone,
 } from "@/lib/shipments";
 import ShipmentControls from "./ShipmentControls";
@@ -214,6 +218,12 @@ export default async function ShipmentDetailPage({
           </Fact>
           <Fact label={t("shipments.detail.factDeliveredAt")}>
             {shipment.deliveredAt ? dateTime(shipment.deliveredAt) : "—"}
+          </Fact>
+          <Fact label="Delivery type">
+            {SHIPMENT_TYPE_LABELS[shipment.shipmentType as ShipmentType] ?? shipment.shipmentType}
+          </Fact>
+          <Fact label="Transport">
+            {TRANSPORT_MODE_LABELS[shipment.transportMode as TransportMode] ?? shipment.transportMode}
           </Fact>
           <Fact label={t("shipments.detail.factCarrier")}>{shipment.carrier ?? "—"}</Fact>
           <Fact label={t("shipments.detail.factDriver")}>

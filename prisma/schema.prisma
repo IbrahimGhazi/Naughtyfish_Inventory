@@ -476,6 +476,8 @@ model Shipment {
   departureAt        DateTime?
   estimatedArrivalAt DateTime?
   deliveredAt        DateTime?
+  shipmentType       String    @default("bulk_long_haul") // src/lib/shipments.ts SHIPMENT_TYPES
+  transportMode      String    @default("road") // road | plane | train
   carrier            String? // truck / transport company
   driverName         String?
   driverPhone        String?

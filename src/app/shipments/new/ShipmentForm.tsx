@@ -3,6 +3,14 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useCopy } from "@/lib/copy/CopyProvider";
+import {
+  SHIPMENT_TYPES,
+  SHIPMENT_TYPE_LABELS,
+  TRANSPORT_MODES,
+  TRANSPORT_MODE_LABELS,
+  type ShipmentType,
+  type TransportMode,
+} from "@/lib/shipments";
 import { createShipment } from "../actions";
 
 export interface FormStore {
@@ -66,6 +74,8 @@ export default function ShipmentForm({
   const [isPending, startTransition] = useTransition();
 
   const [reference, setReference] = useState("");
+  const [shipmentType, setShipmentType] = useState<ShipmentType>("bulk_long_haul");
+  const [transportMode, setTransportMode] = useState<TransportMode>("road");
   const [originName, setOriginName] = useState("");
   const [originCity, setOriginCity] = useState(defaultOriginCity);
   const [originStoreId, setOriginStoreId] = useState("");
@@ -120,6 +130,8 @@ export default function ShipmentForm({
       try {
         const res = await createShipment({
           reference: reference || undefined,
+          shipmentType,
+          transportMode,
           originName: originName.trim(),
           originCity,
           originStoreId: originStoreId || undefined,
@@ -144,6 +156,41 @@ export default function ShipmentForm({
 
   return (
     <div className="space-y-5">
+      {/* Type + transport mode */}
+      <section className="rounded-xl border border-hair bg-card p-[18px]">
+        <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">Type</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Delivery type">
+            <select
+              className="input"
+              data-testid="ship-type"
+              value={shipmentType}
+              onChange={(e) => setShipmentType(e.target.value as ShipmentType)}
+            >
+              {SHIPMENT_TYPES.map((ty) => (
+                <option key={ty} value={ty}>
+                  {SHIPMENT_TYPE_LABELS[ty]}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Transport">
+            <select
+              className="input"
+              data-testid="ship-mode"
+              value={transportMode}
+              onChange={(e) => setTransportMode(e.target.value as TransportMode)}
+            >
+              {TRANSPORT_MODES.map((m) => (
+                <option key={m} value={m}>
+                  {TRANSPORT_MODE_LABELS[m]}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+      </section>
+
       {/* Origin */}
       <section className="rounded-xl border border-hair bg-card p-[18px]">
         <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">{t("shipments.form.originHeading")}</h2>

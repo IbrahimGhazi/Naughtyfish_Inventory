@@ -34,6 +34,42 @@ export function isShipmentStatus(v: string): v is ShipmentStatus {
 }
 
 /**
+ * Shipment TYPE — the kind of delivery this is (matches Shipment.shipmentType):
+ *   bulk_long_haul — bulk truck run Karachi → North (Lahore / Pindi)
+ *   last_mile      — store → customer local delivery
+ *   direct_north   — direct to a North customer (typically by plane/train)
+ *   inter_store    — stock transfer between own stores/warehouses
+ */
+export const SHIPMENT_TYPES = [
+  "bulk_long_haul",
+  "last_mile",
+  "direct_north",
+  "inter_store",
+] as const;
+export type ShipmentType = (typeof SHIPMENT_TYPES)[number];
+export const SHIPMENT_TYPE_LABELS: Record<ShipmentType, string> = {
+  bulk_long_haul: "Bulk (Karachi → North)",
+  last_mile: "Store → Customer",
+  direct_north: "Direct to North customer",
+  inter_store: "Inter-store transfer",
+};
+export function isShipmentType(v: string): v is ShipmentType {
+  return (SHIPMENT_TYPES as readonly string[]).includes(v);
+}
+
+/** Transport MODE — how it travels (matches Shipment.transportMode). */
+export const TRANSPORT_MODES = ["road", "plane", "train"] as const;
+export type TransportMode = (typeof TRANSPORT_MODES)[number];
+export const TRANSPORT_MODE_LABELS: Record<TransportMode, string> = {
+  road: "Road",
+  plane: "Plane",
+  train: "Train",
+};
+export function isTransportMode(v: string): v is TransportMode {
+  return (TRANSPORT_MODES as readonly string[]).includes(v);
+}
+
+/**
  * Tailwind chip classes per status (light + dark aware). Returns a single string
  * safe to drop onto a <span>. Unknown values fall back to the neutral slate chip.
  */
