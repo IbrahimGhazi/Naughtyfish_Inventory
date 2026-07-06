@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
-import { canAccessPage } from "@/lib/roles";
+import { canView } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { pkr, kg, pct, dateShort } from "@/lib/format";
 import { getCopy } from "@/lib/config";
@@ -39,7 +39,7 @@ export default async function InvoicePrintPage({
   // Delivery may print ONLY invoices it created; other roles need the grant.
   if (ctx.user.role === "delivery") {
     if (invoice.createdById !== ctx.user.id) redirect("/delivery");
-  } else if (!canAccessPage(ctx.user.role, "invoices")) {
+  } else if (!canView(ctx, "invoices")) {
     redirect("/");
   }
 

@@ -6,13 +6,16 @@ import { createUser, updateUser } from "../actions";
 import { Field, EditToggle } from "../ui";
 import { useCopy } from "@/lib/copy/CopyProvider";
 import {
-  ASSIGNABLE_ROLES,
   ENTITY_ACCESS,
   REGION_SCOPES,
-  type Role,
   type EntityAccess,
   type RegionScope,
 } from "@/lib/enums";
+
+export interface AssignableRole {
+  key: string;
+  name: string;
+}
 
 export interface UserRow {
   id: string;
@@ -38,11 +41,13 @@ function UserFields({
   set,
   idPrefix,
   passwordHint,
+  assignableRoles,
 }: {
   v: UserValues;
   set: (patch: Partial<UserValues>) => void;
   idPrefix: string;
   passwordHint: string;
+  assignableRoles: AssignableRole[];
 }) {
   const t = useCopy();
   return (
@@ -80,9 +85,9 @@ function UserFields({
           value={v.role}
           onChange={(e) => set({ role: e.target.value })}
         >
-          {ASSIGNABLE_ROLES.map((r) => (
-            <option key={r} value={r}>
-              {r}
+          {assignableRoles.map((r) => (
+            <option key={r.key} value={r.key}>
+              {r.name}
             </option>
           ))}
         </select>
@@ -128,7 +133,7 @@ const EMPTY: UserValues = {
   regionScope: "all",
 };
 
-export function AddUserForm() {
+export function AddUserForm({ assignableRoles }: { assignableRoles: AssignableRole[] }) {
   const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -152,7 +157,7 @@ export function AddUserForm() {
           name: v.name.trim(),
           loginId: v.loginId.trim(),
           password: v.password,
-          role: v.role as Role,
+          role: v.role,
           entityAccess: v.entityAccess as EntityAccess,
           regionScope: v.regionScope as RegionScope,
         });
@@ -172,6 +177,7 @@ export function AddUserForm() {
         set={set}
         idPrefix="user-add"
         passwordHint={t("settings.users.passwordHint.add")}
+        assignableRoles={assignableRoles}
       />
       <div className="flex items-center gap-3">
         <button
@@ -191,7 +197,15 @@ export function AddUserForm() {
   );
 }
 
-function EditUserForm({ user, onDone }: { user: UserRow; onDone: () => void }) {
+function EditUserForm({
+  user,
+  onDone,
+  assignableRoles,
+}: {
+  user: UserRow;
+  onDone: () => void;
+  assignableRoles: AssignableRole[];
+}) {
   const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -218,7 +232,7 @@ function EditUserForm({ user, onDone }: { user: UserRow; onDone: () => void }) {
           loginId: v.loginId.trim(),
           // blank password → server keeps the existing hash
           password: v.password.trim() || undefined,
-          role: v.role as Role,
+          role: v.role,
           entityAccess: v.entityAccess as EntityAccess,
           regionScope: v.regionScope as RegionScope,
         });
@@ -237,6 +251,7 @@ function EditUserForm({ user, onDone }: { user: UserRow; onDone: () => void }) {
         set={set}
         idPrefix={`user-edit-${user.id}`}
         passwordHint={t("settings.users.passwordHint.edit")}
+        assignableRoles={assignableRoles}
       />
       <div className="flex items-center gap-3">
         <button
@@ -255,7 +270,13 @@ function EditUserForm({ user, onDone }: { user: UserRow; onDone: () => void }) {
   );
 }
 
-export function UserList({ users }: { users: UserRow[] }) {
+export function UserList({
+  users,
+  assignableRoles,
+}: {
+  users: UserRow[];
+  assignableRoles: AssignableRole[];
+}) {
   const t = useCopy();
   if (users.length === 0) {
     return <p className="text-sm text-faint">{t("settings.users.empty")}</p>;
@@ -282,7 +303,9 @@ export function UserList({ users }: { users: UserRow[] }) {
               </div>
             }
           >
-            {(close) => <EditUserForm user={u} onDone={close} />}
+            {(close) => (
+              <EditUserForm user={u} onDone={close} assignableRoles={assignableRoles} />
+            )}
           </EditToggle>
         </li>
       ))}

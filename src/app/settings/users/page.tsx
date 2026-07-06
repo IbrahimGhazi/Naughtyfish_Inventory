@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
-import { requirePage } from "@/lib/roles";
+import { requirePage, getAllRoles } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { getCopy } from "@/lib/config";
 import BackLink from "../BackLink";
 import { Card } from "../ui";
 import { PageHeader } from "@/components/ui";
-import { AddUserForm, UserList, type UserRow } from "./UserControls";
+import { AddUserForm, UserList, type UserRow, type AssignableRole } from "./UserControls";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +22,11 @@ export default async function UsersSettingsPage() {
   }
 
   const t = await getCopy();
+
+  // Assignable roles = all roles except the hidden platform-owner role.
+  const assignableRoles: AssignableRole[] = (await getAllRoles())
+    .filter((r) => r.key !== "platform_admin")
+    .map((r) => ({ key: r.key, name: r.name }));
 
   // NOTE: passwordHash is intentionally NOT selected — hashes are never rendered.
   const users = await prisma.user.findMany({
@@ -70,14 +75,14 @@ export default async function UsersSettingsPage() {
           <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">
             {t("settings.users.existingHeading")}
           </h2>
-          <UserList users={rows} />
+          <UserList users={rows} assignableRoles={assignableRoles} />
         </Card>
 
         <Card>
           <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">
             {t("settings.users.addHeading")}
           </h2>
-          <AddUserForm />
+          <AddUserForm assignableRoles={assignableRoles} />
         </Card>
       </div>
     </div>

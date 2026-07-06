@@ -51,6 +51,20 @@ model AppConfig {
   updatedAt DateTime @updatedAt
 }
 
+/// Access role (deployment-wide, NOT entity-scoped). `key` is the stable slug
+/// stored in User.role. `permissions` is a JSON map of PageKey -> "none" |
+/// "view" | "edit" (see src/lib/rbac.ts). Built-in roles have isSystem = true
+/// (they can be re-tuned but not deleted); custom roles are created in
+/// /settings/roles. Absent rows fall back to the hardcoded matrix in rbac.ts.
+model Role {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  permissions String   @default("{}")
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
 /// role: "platform_admin" | "admin" | "accountant" | "north_employee" | "store_keeper" | "delivery"
 /// entityAccess: "cstar" | "nf" | "both"   regionScope: "north" | "south" | "all"
 model User {

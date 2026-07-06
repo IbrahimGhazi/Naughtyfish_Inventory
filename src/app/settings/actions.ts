@@ -4,7 +4,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
-import { assertRole, ADMIN_ROLES } from "@/lib/roles";
+import { assertRole, ADMIN_ROLES, isValidRoleKey } from "@/lib/roles";
 import { entityScope, assertEntityAccess } from "@/lib/scope";
 import {
   STORE_OWNERSHIP,
@@ -12,7 +12,6 @@ import {
   PARTY_SUBTYPES,
   CHANNELS,
   ITEM_CATEGORIES,
-  ROLES,
   ENTITY_ACCESS,
   REGION_SCOPES,
 } from "@/lib/enums";
@@ -393,7 +392,9 @@ const UserCreateSchema = z.object({
   name: z.string().trim().min(1).max(80),
   loginId: z.string().trim().min(1).max(40),
   password: z.string().min(4).max(200),
-  role: z.enum(ROLES),
+  // Role keys are dynamic now (built-in + custom Role rows) — checked at
+  // runtime below via isValidRoleKey rather than a static zod enum.
+  role: z.string().trim().min(1).max(60),
   entityAccess: z.enum(ENTITY_ACCESS),
   regionScope: z.enum(REGION_SCOPES),
 });
@@ -406,6 +407,9 @@ export async function createUser(input: z.infer<typeof UserCreateSchema>) {
   const parsed = UserCreateSchema.parse(input);
   if (parsed.role === "platform_admin" && admin.user.role !== "platform_admin") {
     throw new Error("Only the platform owner may assign that role.");
+  }
+  if (!(await isValidRoleKey(parsed.role))) {
+    throw new Error("Unknown role.");
   }
 
   const dupe = await prisma.user.findUnique({
@@ -437,7 +441,7 @@ const UserUpdateSchema = z.object({
   name: z.string().trim().min(1).max(80),
   loginId: z.string().trim().min(1).max(40),
   password: z.string().max(200).optional(),
-  role: z.enum(ROLES),
+  role: z.string().trim().min(1).max(60),
   entityAccess: z.enum(ENTITY_ACCESS),
   regionScope: z.enum(REGION_SCOPES),
 });
@@ -456,6 +460,9 @@ export async function updateUser(input: z.infer<typeof UserUpdateSchema>) {
     if (existing.role === "platform_admin" || parsed.role === "platform_admin") {
       throw new Error("Only the platform owner may manage that account.");
     }
+  }
+  if (parsed.role !== existing.role && !(await isValidRoleKey(parsed.role))) {
+    throw new Error("Unknown role.");
   }
 
   // loginId is globally unique — block a collision with a *different* user.

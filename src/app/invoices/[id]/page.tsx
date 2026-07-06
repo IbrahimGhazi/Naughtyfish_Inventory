@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
-import { canAccessPage, OFFICE_ROLES } from "@/lib/roles";
+import { canView, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { pkr, kg, pct, dateShort } from "@/lib/format";
 import { getCopy, getAppConfig } from "@/lib/config";
@@ -46,7 +46,7 @@ export default async function InvoiceDetailPage({
   const isDelivery = ctx.user.role === "delivery";
   if (isDelivery) {
     if (invoice.createdById !== ctx.user.id) redirect("/delivery");
-  } else if (!canAccessPage(ctx.user.role, "invoices")) {
+  } else if (!canView(ctx, "invoices")) {
     redirect("/");
   }
   const isOffice = OFFICE_ROLES.includes(ctx.user.role);

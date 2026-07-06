@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
-import { canAccessPage } from "@/lib/roles";
+import { canView } from "@/lib/roles";
 import { buildPartyLedger } from "@/lib/ledger";
 import type { CachedLedger } from "@/lib/offline/types";
 
@@ -25,7 +25,7 @@ export async function GET(
 
   // Mirror the party-ledger page: purchase rows only for roles with that grant.
   const ledger = await buildPartyLedger(ctx.entityId, partyId, undefined, {
-    includePurchases: canAccessPage(ctx.user.role, "purchases"),
+    includePurchases: canView(ctx, "purchases"),
   });
 
   const body: CachedLedger = {

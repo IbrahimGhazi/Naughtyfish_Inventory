@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
-import { requirePage, canAccessPage } from "@/lib/roles";
+import { requirePage, canView } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { buildPartyLedger } from "@/lib/ledger";
 import { getCopy, getAppConfig } from "@/lib/config";
@@ -33,7 +33,7 @@ export default async function PartyLedgerPage({
   // Roles without the purchases grant must not read purchase rows through the
   // party ledger (their supplier balances render without purchase charges).
   const ledger = await buildPartyLedger(ctx.entityId, id, asOfDate, {
-    includePurchases: canAccessPage(ctx.user.role, "purchases"),
+    includePurchases: canView(ctx, "purchases"),
   });
 
   const meta =

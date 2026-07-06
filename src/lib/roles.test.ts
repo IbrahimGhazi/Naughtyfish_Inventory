@@ -3,7 +3,7 @@ import { canAccessPage, roleHome, assertRole, OFFICE_ROLES, ADMIN_ROLES } from "
 import type { ActiveContext } from "./session";
 
 const ctxFor = (role: string): ActiveContext => ({
-  user: { id: "u1", name: "T", role, entityAccess: "cstar", regionScope: "all", storeIds: [] },
+  user: { id: "u1", name: "T", role, entityAccess: "cstar", regionScope: "all", storeIds: [], perms: {} },
   entityId: "e1",
   entityName: "C-Star",
 });

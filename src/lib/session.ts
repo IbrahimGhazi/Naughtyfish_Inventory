@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "./prisma";
 import { SESSION_COOKIE, verifySession } from "./auth";
+import { resolvePerms, type PermLevel } from "./roles";
 
 /**
  * Real session (id/password + stateless signed cookie — see src/lib/auth.ts).
@@ -18,6 +19,8 @@ export interface ActiveContext {
     entityAccess: string; // cstar | nf | both
     regionScope: string; // north | south | all
     storeIds: string[]; // empty = all stores in scope
+    /** Resolved page permissions (pageKey -> none|view|edit) for this role. */
+    perms: Record<string, PermLevel>;
   };
   /** The book the user is currently looking at. */
   entityId: string;
@@ -60,6 +63,8 @@ export async function getOptionalContext(): Promise<ActiveContext | null> {
   const entity = await prisma.entity.findFirst({ where: { name: activeName } });
   if (!entity) return null;
 
+  const perms = await resolvePerms(user.role);
+
   return {
     user: {
       id: user.id,
@@ -68,6 +73,7 @@ export async function getOptionalContext(): Promise<ActiveContext | null> {
       entityAccess: user.entityAccess,
       regionScope: user.regionScope,
       storeIds: user.storeScopes.map((s) => s.storeId),
+      perms,
     },
     entityId: entity.id,
     entityName: entity.name,

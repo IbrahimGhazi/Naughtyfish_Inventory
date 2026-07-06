@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
-import { requirePage } from "@/lib/roles";
+import { requirePage, ADMIN_ROLES, getAllRoles } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { getCopy } from "@/lib/config";
 import { PageHeader, Card, Chip } from "@/components/ui";
@@ -19,7 +19,7 @@ export default async function SettingsPage() {
   requirePage(ctx, "settings");
   const t = await getCopy();
   const scope = entityScope(ctx);
-  const isAdmin = ctx.user.role === "admin";
+  const isAdmin = ADMIN_ROLES.includes(ctx.user.role);
 
   const [storeCount, partyCount, itemCount, seriesCount, userCount] =
     await Promise.all([
@@ -29,6 +29,7 @@ export default async function SettingsPage() {
       prisma.referenceSeries.count({ where: scope }),
       prisma.user.count({ where: scope }),
     ]);
+  const roleCount = isAdmin ? (await getAllRoles()).length : 0;
 
   return (
     <div className="mx-auto max-w-[1000px] animate-rise">
@@ -74,13 +75,22 @@ export default async function SettingsPage() {
           count={seriesCount}
         />
         {isAdmin ? (
-          <HubCard
-            href="/settings/users"
-            testId="hub-users"
-            title={t("settings.hub.users.title")}
-            desc={t("settings.hub.users.desc")}
-            count={userCount}
-          />
+          <>
+            <HubCard
+              href="/settings/users"
+              testId="hub-users"
+              title={t("settings.hub.users.title")}
+              desc={t("settings.hub.users.desc")}
+              count={userCount}
+            />
+            <HubCard
+              href="/settings/roles"
+              testId="hub-roles"
+              title="Roles & access"
+              desc="Custom roles + per-tab view/edit permissions"
+              count={roleCount}
+            />
+          </>
         ) : (
           <div
             data-testid="hub-users-locked"

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
-import { requirePage, canAccessPage } from "@/lib/roles";
+import { requirePage, canView } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { priorPaidAgainstInvoice, invoiceOutstanding } from "@/lib/payments";
 import { getAppConfig, getCopy } from "@/lib/config";
@@ -33,7 +33,7 @@ export default async function RecordPaymentPage({
   const purchaseMode =
     party.partyType === "supplier" &&
     cfg.features.purchases &&
-    canAccessPage(ctx.user.role, "purchases");
+    canView(ctx, "purchases");
 
   const [invoices, purchases, banks] = await Promise.all([
     party.partyType === "supplier"

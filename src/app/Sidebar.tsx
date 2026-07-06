@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { entityScope } from "@/lib/scope";
 import { getAppConfig, getCopy } from "@/lib/config";
-import { canAccessPage, type PageKey } from "@/lib/roles";
+import { hasView, type PageKey } from "@/lib/roles";
 import SidebarNav, { type NavItem, type NavSection } from "./SidebarNav";
 import { logout } from "./session-actions";
 
@@ -41,7 +41,7 @@ export default async function Sidebar({
   const t = await getCopy();
   const f = cfg.features;
 
-  const can = (page: PageKey) => canAccessPage(userRole, page);
+  const can = (page: PageKey) => hasView(ctx.user.perms, page);
 
   let sections: NavSection[];
 
