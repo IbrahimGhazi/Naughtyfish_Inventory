@@ -25,11 +25,10 @@ export default async function DeliveryNewInvoicePage() {
   const cfg = await getAppConfig();
   const t = await getCopy();
 
-  const [parties, items, stores, series, glazing] = await Promise.all([
+  const [parties, items, stores, glazing] = await Promise.all([
     prisma.party.findMany({ where: { ...scope, partyType: "customer" }, orderBy: { name: "asc" } }),
     prisma.item.findMany({ where: { ...scope, active: true }, orderBy: { name: "asc" } }),
     prisma.store.findMany({ where: storeScope(ctx), orderBy: { name: "asc" } }),
-    prisma.referenceSeries.findMany({ where: scope, orderBy: { bookRegion: "asc" } }),
     prisma.glazingSetting.findMany({ where: scope }),
   ]);
 
@@ -56,7 +55,6 @@ export default async function DeliveryNewInvoicePage() {
     subType: p.subType,
   }));
   const formStores: FormStore[] = stores.map((s) => ({ id: s.id, name: s.name }));
-  const regions = series.map((s) => s.bookRegion);
 
   const labels: FormLabels = {
     packagePlural: cfg.terminology.packagePlural,
@@ -81,7 +79,6 @@ export default async function DeliveryNewInvoicePage() {
         parties={formParties}
         items={formItems}
         stores={formStores}
-        regions={regions}
         labels={labels}
         showGlazing={cfg.features.glazing}
         showPackaging={cfg.features.packaging}

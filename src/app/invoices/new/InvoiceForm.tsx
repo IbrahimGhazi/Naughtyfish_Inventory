@@ -70,7 +70,6 @@ export default function InvoiceForm({
   parties,
   items,
   stores,
-  regions,
   labels = DEFAULT_LABELS,
   showGlazing = true,
   showPackaging = true,
@@ -79,7 +78,6 @@ export default function InvoiceForm({
   parties: FormParty[];
   items: FormItem[];
   stores: FormStore[];
-  regions: string[];
   labels?: FormLabels;
   showGlazing?: boolean;
   showPackaging?: boolean;
@@ -92,7 +90,7 @@ export default function InvoiceForm({
   const [partyId, setPartyId] = useState("");
   const [channel, setChannel] = useState<Channel>("north");
   const [sourceStoreId, setSourceStoreId] = useState("");
-  const [referenceRegion, setReferenceRegion] = useState("");
+  const [referenceNumber, setReferenceNumber] = useState("");
   const [notes, setNotes] = useState("");
   const [rows, setRows] = useState<LineRow[]>([{ ...emptyLine }]);
   const [error, setError] = useState<string | null>(null);
@@ -156,7 +154,7 @@ export default function InvoiceForm({
           partyId,
           channel,
           sourceStoreId: sourceStoreId || undefined,
-          referenceRegion: referenceRegion || undefined,
+          referenceNumber: referenceNumber.trim() || undefined,
           notes: notes || undefined,
           lines: rows.map((r) => ({
             itemId: r.itemId,
@@ -272,13 +270,13 @@ export default function InvoiceForm({
                 ))}
               </div>
             </Field>
-            <Field label={t("invoices.form.labelReferenceSeries")}>
-              <select className="input" value={referenceRegion} onChange={(e) => setReferenceRegion(e.target.value)}>
-                <option value="">{t("invoices.form.optionNone")}</option>
-                {regions.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
+            <Field label={t("invoices.form.labelReferenceNumber")} hint={t("invoices.form.hintOptional")}>
+              <input
+                className="input"
+                placeholder={t("invoices.form.referenceNumberPlaceholder")}
+                value={referenceNumber}
+                onChange={(e) => setReferenceNumber(e.target.value)}
+              />
             </Field>
             <Field label={t("invoices.form.labelNotes")} hint={t("invoices.form.hintOptional")}>
               <input className="input" placeholder={t("invoices.form.notesPlaceholder")} value={notes}
@@ -411,7 +409,7 @@ export default function InvoiceForm({
         <div className="my-3.5 flex flex-col gap-2.5 text-[13px]">
           <div className="flex justify-between">
             <span style={{ color: "var(--side-dim)" }}>{t("invoices.form.summaryReference")}</span>
-            <span className="font-mono text-gold">{referenceRegion || t("invoices.form.summaryReferenceAuto")}</span>
+            <span className="font-mono text-gold">{referenceNumber.trim() || t("invoices.form.summaryReferenceEmpty")}</span>
           </div>
           <div className="flex justify-between">
             <span style={{ color: "var(--side-dim)" }}>{t("invoices.form.summaryChannel")}</span>

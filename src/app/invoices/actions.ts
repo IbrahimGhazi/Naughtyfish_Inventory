@@ -6,7 +6,6 @@ import { getActiveContext } from "@/lib/session";
 import { assertEntityAccess } from "@/lib/scope";
 import { assertCanMutate, OFFICE_ROLES } from "@/lib/roles";
 import { computeLine, computeInvoiceTotal, type LineInput } from "@/lib/billing";
-import { formatReference } from "@/lib/reference";
 import { aggregateByItem, computeStockDelta, round3, type StockLineQty } from "@/lib/inventory";
 import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -129,7 +128,8 @@ const InvoiceSchema = z.object({
   partyId: z.string().min(1),
   channel: z.enum(["north", "local"]),
   sourceStoreId: z.string().optional(),
-  referenceRegion: z.string().optional(),
+  /** Freely typed by the office — any alphanumeric text, not auto-generated. */
+  referenceNumber: z.string().trim().max(40).optional(),
   notes: z.string().optional(),
   lines: z.array(LineSchema).min(1),
 });
@@ -231,21 +231,8 @@ export async function createInvoice(input: CreateInvoiceInput, clientId?: string
     const last = await tx.invoice.findFirst({ orderBy: { invoiceNumber: "desc" } });
     const invoiceNumber = (last?.invoiceNumber ?? 100) + 1;
 
-    // Optional manual reference number from the per-book/region series.
-    let referenceNumber: string | null = null;
-    if (parsed.referenceRegion) {
-      const series = await tx.referenceSeries.findFirst({
-        where: { entityId: ctx.entityId, bookRegion: parsed.referenceRegion },
-      });
-      if (series) {
-        const nextNum = series.currentNumber + 1;
-        await tx.referenceSeries.update({
-          where: { id: series.id },
-          data: { currentNumber: nextNum },
-        });
-        referenceNumber = formatReference(series.prefix, nextNum, series.digitWidth);
-      }
-    }
+    // Optional reference number — freely typed by the office, stored as-is.
+    const referenceNumber = parsed.referenceNumber || null;
 
     const invoice = await tx.invoice.create({
       data: {
