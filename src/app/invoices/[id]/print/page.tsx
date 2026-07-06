@@ -46,17 +46,14 @@ export default async function InvoicePrintPage({
   const paid = invoice.payments.reduce((s, p) => s + Number(p.amount), 0);
   const balance = total - paid;
 
-  // Brand palette from the deployment's theme (stays white-label).
-  const accent = cfg.theme.accent;
-  const accentDeep = cfg.theme.accentDeep || accent;
-  const dark = cfg.theme.sideBg;
+  // Palette sampled from the SeaStar brand mark (whale-tail teal + deep navy)
+  // so the invoice matches the logo rather than the app's slate UI theme.
+  const accent = "#2fa39c";      // teal — header band + balance highlight
+  const accentDeep = "#1f7d78";  // deeper teal — emphasis text
+  const dark = "#16242f";        // navy — items header, footer, brand text
   const logo = cfg.branding.logoDataUrl;
   const brandName = cfg.branding.appName;
   const tagline = cfg.branding.tagline;
-
-  const meta = [invoice.party.partyType, invoice.party.subType, invoice.party.channel]
-    .filter(Boolean)
-    .join(" · ");
 
   const printCss = `
     @page { size: A4; margin: 0; }
@@ -109,12 +106,8 @@ export default async function InvoicePrintPage({
             }}
           >
             <div>
-              <div style={{ fontSize: "30pt", fontWeight: 800, letterSpacing: "-0.5px", lineHeight: 1 }}>
+              <div style={{ fontSize: "34pt", fontWeight: 800, letterSpacing: "-0.5px", lineHeight: 1 }}>
                 INVOICE
-              </div>
-              <div style={{ marginTop: "6px", fontSize: "10pt", opacity: 0.9 }}>
-                # {invoice.invoiceNumber}
-                {invoice.referenceNumber ? `  ·  ${invoice.referenceNumber}` : ""}
               </div>
             </div>
 
@@ -122,17 +115,18 @@ export default async function InvoicePrintPage({
             <div
               style={{
                 background: "#fff",
-                borderRadius: "10px",
-                padding: "8px 12px",
+                borderRadius: "12px",
+                padding: "12px 16px",
                 display: "flex",
                 alignItems: "center",
                 gap: "10px",
-                maxWidth: "80mm",
+                maxWidth: "98mm",
+                boxShadow: "0 2px 10px rgba(0,0,0,.12)",
               }}
             >
               {logo ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={logo} alt={brandName} style={{ height: "58px", width: "auto", objectFit: "contain" }} />
+                <img src={logo} alt={brandName} style={{ height: "84px", width: "auto", objectFit: "contain" }} />
               ) : (
                 <div style={{ textAlign: "right" }}>
                   <div style={{ fontSize: "15pt", fontWeight: 700, color: dark }}>{brandName}</div>
@@ -163,7 +157,6 @@ export default async function InvoicePrintPage({
             <div style={{ marginTop: "3px", fontSize: "13pt", fontWeight: 700, color: dark }}>
               {invoice.party.name}
             </div>
-            {meta && <div style={{ color: "#64748b" }}>{meta}</div>}
             {invoice.party.address && <div style={{ color: "#64748b" }}>{invoice.party.address}</div>}
             {invoice.party.phone && <div style={{ color: "#64748b" }}>{invoice.party.phone}</div>}
             <div style={{ color: "#64748b" }}>
@@ -174,7 +167,7 @@ export default async function InvoicePrintPage({
           <table style={{ fontSize: "10pt", borderCollapse: "collapse" }}>
             <tbody>
               <MetaRow label="Invoice No" value={`#${invoice.invoiceNumber}`} />
-              {invoice.referenceNumber && <MetaRow label="Reference" value={invoice.referenceNumber} />}
+              <MetaRow label="Reference" value={invoice.referenceNumber || "—"} />
               <MetaRow label="Date" value={dateShort(invoice.date)} />
               <MetaRow label="Channel" value={invoice.channel} accent={accentDeep} />
             </tbody>
