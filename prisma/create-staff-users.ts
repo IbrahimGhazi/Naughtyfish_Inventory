@@ -9,8 +9,8 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const cstar = await prisma.entity.findFirst({ where: { name: "C-Star" } });
-  if (!cstar) throw new Error("No C-Star entity — the DB is not seeded.");
+  const cstar = await prisma.entity.findFirst({ where: { name: "SeaStar" } });
+  if (!cstar) throw new Error("No SeaStar entity — the DB is not seeded.");
 
   const users = [
     {

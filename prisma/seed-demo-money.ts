@@ -1,9 +1,9 @@
 /**
- * Idempotent demo expenses + cheques for the C-Star book. Run with:
+ * Idempotent demo expenses + cheques for the SeaStar book. Run with:
  *   npx tsx prisma/seed-demo-money.ts
  *
  * Safe to re-run: expenses key on their note text, cheques on chequeNumber
- * (both within C-Star). It UPDATES matches instead of inserting duplicates and
+ * (both within SeaStar). It UPDATES matches instead of inserting duplicates and
  * never wipes data. Amounts/dates are demo values.
  */
 
@@ -15,8 +15,8 @@ const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
 async function main() {
-  const cstar = await prisma.entity.findFirst({ where: { name: "C-Star" } });
-  if (!cstar) throw new Error("C-Star entity not found — run the base seed first.");
+  const cstar = await prisma.entity.findFirst({ where: { name: "SeaStar" } });
+  if (!cstar) throw new Error("SeaStar entity not found — run the base seed first.");
   const now = Date.now();
 
   // ---- Expenses (keyed by note) --------------------------------------------
@@ -52,7 +52,7 @@ async function main() {
   // ---- Cheques (keyed by chequeNumber) -------------------------------------
   const bank = await prisma.bankAccount.findFirst({ where: { entityId: cstar.id } });
   if (!bank) {
-    console.warn("no C-Star bank account — skipping cheques");
+    console.warn("no SeaStar bank account — skipping cheques");
   } else {
     const cheques = [
       // Due within 24h → shows on the dashboard "cheques due" reminder.

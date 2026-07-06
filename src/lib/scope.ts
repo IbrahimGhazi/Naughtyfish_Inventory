@@ -4,7 +4,7 @@ import type { ActiveContext } from "./session";
 /**
  * Mandatory server-side scope filter (plan §10). Every query that reads
  * entity-scoped data MUST spread `entityScope(ctx)` into its `where`, so a
- * C-Star-only user can never see NF rows. This is the isolation guarantee —
+ * SeaStar-only user can never see NF rows. This is the isolation guarantee —
  * UI hiding is not enough. (Full Postgres RLS is a later hardening step.)
  */
 export function entityScope(ctx: ActiveContext): { entityId: string } {
@@ -17,7 +17,7 @@ export async function allowedEntityIds(ctx: ActiveContext): Promise<string[]> {
     const all = await prisma.entity.findMany({ select: { id: true } });
     return all.map((e) => e.id);
   }
-  const name = ctx.user.entityAccess === "nf" ? "NF" : "C-Star";
+  const name = ctx.user.entityAccess === "nf" ? "NF" : "SeaStar";
   const e = await prisma.entity.findFirst({ where: { name }, select: { id: true } });
   return e ? [e.id] : [];
 }

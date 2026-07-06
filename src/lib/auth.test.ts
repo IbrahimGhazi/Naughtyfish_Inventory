@@ -6,7 +6,7 @@ beforeAll(() => {
   process.env.JWT_SECRET ??= "test-secret";
 });
 
-const payload: Omit<SessionPayload, "exp"> = { userId: "user_abc123", entityName: "C-Star" };
+const payload: Omit<SessionPayload, "exp"> = { userId: "user_abc123", entityName: "SeaStar" };
 
 describe("session token sign/verify", () => {
   it("round-trips a valid payload (exp auto-added)", () => {

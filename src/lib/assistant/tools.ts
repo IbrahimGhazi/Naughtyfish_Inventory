@@ -5,7 +5,7 @@
  *  - Every tool is READ-ONLY. There are NO mutation tools — the assistant can
  *    never create/edit/delete data. Actions stay with the human.
  *  - Every query is scoped to ctx.entityId (the logged-in user's active book).
- *    The model's arguments never choose the book, so a C-Star user's assistant
+ *    The model's arguments never choose the book, so a SeaStar user's assistant
  *    can never read NF data and vice-versa.
  *  - Tools return plain JSON-serializable objects (Decimals → numbers, Dates →
  *    short strings). The model is instructed to report ONLY these numbers.

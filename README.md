@@ -24,8 +24,8 @@ npm run dev                 # http://localhost:3000
 npm test                    # 40 tests
 ```
 
-**Logins** (seeded): `admin`/`admin123` (both books), `accountant`/`acc123` (C-Star only),
-`delivery`/`del123` (C-Star only).
+**Logins** (seeded): `admin`/`admin123` (both books), `accountant`/`acc123` (SeaStar only),
+`delivery`/`del123` (SeaStar only).
 
 ## What's built (v2 — complete, browser-verified)
 
@@ -55,7 +55,7 @@ npm test                    # 40 tests
 ## Phase-1 MVP (also complete, browser-verified)
 
 - **Auth & books** — id/password login, HMAC-signed httpOnly session cookie
-  (`src/lib/auth.ts`), C-Star/NF **book switcher** (NF grant = superset per plan §4.7),
+  (`src/lib/auth.ts`), SeaStar/NF **book switcher** (NF grant = superset per plan §4.7),
   logout. Every page redirects to `/login` when signed out.
 - **Billing engine** — `src/lib/billing.ts`: primary North path (gross + final weight →
   derive glazing %), secondary gross + % path, Local zero-glazing, prawn 50/50 override,
@@ -84,7 +84,7 @@ npm test                    # 40 tests
 - **Printing** — `/invoices/[id]/print`: clean browser print-to-PDF layout with the
   North/Local note block and a "Received by (signature)" line.
 - **Access scoping** — every query flows through `entityScope()` (`src/lib/scope.ts`);
-  verified: a C-Star-only user or the C-Star book view can never see NF rows.
+  verified: a SeaStar-only user or the SeaStar book view can never see NF rows.
 
 ## Before real use — the Data-Collection Gate (plan §8)
 ⚠️ **All seeded rates and glazing % are PLACEHOLDERS** — the source recordings state no

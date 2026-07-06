@@ -115,7 +115,7 @@ export default function Topbar({
           className="flex gap-0.5 rounded-lg border border-hair p-[3px]"
           style={{ background: "var(--card-2)" }}
         >
-          {seg("C-Star")}
+          {seg("SeaStar")}
           {seg("NF")}
         </div>
       )}

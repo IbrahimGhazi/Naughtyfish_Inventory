@@ -18,7 +18,7 @@ export const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 
 export interface SessionPayload {
   userId: string;
-  /** The active book the user is currently looking at ("C-Star" | "NF"). */
+  /** The active book the user is currently looking at ("SeaStar" | "NF"). */
   entityName: string;
   /** Expiry, epoch seconds. */
   exp: number;

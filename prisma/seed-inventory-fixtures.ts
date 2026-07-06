@@ -1,5 +1,5 @@
 /**
- * Idempotent inventory fixtures — gives the two Karachi (C-Star) stores a little
+ * Idempotent inventory fixtures — gives the two Karachi (SeaStar) stores a little
  * starting stock so dispatch deduction can be browser-verified. Safe to re-run:
  * inventory lines are upserted to ABSOLUTE target quantities, and each seed
  * receive-movement is created at most once (tagged by note).
@@ -24,10 +24,10 @@ const FIXTURES: Array<{
   kgPerCarton: number;
   totalKg: number;
 }> = [
-  { entity: "C-Star", store: "Karachi — Own Store", item: "Red Snapper", cartons: 50, packets: 0, kgPerCarton: 20, totalKg: 1000 },
-  { entity: "C-Star", store: "Karachi — Own Store", item: "Mahi Mahi", cartons: 20, packets: 0, kgPerCarton: 15, totalKg: 300 },
-  { entity: "C-Star", store: "Karachi — Amir Store (rented)", item: "Red Snapper", cartons: 15, packets: 0, kgPerCarton: 20, totalKg: 300 },
-  { entity: "C-Star", store: "Karachi — Amir Store (rented)", item: "Biscuit Cut", cartons: 10, packets: 100, kgPerCarton: 10, totalKg: 100 },
+  { entity: "SeaStar", store: "Karachi — Own Store", item: "Red Snapper", cartons: 50, packets: 0, kgPerCarton: 20, totalKg: 1000 },
+  { entity: "SeaStar", store: "Karachi — Own Store", item: "Mahi Mahi", cartons: 20, packets: 0, kgPerCarton: 15, totalKg: 300 },
+  { entity: "SeaStar", store: "Karachi — Amir Store (rented)", item: "Red Snapper", cartons: 15, packets: 0, kgPerCarton: 20, totalKg: 300 },
+  { entity: "SeaStar", store: "Karachi — Amir Store (rented)", item: "Biscuit Cut", cartons: 10, packets: 100, kgPerCarton: 10, totalKg: 100 },
 ];
 
 async function main() {

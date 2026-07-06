@@ -29,11 +29,11 @@ export interface ActiveContext {
 
 /**
  * Which book NAMES the user may access. Plan §4.7: "NF access = superset" —
- * a C-Star-only grant sees C-Star; an "nf"/"both" grant sees both books.
+ * a SeaStar-only grant sees SeaStar; an "nf"/"both" grant sees both books.
  */
 export function allowedBookNames(entityAccess: string): string[] {
-  if (entityAccess === "nf" || entityAccess === "both") return ["C-Star", "NF"];
-  return ["C-Star"];
+  if (entityAccess === "nf" || entityAccess === "both") return ["SeaStar", "NF"];
+  return ["SeaStar"];
 }
 
 /**

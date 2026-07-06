@@ -51,10 +51,10 @@ async function main() {
   await prisma.entity.deleteMany();
 
   // --- Two books / entities -------------------------------------------------
-  const cstar = await prisma.entity.create({ data: { name: "C-Star", bookType: "white" } });
+  const cstar = await prisma.entity.create({ data: { name: "SeaStar", bookType: "white" } });
   const nf = await prisma.entity.create({ data: { name: "NF", bookType: "black" } });
 
-  // --- Admin user (C-Star + NF via "both") ----------------------------------
+  // --- Admin user (SeaStar + NF via "both") ----------------------------------
   const passwordHash = await bcrypt.hash("admin123", 10);
   await prisma.user.create({
     data: {
@@ -82,7 +82,7 @@ async function main() {
     },
   });
 
-  // --- Accountant + Delivery users (C-Star only) ----------------------------
+  // --- Accountant + Delivery users (SeaStar only) ----------------------------
   await prisma.user.create({
     data: {
       name: "Accountant",
@@ -153,7 +153,7 @@ async function main() {
 
   // --- Bank account (manual estimated balance) ------------------------------
   await prisma.bankAccount.create({
-    data: { bankName: "Meezan Bank", accountName: "C-Star", estimatedBalance: 500000, entityId: cstar.id },
+    data: { bankName: "Meezan Bank", accountName: "SeaStar", estimatedBalance: 500000, entityId: cstar.id },
   });
 
   // --- Glazing baselines (per item; drives variance alert) ------------------
@@ -173,7 +173,7 @@ async function main() {
   }
 
   console.log("Seed complete:");
-  console.log("  Entities: C-Star (white), NF (black)");
+  console.log("  Entities: SeaStar (white), NF (black)");
   console.log("  Admin login → loginId: admin / password: admin123");
   console.log("  6 items × 2 books, 4 stores, 5 parties (incl. 1 supplier), 3 reference series, 1 bank.");
   console.log("  ⚠️  Rates & glazing % are PLACEHOLDERS — confirm via the Data-Collection Gate.");

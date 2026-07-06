@@ -6,7 +6,7 @@
 export const BOOK_TYPES = ["white", "black"] as const;
 export type BookType = (typeof BOOK_TYPES)[number];
 
-export const ENTITY_NAMES = ["C-Star", "NF"] as const;
+export const ENTITY_NAMES = ["SeaStar", "NF"] as const;
 
 export const ROLES = [
   "platform_admin",

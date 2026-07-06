@@ -77,8 +77,8 @@ export async function login(
   }
   failures.delete(parsed.data.loginId);
 
-  // Default active book: NF users start on NF, everyone else on C-Star.
-  const defaultBook = user.entityAccess === "nf" ? "NF" : "C-Star";
+  // Default active book: NF users start on NF, everyone else on SeaStar.
+  const defaultBook = user.entityAccess === "nf" ? "NF" : "SeaStar";
   // Guard against an inconsistent grant by clamping to what's actually allowed.
   const allowed = allowedBookNames(user.entityAccess);
   const activeBook = allowed.includes(defaultBook) ? defaultBook : allowed[0];

@@ -1,8 +1,8 @@
 /**
- * Idempotent demo-shipment seeder for the C-Star book. Run with:
+ * Idempotent demo-shipment seeder for the SeaStar book. Run with:
  *   npx tsx src/app/shipments/seed-shipments.ts
  *
- * Safe to re-run: it keys on Shipment.reference within the C-Star entity and
+ * Safe to re-run: it keys on Shipment.reference within the SeaStar entity and
  * UPDATES the matching row instead of inserting duplicates. It never wipes data.
  */
 
@@ -14,12 +14,12 @@ const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
 async function main() {
-  const cstar = await prisma.entity.findFirst({ where: { name: "C-Star" } });
+  const cstar = await prisma.entity.findFirst({ where: { name: "SeaStar" } });
   if (!cstar) {
-    throw new Error("C-Star entity not found — run the base seed first.");
+    throw new Error("SeaStar entity not found — run the base seed first.");
   }
 
-  // Optional link-ups so the demo rows feel real (all scoped to C-Star).
+  // Optional link-ups so the demo rows feel real (all scoped to SeaStar).
   const karachiOwn = await prisma.store.findFirst({
     where: { entityId: cstar.id, name: { contains: "Own Store" } },
   });
