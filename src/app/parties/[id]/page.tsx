@@ -40,6 +40,10 @@ export default async function PartyLedgerPage({
     [party.partyType, party.subType, party.channel].filter(Boolean).join(" · ") +
     (party.ntn ? ` · NTN ${party.ntn}` : " · no NTN (local)");
 
+  const contactLine = [party.contactPerson, party.phone, party.email]
+    .filter(Boolean)
+    .join(" · ");
+
   const cfg = await getAppConfig();
   const statementPdf: StatementPdfData = {
     businessName: cfg.branding.appName,
@@ -69,6 +73,9 @@ export default async function PartyLedgerPage({
               {party.name}
             </h1>
             <p className="mt-1 text-sm text-muted">{meta}</p>
+            {contactLine && (
+              <p className="mt-0.5 text-[12.5px] text-faint">Contact: {contactLine}</p>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <SharePdfButton

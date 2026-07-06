@@ -94,6 +94,9 @@ model Party {
   subType        String? // corporate | local (customers)
   channel        String? // north | local
   address        String?
+  phone          String?
+  email          String?
+  contactPerson  String?
   ntn            String? // local parties are name-only (null)
   openingBalance Decimal  @default(0)
   createdAt      DateTime @default(now())

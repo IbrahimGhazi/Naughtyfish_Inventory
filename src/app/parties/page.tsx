@@ -5,6 +5,7 @@ import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
 import { getCopy } from "@/lib/config";
 import { Card, PageHeader } from "@/components/ui";
+import { PartyTabs } from "./PartyTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -43,10 +44,16 @@ export default async function PartiesPage() {
         subtitle={t("parties.list.subtitle")}
       />
 
-      <div className="grid grid-cols-1 items-start gap-3.5 lg:grid-cols-2">
-        <Group title={t("parties.list.customers")} tone="accent" parties={customers} emptyLabel={t("parties.list.noCustomers")} />
-        <Group title={t("parties.list.suppliers")} tone="gold" parties={suppliers} emptyLabel={t("parties.list.noSuppliers")} />
-      </div>
+      <PartyTabs
+        customersLabel={`${t("parties.list.customers")} (${customers.length})`}
+        suppliersLabel={`${t("parties.list.suppliers")} (${suppliers.length})`}
+        customers={
+          <Group title={t("parties.list.customers")} tone="accent" parties={customers} emptyLabel={t("parties.list.noCustomers")} />
+        }
+        suppliers={
+          <Group title={t("parties.list.suppliers")} tone="gold" parties={suppliers} emptyLabel={t("parties.list.noSuppliers")} />
+        }
+      />
     </div>
   );
 }

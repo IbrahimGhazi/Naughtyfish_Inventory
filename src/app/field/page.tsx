@@ -9,6 +9,7 @@ import {
   getCachedLedgerPartyIds,
   hydrate,
   cacheLedger,
+  cacheInvoices,
   flush,
 } from "@/lib/offline/client";
 import type { OfflineInfo } from "@/lib/offline/client";
@@ -78,6 +79,7 @@ export default function FieldHome() {
       for (const p of ps) {
         // Per-customer catch so one failure can't abort the whole save.
         const led = await cacheLedger(p.id).catch(() => null);
+        await cacheInvoices(p.id).catch(() => null); // invoices for offline viewing
         if (led) ok += 1;
         else failed += 1;
       }

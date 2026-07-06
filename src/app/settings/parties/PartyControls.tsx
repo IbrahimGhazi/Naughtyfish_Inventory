@@ -22,6 +22,9 @@ export interface PartyRow {
   subType: string | null;
   channel: string | null;
   address: string | null;
+  phone: string | null;
+  email: string | null;
+  contactPerson: string | null;
   ntn: string | null;
   openingBalance: number;
 }
@@ -32,6 +35,9 @@ interface PartyValues {
   subType: string;
   channel: string;
   address: string;
+  phone: string;
+  email: string;
+  contactPerson: string;
   ntn: string;
   openingBalance: string;
 }
@@ -43,6 +49,9 @@ function toPayload(v: PartyValues) {
     subType: (v.subType || null) as PartySubType | null,
     channel: (v.channel || null) as Channel | null,
     address: v.address.trim() || undefined,
+    phone: v.phone.trim() || undefined,
+    email: v.email.trim() || undefined,
+    contactPerson: v.contactPerson.trim() || undefined,
     ntn: v.ntn.trim() || undefined,
     openingBalance: v.openingBalance ? Number(v.openingBalance) : 0,
   };
@@ -145,6 +154,31 @@ function PartyFields({
           onChange={(e) => set({ openingBalance: e.target.value })}
         />
       </Field>
+      <Field label={t("settings.parties.field.contactPerson")}>
+        <input
+          className="input"
+          data-testid={`${idPrefix}-contact-person`}
+          value={v.contactPerson}
+          onChange={(e) => set({ contactPerson: e.target.value })}
+        />
+      </Field>
+      <Field label={t("settings.parties.field.phone")}>
+        <input
+          className="input"
+          data-testid={`${idPrefix}-phone`}
+          value={v.phone}
+          onChange={(e) => set({ phone: e.target.value })}
+        />
+      </Field>
+      <Field label={t("settings.parties.field.email")}>
+        <input
+          className="input"
+          type="text"
+          data-testid={`${idPrefix}-email`}
+          value={v.email}
+          onChange={(e) => set({ email: e.target.value })}
+        />
+      </Field>
       <div className="sm:col-span-2">
         <Field label={t("settings.parties.field.address")} hint={t("settings.parties.field.addressHint")}>
           <input
@@ -165,6 +199,9 @@ const EMPTY: PartyValues = {
   subType: "",
   channel: "",
   address: "",
+  phone: "",
+  email: "",
+  contactPerson: "",
   ntn: "",
   openingBalance: "",
 };
@@ -228,6 +265,9 @@ function EditPartyForm({ party, onDone }: { party: PartyRow; onDone: () => void 
     subType: party.subType ?? "",
     channel: party.channel ?? "",
     address: party.address ?? "",
+    phone: party.phone ?? "",
+    email: party.email ?? "",
+    contactPerson: party.contactPerson ?? "",
     ntn: party.ntn ?? "",
     openingBalance: String(party.openingBalance ?? ""),
   });

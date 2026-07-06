@@ -7,6 +7,7 @@ import BackLink from "../BackLink";
 import { Card } from "../ui";
 import { PageHeader } from "@/components/ui";
 import { AddPartyForm, PartyList, type PartyRow } from "./PartyControls";
+import { PartyTabs } from "@/app/parties/PartyTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,9 @@ export default async function PartiesSettingsPage() {
     subType: p.subType,
     channel: p.channel,
     address: p.address,
+    phone: p.phone,
+    email: p.email,
+    contactPerson: p.contactPerson,
     ntn: p.ntn,
     openingBalance: Number(p.openingBalance),
   }));
@@ -44,8 +48,12 @@ export default async function PartiesSettingsPage() {
 
       <div className="space-y-4">
         <Card className="space-y-5">
-          <PartyList title={t("settings.parties.customersTitle")} parties={customers} />
-          <PartyList title={t("settings.parties.suppliersTitle")} parties={suppliers} />
+          <PartyTabs
+            customersLabel={`${t("settings.parties.customersTitle")} (${customers.length})`}
+            suppliersLabel={`${t("settings.parties.suppliersTitle")} (${suppliers.length})`}
+            customers={<PartyList title={t("settings.parties.customersTitle")} parties={customers} />}
+            suppliers={<PartyList title={t("settings.parties.suppliersTitle")} parties={suppliers} />}
+          />
         </Card>
 
         <Card>

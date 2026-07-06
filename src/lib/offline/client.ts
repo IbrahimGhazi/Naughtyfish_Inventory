@@ -6,7 +6,13 @@
 import { createPayment, type CreatePaymentInput } from "@/app/payments/actions";
 import { createInvoice, type CreateInvoiceInput } from "@/app/invoices/actions";
 import * as db from "./db";
-import type { Bootstrap, CachedLedger, OutboxItem, OutboxType } from "./types";
+import type {
+  Bootstrap,
+  CachedLedger,
+  CachedPartyInvoices,
+  OutboxItem,
+  OutboxType,
+} from "./types";
 
 /** Scalar bootstrap info kept in the `meta` store (arrays live in their own stores). */
 export interface OfflineInfo {
@@ -23,6 +29,7 @@ export interface OfflineInfo {
 
 const BOOTSTRAP_URL = "/api/offline/bootstrap";
 const ledgerUrl = (id: string) => `/api/offline/ledger/${encodeURIComponent(id)}`;
+const invoicesUrl = (id: string) => `/api/offline/invoices/${encodeURIComponent(id)}`;
 
 /** Fetch JSON, returning null on any failure (offline, redirect-to-login, non-2xx). */
 async function fetchJson<T>(url: string): Promise<T | null> {
@@ -67,8 +74,14 @@ export async function hydrate(): Promise<boolean> {
     db.setMeta("bootstrap", info),
   ]);
 
-  const ids = await db.getCachedLedgerPartyIds();
-  await Promise.all(ids.map((id) => cacheLedger(id)));
+  const [ledgerIds, invoiceIds] = await Promise.all([
+    db.getCachedLedgerPartyIds(),
+    db.getCachedInvoicePartyIds(),
+  ]);
+  await Promise.all([
+    ...ledgerIds.map((id) => cacheLedger(id)),
+    ...invoiceIds.map((id) => cacheInvoices(id)),
+  ]);
   return true;
 }
 
@@ -79,11 +92,20 @@ export async function cacheLedger(partyId: string): Promise<CachedLedger | null>
   return led;
 }
 
+/** Fetch + cache one party's recent invoices for offline viewing. */
+export async function cacheInvoices(partyId: string): Promise<CachedPartyInvoices | null> {
+  const rec = await fetchJson<CachedPartyInvoices>(invoicesUrl(partyId));
+  if (rec) await db.putInvoices(rec);
+  return rec;
+}
+
 export const getParties = db.getParties;
 export const getItems = db.getItems;
 export const getStores = db.getStores;
 export const getLedger = db.getLedger;
+export const getInvoices = db.getInvoices;
 export const getCachedLedgerPartyIds = db.getCachedLedgerPartyIds;
+export const getCachedInvoicePartyIds = db.getCachedInvoicePartyIds;
 export const getOutbox = db.getOutbox;
 export const countPending = db.countPendingOutbox;
 export const clearAll = db.clearAll;

@@ -43,6 +43,40 @@ export interface CachedLedger {
   rows: CachedLedgerRow[];
 }
 
+// Cached invoices for offline viewing in Field mode. Shapes mirror InvoicePdfData
+// so a cached invoice can be handed straight to SharePdfButton.
+export interface CachedInvoiceLine {
+  itemName: string;
+  grossKg: number;
+  netKg: number;
+  glazingPct: number;
+  ratePerKg: number;
+  cartonCount: number | null;
+  packetCount: number | null;
+  amount: number;
+}
+
+export interface CachedInvoice {
+  id: string;
+  invoiceNumber: number;
+  referenceNumber: string | null;
+  channel: string;
+  status: string;
+  dateISO: string;
+  partyMeta: string;
+  total: number;
+  paid: number;
+  balance: number;
+  notes: string | null;
+  lines: CachedInvoiceLine[];
+}
+
+export interface CachedPartyInvoices {
+  partyId: string;
+  syncedAt: string;
+  invoices: CachedInvoice[];
+}
+
 /** One-shot reference data pulled while online so the field surface works offline. */
 export interface Bootstrap {
   serverTime: string;

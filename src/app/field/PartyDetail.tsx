@@ -9,15 +9,23 @@ import {
   getStores,
   getInfo,
   getOutbox,
+  getInvoices,
   cacheLedger,
+  cacheInvoices,
   enqueue,
   flush,
 } from "@/lib/offline/client";
 import type { OfflineInfo } from "@/lib/offline/client";
-import type { CachedLedger, CachedItem, CachedStore, OutboxItem } from "@/lib/offline/types";
+import type {
+  CachedLedger,
+  CachedItem,
+  CachedStore,
+  CachedInvoice,
+  OutboxItem,
+} from "@/lib/offline/types";
 import type { CreatePaymentInput } from "@/app/payments/actions";
 import SharePdfButton from "@/components/SharePdfButton";
-import type { StatementPdfData } from "@/lib/pdf/types";
+import type { StatementPdfData, InvoicePdfData } from "@/lib/pdf/types";
 import InvoiceForm from "./InvoiceForm";
 
 type Channel = "north" | "local";
@@ -45,21 +53,25 @@ export default function PartyDetail({
   const [stores, setStores] = useState<CachedStore[]>([]);
   const [defaultChannel, setDefaultChannel] = useState<Channel>("local");
   const [mode, setMode] = useState<null | "payment" | "invoice">(null);
+  const [invoices, setInvoices] = useState<CachedInvoice[]>([]);
+  const [view, setView] = useState<"ledger" | "invoices">("ledger");
 
   const load = useCallback(async () => {
-    const [led, nfo, ob, parties, its, sts] = await Promise.all([
+    const [led, nfo, ob, parties, its, sts, inv] = await Promise.all([
       getLedger(partyId),
       getInfo(),
       getOutbox(),
       getParties(),
       getItems(),
       getStores(),
+      getInvoices(partyId),
     ]);
     setLedger(led ?? null);
     setInfo(nfo ?? null);
     setPending(ob.filter((o) => o.partyId === partyId));
     setItems(its);
     setStores(sts);
+    setInvoices(inv?.invoices ?? []);
     const party = parties.find((p) => p.id === partyId);
     setPartyName(led?.partyName ?? party?.name ?? "Customer");
     setPartyMeta(
@@ -76,7 +88,7 @@ export default function PartyDetail({
     refresh();
     // Refresh from the server when possible, then reload the view.
     if (typeof navigator !== "undefined" && navigator.onLine) {
-      void cacheLedger(partyId).then(() => load());
+      void Promise.all([cacheLedger(partyId), cacheInvoices(partyId)]).then(() => load());
     }
     window.addEventListener("nf:synced", refresh);
     window.addEventListener("online", refresh);
@@ -234,7 +246,25 @@ export default function PartyDetail({
         </div>
       )}
 
-      {/* Ledger snapshot */}
+      {/* Ledger / Invoices tabs */}
+      <div className="flex gap-2">
+        {(["ledger", "invoices"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`rounded-lg px-3 py-1.5 text-[13px] font-semibold transition-colors ${
+              view === v ? "text-on-accent" : "border border-hair bg-card text-muted hover:bg-card2"
+            }`}
+            style={view === v ? { background: "var(--accent)" } : undefined}
+          >
+            {v === "invoices" ? `Invoices${invoices.length ? ` (${invoices.length})` : ""}` : "Ledger"}
+          </button>
+        ))}
+      </div>
+
+      {view === "invoices" ? (
+        <InvoiceList invoices={invoices} partyName={partyName} appName={info?.appName ?? "Invoice"} />
+      ) : (
       <div className="overflow-hidden rounded-xl border border-hair bg-card">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[520px] border-collapse">
@@ -278,6 +308,116 @@ export default function PartyDetail({
           </table>
         </div>
       </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------ invoice list ------------------------------ */
+
+function InvoiceList({
+  invoices,
+  partyName,
+  appName,
+}: {
+  invoices: CachedInvoice[];
+  partyName: string;
+  appName: string;
+}) {
+  const [open, setOpen] = useState<string | null>(null);
+
+  if (invoices.length === 0) {
+    return (
+      <div className="rounded-xl border border-hair bg-card px-4 py-8 text-center text-sm text-faint">
+        No invoices saved for this customer yet. Open them once while online (or tap “Save all for
+        offline”) to view them here with no signal.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {invoices.map((inv) => {
+        const isOpen = open === inv.id;
+        const pdf: InvoicePdfData = {
+          businessName: appName,
+          invoiceNumber: inv.invoiceNumber,
+          referenceNumber: inv.referenceNumber,
+          dateISO: inv.dateISO,
+          channel: inv.channel,
+          status: inv.status,
+          partyName,
+          partyMeta: inv.partyMeta,
+          lines: inv.lines,
+          total: inv.total,
+          paid: inv.paid,
+          balance: inv.balance,
+          notes: inv.notes,
+        };
+        return (
+          <div key={inv.id} className="overflow-hidden rounded-xl border border-hair bg-card">
+            <button
+              onClick={() => setOpen(isOpen ? null : inv.id)}
+              className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left transition-colors hover:bg-card2"
+            >
+              <div className="min-w-0">
+                <div className="text-[13.5px] font-semibold text-ink">
+                  #{inv.invoiceNumber}
+                  {inv.referenceNumber ? (
+                    <span className="ml-1.5 font-mono text-[11px] text-gold">{inv.referenceNumber}</span>
+                  ) : null}
+                </div>
+                <div className="text-[11.5px] text-faint">
+                  {dateShort(inv.dateISO)} · {inv.status} · {inv.channel}
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="font-mono text-[13px] font-semibold text-ink">{pkr(inv.total)}</div>
+                {inv.balance > 0 ? (
+                  <div className="text-[11px] text-neg">{pkr(inv.balance)} due</div>
+                ) : (
+                  <div className="text-[11px] text-pos">paid</div>
+                )}
+              </div>
+            </button>
+            {isOpen && (
+              <div className="border-t border-hair2 px-3.5 py-3">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[420px] border-collapse text-[12px]">
+                    <thead>
+                      <tr className="text-left text-[10px] uppercase tracking-wide text-faint2">
+                        <th className="py-1 font-semibold">Item</th>
+                        <th className="py-1 text-right font-semibold">Net kg</th>
+                        <th className="py-1 text-right font-semibold">Rate</th>
+                        <th className="py-1 text-right font-semibold">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {inv.lines.map((l, i) => (
+                        <tr key={i} className="border-t border-row">
+                          <td className="py-1.5 text-text">{l.itemName}</td>
+                          <td className="py-1.5 text-right font-mono text-muted">{l.netKg}</td>
+                          <td className="py-1.5 text-right font-mono text-muted">{pkr(l.ratePerKg)}</td>
+                          <td className="py-1.5 text-right font-mono font-semibold text-ink">{pkr(l.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-2.5">
+                  <SharePdfButton
+                    kind="invoice"
+                    payload={pdf}
+                    filename={`Invoice-${inv.invoiceNumber}.pdf`}
+                    shareText={`${appName} — Invoice #${inv.invoiceNumber} for ${partyName}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-hair bg-card px-3.5 py-2 text-sm font-semibold text-text transition-colors hover:bg-card2 disabled:opacity-60"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
