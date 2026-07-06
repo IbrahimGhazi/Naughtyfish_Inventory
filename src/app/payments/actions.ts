@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
-import { assertRole, OFFICE_ROLES } from "@/lib/roles";
+import { assertCanMutate, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope, assertEntityAccess } from "@/lib/scope";
 import { requireFeature } from "@/lib/config";
 import { priorPaidAgainstInvoice, isPartialPayment } from "@/lib/payments";
@@ -45,7 +45,7 @@ export type CreatePaymentInput = z.infer<typeof PaymentSchema>;
 
 export async function createPayment(input: CreatePaymentInput, clientId?: string) {
   const ctx = await getActiveContext();
-  assertRole(ctx, OFFICE_ROLES);
+  assertCanMutate(ctx, "parties", OFFICE_ROLES);
   await assertEntityAccess(ctx);
 
   const parsed = PaymentSchema.parse(input);

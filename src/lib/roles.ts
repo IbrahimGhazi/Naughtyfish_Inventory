@@ -216,6 +216,24 @@ export function assertRole(ctx: ActiveContext, roles: string[]): void {
   }
 }
 
+/**
+ * Mutation guard that adds custom-role edit-gating WITHOUT changing built-in
+ * behavior. Built-in roles keep their exact legacy allow-list (no escalation
+ * or lockout); a CUSTOM role is allowed only if it has "edit" on `page`. Use
+ * this in place of assertRole() for page-scoped mutations.
+ */
+export function assertCanMutate(ctx: ActiveContext, page: PageKey, builtinAllowed: string[]): void {
+  if (BUILTIN_ROLES[ctx.user.role]) {
+    if (!builtinAllowed.includes(ctx.user.role)) {
+      throw new Error("Forbidden: your role does not allow this action.");
+    }
+    return;
+  }
+  if (!hasEdit(ctx.user.perms, page)) {
+    throw new Error("Forbidden: your role has view-only access to this section.");
+  }
+}
+
 /** Office roles that review/approve delivery drafts + manage money. */
 export const OFFICE_ROLES = ["platform_admin", "admin", "accountant"];
 /** Roles allowed to manage users / core settings. */

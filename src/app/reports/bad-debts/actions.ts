@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { requireFeature } from "@/lib/config";
-import { assertRole, OFFICE_ROLES } from "@/lib/roles";
+import { assertCanMutate, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope, assertEntityAccess } from "@/lib/scope";
 import { BAD_DEBT_SUBCATEGORIES } from "@/lib/enums";
 import { revalidatePath } from "next/cache";
@@ -33,7 +33,7 @@ const CreateSchema = z
  */
 export async function createBadDebt(input: z.infer<typeof CreateSchema>) {
   const ctx = await getActiveContext();
-  assertRole(ctx, OFFICE_ROLES);
+  assertCanMutate(ctx, "reports", OFFICE_ROLES);
   await assertEntityAccess(ctx);
   await requireFeature("reports");
   const parsed = CreateSchema.parse(input);
@@ -91,7 +91,7 @@ const DeleteSchema = z.object({ id: z.string().min(1) });
  */
 export async function deleteBadDebt(input: z.infer<typeof DeleteSchema>) {
   const ctx = await getActiveContext();
-  assertRole(ctx, OFFICE_ROLES);
+  assertCanMutate(ctx, "reports", OFFICE_ROLES);
   await assertEntityAccess(ctx);
   await requireFeature("reports");
   const parsed = DeleteSchema.parse(input);

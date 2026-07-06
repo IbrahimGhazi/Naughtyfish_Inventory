@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
-import { assertRole, OFFICE_ROLES } from "@/lib/roles";
+import { assertCanMutate, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope, assertEntityAccess, storeScope } from "@/lib/scope";
 import { requireFeature } from "@/lib/config";
 import { CITY_NAMES } from "@/lib/geo";
@@ -53,7 +53,7 @@ function toDate(v: string | undefined): Date | null {
 
 export async function createShipment(input: CreateShipmentInput) {
   const ctx = await getActiveContext();
-  assertRole(ctx, [...OFFICE_ROLES, "store_keeper", "north_employee"]);
+  assertCanMutate(ctx, "shipments", [...OFFICE_ROLES, "store_keeper", "north_employee"]);
   await assertEntityAccess(ctx);
   await requireFeature("shipments");
 
@@ -131,7 +131,7 @@ export type UpdateShipmentStatusInput = z.infer<typeof UpdateStatusSchema>;
  */
 export async function updateShipmentStatus(input: UpdateShipmentStatusInput) {
   const ctx = await getActiveContext();
-  assertRole(ctx, [...OFFICE_ROLES, "store_keeper", "north_employee"]);
+  assertCanMutate(ctx, "shipments", [...OFFICE_ROLES, "store_keeper", "north_employee"]);
   await assertEntityAccess(ctx);
   await requireFeature("shipments");
   const parsed = UpdateStatusSchema.parse(input);
@@ -166,7 +166,7 @@ export type UpdateShipmentEtaInput = z.infer<typeof UpdateEtaSchema>;
 /** Quick-edit a shipment's ETA (owner adjusts the estimate). */
 export async function updateShipmentEta(input: UpdateShipmentEtaInput) {
   const ctx = await getActiveContext();
-  assertRole(ctx, [...OFFICE_ROLES, "store_keeper", "north_employee"]);
+  assertCanMutate(ctx, "shipments", [...OFFICE_ROLES, "store_keeper", "north_employee"]);
   await assertEntityAccess(ctx);
   await requireFeature("shipments");
   const parsed = UpdateEtaSchema.parse(input);

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { assertEntityAccess } from "@/lib/scope";
-import { assertRole, OFFICE_ROLES } from "@/lib/roles";
+import { assertCanMutate, OFFICE_ROLES } from "@/lib/roles";
 import { requireFeature } from "@/lib/config";
 import { round3 } from "@/lib/inventory";
 import type { Prisma } from "@prisma/client";
@@ -106,7 +106,7 @@ export async function createPurchase(input: CreatePurchaseInput): Promise<{
   total: number;
 }> {
   const ctx = await getActiveContext();
-  assertRole(ctx, OFFICE_ROLES);
+  assertCanMutate(ctx, "purchases", OFFICE_ROLES);
   await assertEntityAccess(ctx);
   await requireFeature("purchases");
   const parsed = CreateSchema.parse(input);

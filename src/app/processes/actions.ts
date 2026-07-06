@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { assertEntityAccess } from "@/lib/scope";
-import { assertRole, OFFICE_ROLES } from "@/lib/roles";
+import { assertCanMutate, OFFICE_ROLES } from "@/lib/roles";
 import { requireFeature } from "@/lib/config";
 import { revalidatePath } from "next/cache";
 
@@ -34,7 +34,7 @@ export type CreateProcessInput = z.infer<typeof CreateSchema>;
 export async function createProcess(input: CreateProcessInput) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
-  assertRole(ctx, [...OFFICE_ROLES, "store_keeper"]);
+  assertCanMutate(ctx, "processes", [...OFFICE_ROLES, "store_keeper"]);
   await requireFeature("processes");
 
   const parsed = CreateSchema.parse(input);
@@ -86,7 +86,7 @@ export async function createProcess(input: CreateProcessInput) {
 export async function startProcess(id: string) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
-  assertRole(ctx, [...OFFICE_ROLES, "store_keeper"]);
+  assertCanMutate(ctx, "processes", [...OFFICE_ROLES, "store_keeper"]);
   await requireFeature("processes");
 
   const proc = await prisma.process.findFirst({ where: { id, entityId: ctx.entityId } });
@@ -112,7 +112,7 @@ const CompleteSchema = z.object({
 export async function completeProcess(input: z.infer<typeof CompleteSchema>) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
-  assertRole(ctx, [...OFFICE_ROLES, "store_keeper"]);
+  assertCanMutate(ctx, "processes", [...OFFICE_ROLES, "store_keeper"]);
   await requireFeature("processes");
 
   const parsed = CompleteSchema.parse(input);
@@ -180,7 +180,7 @@ export async function completeProcess(input: z.infer<typeof CompleteSchema>) {
 export async function cancelProcess(id: string) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
-  assertRole(ctx, OFFICE_ROLES);
+  assertCanMutate(ctx, "processes", OFFICE_ROLES);
   await requireFeature("processes");
 
   const proc = await prisma.process.findFirst({ where: { id, entityId: ctx.entityId } });

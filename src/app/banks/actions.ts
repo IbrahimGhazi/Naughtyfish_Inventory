@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
-import { assertRole, OFFICE_ROLES } from "@/lib/roles";
+import { assertCanMutate, OFFICE_ROLES } from "@/lib/roles";
 import { entityScope, assertEntityAccess } from "@/lib/scope";
 import { requireFeature } from "@/lib/config";
 import { revalidatePath } from "next/cache";
@@ -16,7 +16,7 @@ const CreateSchema = z.object({
 
 export async function createBankAccount(input: z.infer<typeof CreateSchema>) {
   const ctx = await getActiveContext();
-  assertRole(ctx, OFFICE_ROLES);
+  assertCanMutate(ctx, "banks", OFFICE_ROLES);
   await assertEntityAccess(ctx);
   await requireFeature("banks");
   const parsed = CreateSchema.parse(input);
@@ -45,7 +45,7 @@ const BalanceSchema = z.object({
  */
 export async function updateBankBalance(input: z.infer<typeof BalanceSchema>) {
   const ctx = await getActiveContext();
-  assertRole(ctx, OFFICE_ROLES);
+  assertCanMutate(ctx, "banks", OFFICE_ROLES);
   await assertEntityAccess(ctx);
   await requireFeature("banks");
   const parsed = BalanceSchema.parse(input);

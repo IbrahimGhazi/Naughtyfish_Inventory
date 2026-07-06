@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
 import { assertEntityAccess } from "@/lib/scope";
-import { assertRole, OFFICE_ROLES } from "@/lib/roles";
+import { assertCanMutate, OFFICE_ROLES } from "@/lib/roles";
 import { computeLine, computeInvoiceTotal, type LineInput } from "@/lib/billing";
 import { formatReference } from "@/lib/reference";
 import { aggregateByItem, computeStockDelta, round3, type StockLineQty } from "@/lib/inventory";
@@ -139,7 +139,7 @@ export type CreateInvoiceInput = z.infer<typeof InvoiceSchema>;
 export async function createInvoice(input: CreateInvoiceInput, clientId?: string) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
-  assertRole(ctx, [...OFFICE_ROLES, "north_employee", "delivery"]);
+  assertCanMutate(ctx, "invoices", [...OFFICE_ROLES, "north_employee", "delivery"]);
 
   // Idempotent replay of an offline-queued invoice: the client generated the
   // invoice id, so if it already exists this sync already landed (with its
@@ -346,7 +346,7 @@ export async function updateInvoice(input: UpdateInvoiceInput) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
   // Edits rewrite amounts + append delivery-record versions — office only.
-  assertRole(ctx, OFFICE_ROLES);
+  assertCanMutate(ctx, "invoices", OFFICE_ROLES);
 
   const parsed = UpdateInvoiceSchema.parse(input);
 
@@ -515,7 +515,7 @@ export async function updateInvoice(input: UpdateInvoiceInput) {
 export async function approveInvoice(invoiceId: string) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
-  assertRole(ctx, OFFICE_ROLES);
+  assertCanMutate(ctx, "invoices", OFFICE_ROLES);
 
   const invoice = await prisma.invoice.findFirst({
     where: { id: invoiceId, entityId: ctx.entityId },
@@ -616,7 +616,7 @@ function assertValidPhotoPayload(dataUrl: string): void {
 export async function attachDeliveryPhoto(input: z.infer<typeof PhotoSchema>) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
-  assertRole(ctx, [...OFFICE_ROLES, "delivery"]);
+  assertCanMutate(ctx, "invoices", [...OFFICE_ROLES, "delivery"]);
 
   const parsed = PhotoSchema.parse(input);
   assertValidPhotoPayload(parsed.photoDataUrl);
