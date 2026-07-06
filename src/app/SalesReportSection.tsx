@@ -1,28 +1,37 @@
 import { pkr } from "@/lib/format";
 import { Card } from "@/components/ui";
 import {
-  SALES_MONTHLY,
-  SALES_TOP_CLIENTS,
   SALES_GRAND_TOTAL,
-  SALES_INVOICE_COUNT,
   SALES_FY_LABEL,
+  type MonthlySales,
+  type ClientSales,
 } from "@/lib/salesReport";
 
 const compactM = (n: number) => (n / 1_000_000).toFixed(1);
 
 /**
- * SeaStar Impex annual sales overview (FY 2025–26), rendered from the imported
- * report (src/lib/salesReport.ts). Dependency-free inline SVG bar chart + a
- * top-clients breakdown — historical figures, independent of the live ledger.
+ * Sales overview — computed LIVE from the book's invoices (trailing 12 months):
+ * a dependency-free monthly bar chart + top clients by invoiced amount. The
+ * imported prior-year figure (FY 2025–26) is shown as a reference.
  */
-export default function SalesReportSection() {
-  const monthMax = Math.max(1, ...SALES_MONTHLY.map((m) => m.amount));
-  const clientMax = Math.max(1, ...SALES_TOP_CLIENTS.map((c) => c.amount));
-  const monthsWithSales = SALES_MONTHLY.filter((m) => m.amount > 0);
-  const avg = monthsWithSales.length
-    ? Math.round(SALES_GRAND_TOTAL / monthsWithSales.length)
-    : 0;
-  const best = [...SALES_MONTHLY].sort((a, b) => b.amount - a.amount)[0];
+export default function SalesReportSection({
+  monthly,
+  topClients,
+  total,
+  count,
+}: {
+  monthly: MonthlySales[];
+  topClients: ClientSales[];
+  total: number;
+  count: number;
+}) {
+  const monthMax = Math.max(1, ...monthly.map((m) => m.amount));
+  const clientMax = Math.max(1, ...topClients.map((c) => c.amount));
+  const monthsWithSales = monthly.filter((m) => m.amount > 0);
+  const avg = monthsWithSales.length ? Math.round(total / monthsWithSales.length) : 0;
+  const best = monthsWithSales.length
+    ? [...monthly].sort((a, b) => b.amount - a.amount)[0]
+    : null;
 
   // Chart geometry.
   const W = 720;
@@ -31,7 +40,7 @@ export default function SalesReportSection() {
   const padT = 24;
   const padB = 26;
   const plotH = H - padT - padB;
-  const n = SALES_MONTHLY.length;
+  const n = monthly.length;
   const slot = (W - padX * 2) / n;
   const barW = slot * 0.6;
 
@@ -40,14 +49,14 @@ export default function SalesReportSection() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="font-serif text-[17px] font-semibold text-ink">
-            Sales overview · {SALES_FY_LABEL}
+            Sales overview · last 12 months
           </div>
           <div className="text-[11.5px] text-faint2">
-            SeaStar Impex · imported annual report · {SALES_INVOICE_COUNT} invoices
+            Live from your invoices · {SALES_FY_LABEL} (imported): Rs {compactM(SALES_GRAND_TOTAL)}M
           </div>
         </div>
         <div className="text-right">
-          <div className="font-mono text-[22px] font-semibold text-ink">{pkr(SALES_GRAND_TOTAL)}</div>
+          <div className="font-mono text-[22px] font-semibold text-ink">{pkr(total)}</div>
           <div className="text-[11px] text-faint">total sales</div>
         </div>
       </div>
@@ -55,8 +64,12 @@ export default function SalesReportSection() {
       {/* Quick stats */}
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Stat label="Monthly average" value={pkr(avg)} />
-        <Stat label="Best month" value={`${best.month} ${best.year}`} sub={`Rs ${compactM(best.amount)}M`} />
-        <Stat label="Invoices" value={String(SALES_INVOICE_COUNT)} />
+        <Stat
+          label="Best month"
+          value={best ? `${best.month} ${best.year}` : "—"}
+          sub={best ? `Rs ${compactM(best.amount)}M` : undefined}
+        />
+        <Stat label="Invoices" value={String(count)} />
       </div>
 
       {/* Monthly bar chart */}
@@ -64,14 +77,14 @@ export default function SalesReportSection() {
         viewBox={`0 0 ${W} ${H}`}
         className="mt-4 w-full"
         role="img"
-        aria-label={`Monthly sales for ${SALES_FY_LABEL}`}
+        aria-label="Monthly sales, last 12 months"
       >
-        {SALES_MONTHLY.map((m, i) => {
+        {monthly.map((m, i) => {
           const barH = (m.amount / monthMax) * plotH;
           const x = padX + i * slot + (slot - barW) / 2;
           const y = padT + plotH - barH;
           return (
-            <g key={m.month}>
+            <g key={`${m.month}-${m.year}`}>
               {m.amount > 0 && (
                 <rect x={x} y={y} width={barW} height={barH} rx={3} fill="var(--accent)" />
               )}
@@ -106,27 +119,36 @@ export default function SalesReportSection() {
         <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-faint2">
           Top clients
         </div>
-        <ul className="space-y-1.5">
-          {SALES_TOP_CLIENTS.map((c) => (
-            <li key={c.name} className="flex items-center gap-3">
-              <span className="w-[120px] shrink-0 truncate text-[12.5px] text-text sm:w-[150px]">
-                {c.name}
-              </span>
-              <div className="h-2.5 flex-1 overflow-hidden rounded-full" style={{ background: "var(--card2)" }}>
+        {topClients.length === 0 ? (
+          <p className="rounded-lg border border-hair2 bg-card2 px-3.5 py-4 text-center text-[12.5px] text-faint">
+            No sales recorded yet — as you create invoices they&apos;ll appear here.
+          </p>
+        ) : (
+          <ul className="space-y-1.5">
+            {topClients.map((c) => (
+              <li key={c.name} className="flex items-center gap-3">
+                <span className="w-[120px] shrink-0 truncate text-[12.5px] text-text sm:w-[150px]">
+                  {c.name}
+                </span>
                 <div
-                  className="h-full rounded-full"
-                  style={{ width: `${(c.amount / clientMax) * 100}%`, background: "var(--accent)" }}
-                />
-              </div>
-              <span className="w-[46px] shrink-0 text-right font-mono text-[11px] text-faint">
-                {((c.amount / SALES_GRAND_TOTAL) * 100).toFixed(0)}%
-              </span>
-              <span className="hidden w-[104px] shrink-0 text-right font-mono text-[12px] text-ink sm:block">
-                {pkr(c.amount)}
-              </span>
-            </li>
-          ))}
-        </ul>
+                  className="h-2.5 flex-1 overflow-hidden rounded-full"
+                  style={{ background: "var(--card2)" }}
+                >
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${(c.amount / clientMax) * 100}%`, background: "var(--accent)" }}
+                  />
+                </div>
+                <span className="w-[46px] shrink-0 text-right font-mono text-[11px] text-faint">
+                  {total > 0 ? ((c.amount / total) * 100).toFixed(0) : 0}%
+                </span>
+                <span className="hidden w-[104px] shrink-0 text-right font-mono text-[12px] text-ink sm:block">
+                  {pkr(c.amount)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </Card>
   );

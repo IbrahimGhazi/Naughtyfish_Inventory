@@ -52,3 +52,59 @@ export const SALES_TOP_CLIENTS: ClientSales[] = [
 
 export const SALES_GRAND_TOTAL = 153_358_464;
 export const SALES_INVOICE_COUNT = 456;
+
+/* --------------------------- live computation --------------------------- */
+
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+export interface LiveSales {
+  monthly: MonthlySales[];
+  topClients: ClientSales[];
+  total: number;
+  count: number;
+}
+
+/**
+ * Aggregate real invoices into the same shape the sales section renders:
+ * a trailing `months`-month sales trend + top clients by invoiced amount.
+ * Pure — the caller passes invoices, a partyId→name map and "now".
+ */
+export function computeLiveSales(
+  invoices: { date: Date; totalAmount: number; partyId: string }[],
+  partyNames: Map<string, string>,
+  now: Date,
+  months = 12,
+): LiveSales {
+  const start = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+  const monthly: MonthlySales[] = [];
+  const bucketIndex = new Map<string, number>();
+  const key = (y: number, m: number) => `${y}-${m}`;
+  for (let i = 0; i < months; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
+    monthly.push({ month: MONTH_ABBR[d.getMonth()], year: d.getFullYear(), amount: 0 });
+    bucketIndex.set(key(d.getFullYear(), d.getMonth()), i);
+  }
+
+  const clientTotals = new Map<string, number>();
+  let total = 0;
+  let count = 0;
+  for (const inv of invoices) {
+    const d = new Date(inv.date);
+    if (d < start) continue;
+    const bi = bucketIndex.get(key(d.getFullYear(), d.getMonth()));
+    if (bi === undefined) continue;
+    const amt = Number(inv.totalAmount) || 0;
+    monthly[bi].amount += amt;
+    total += amt;
+    count += 1;
+    const name = partyNames.get(inv.partyId) ?? "—";
+    clientTotals.set(name, (clientTotals.get(name) ?? 0) + amt);
+  }
+
+  const topClients = [...clientTotals.entries()]
+    .map(([name, amount]) => ({ name, amount }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 12);
+
+  return { monthly, topClients, total, count };
+}

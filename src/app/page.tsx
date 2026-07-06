@@ -14,6 +14,7 @@ import { Donut, type DonutSlice } from "@/components/charts/Donut";
 import { PakistanMap, type MapRoute } from "@/components/PakistanMap";
 import { Card, Kpi, StatusChip, PrimaryButton } from "@/components/ui";
 import SalesReportSection from "./SalesReportSection";
+import { computeLiveSales } from "@/lib/salesReport";
 
 export const dynamic = "force-dynamic";
 
@@ -262,6 +263,17 @@ export default async function Dashboard() {
 
   const greeting = greetFor(now, ctx.user.name, t);
 
+  // Live sales overview (trailing 12 months) from the book's invoices.
+  const liveSales = computeLiveSales(
+    allInvoices.map((i) => ({
+      date: i.date,
+      totalAmount: Number(i.totalAmount),
+      partyId: i.partyId,
+    })),
+    new Map(parties.map((p) => [p.id, p.name])),
+    now,
+  );
+
   return (
     <div className="animate-rise space-y-3.5">
       {/* Page header: serif greeting + new-invoice action. */}
@@ -318,8 +330,13 @@ export default async function Dashboard() {
         )}
       </div>
 
-      {/* Imported annual sales report (SeaStar Impex FY 2025–26). */}
-      <SalesReportSection />
+      {/* Live sales overview (trailing 12 months) + imported FY reference. */}
+      <SalesReportSection
+        monthly={liveSales.monthly}
+        topClients={liveSales.topClients}
+        total={liveSales.total}
+        count={liveSales.count}
+      />
 
       {/* Row: Profit & loss (wide) + cheques-due / channel column. */}
       <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[1fr_340px]">
