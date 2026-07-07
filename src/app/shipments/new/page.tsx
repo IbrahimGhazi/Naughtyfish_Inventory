@@ -6,8 +6,10 @@ import { requirePage } from "@/lib/roles";
 import { entityScope, storeScope } from "@/lib/scope";
 import { CITY_NAMES } from "@/lib/geo";
 import { BackLink, PageHeader } from "@/components/ui";
+import { parseTypes } from "@/lib/processes";
 import ShipmentForm, {
   type FormStore,
+  type FormItem,
   type FormParty,
   type FormInvoice,
 } from "./ShipmentForm";
@@ -22,8 +24,13 @@ export default async function NewShipmentPage() {
   const t = await getCopy();
   const scope = entityScope(ctx);
 
-  const [stores, parties, invoices] = await Promise.all([
+  const [stores, items, parties, invoices] = await Promise.all([
     prisma.store.findMany({ where: storeScope(ctx), orderBy: { name: "asc" } }),
+    prisma.item.findMany({
+      where: { ...scope, active: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, nature: true },
+    }),
     prisma.party.findMany({
       where: { ...scope, partyType: "customer" },
       orderBy: { name: "asc" },
@@ -40,7 +47,9 @@ export default async function NewShipmentPage() {
     id: s.id,
     name: s.name,
     city: s.city ?? null,
+    capabilities: parseTypes(s.processCapabilities),
   }));
+  const formItems: FormItem[] = items.map((i) => ({ id: i.id, name: i.name, nature: i.nature }));
   const formParties: FormParty[] = parties.map((p) => ({ id: p.id, name: p.name }));
   const formInvoices: FormInvoice[] = invoices.map((i) => ({
     id: i.id,
@@ -63,6 +72,7 @@ export default async function NewShipmentPage() {
         defaultOriginCity={cfg.map.originCity}
         cities={CITY_NAMES}
         stores={formStores}
+        items={formItems}
         parties={formParties}
         invoices={formInvoices}
       />

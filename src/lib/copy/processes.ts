@@ -12,7 +12,7 @@ export const processesCopy: CopyFragment = [
   {
     key: "processes.subtitle",
     default:
-      "Material sent out for work — expected turnaround, estimated vs actual cost. Optional: use it when it helps, ignore it when it doesn't.",
+      "Turn raw material into finished product in-house — records the yield and moves stock (raw out, processed in). Optional cost posting to Expenses.",
     group: "Processes",
     label: "Page subtitle",
     multiline: true,
@@ -31,14 +31,14 @@ export const processesCopy: CopyFragment = [
   // ---- Empty state ----
   {
     key: "processes.empty.line1",
-    default: "Nothing here yet — “Add process” when raw material goes somewhere to be worked on.",
+    default: "Nothing yet — record a transformation when raw material is worked into finished product.",
     group: "Processes",
     label: "Empty state, line 1",
     multiline: true,
   },
   {
     key: "processes.empty.line2",
-    default: "Everything stays optional: invoices, inventory and payments never require a process.",
+    default: "Recording one moves stock: raw out, processed in.",
     group: "Processes",
     label: "Empty state, line 2",
     multiline: true,
@@ -59,8 +59,8 @@ export const processesCopy: CopyFragment = [
   { key: "processes.cell.postedToExpenses", default: "posted to expenses ✓", group: "Processes", label: "Row: posted to expenses note" },
 
   // ---- New process form ----
-  { key: "processes.form.addProcess", default: "Add process", group: "Processes", label: "“Add process” button" },
-  { key: "processes.form.title", default: "New process", group: "Processes", label: "New process form title" },
+  { key: "processes.form.addProcess", default: "Record transformation", group: "Processes", label: "“Record transformation” button" },
+  { key: "processes.form.title", default: "Record transformation", group: "Processes", label: "Transformation form title" },
 
   { key: "processes.form.name.label", default: "What's being done", group: "Processes", label: "Field: name label" },
   { key: "processes.form.name.hint", default: "e.g. Fillet cutting — Batch 12", group: "Processes", label: "Field: name hint" },
@@ -103,4 +103,47 @@ export const processesCopy: CopyFragment = [
   // ---- Cost chip ----
   { key: "processes.cost.actual", default: "actual", group: "Processes", label: "Cost chip: actual prefix" },
   { key: "processes.cost.est", default: "est.", group: "Processes", label: "Cost chip: estimate prefix" },
+
+  // ---- Transformation KPIs (redesigned page) ----
+  { key: "processes.kpi.processedMonth", default: "Processed this month", group: "Processes", label: "KPI: processed kg" },
+  { key: "processes.kpi.processedMonthSub", default: "output, completed", group: "Processes", label: "KPI: processed sub" },
+  { key: "processes.kpi.yield", default: "Avg yield", group: "Processes", label: "KPI: yield" },
+  { key: "processes.kpi.yieldSub", default: "output ÷ input", group: "Processes", label: "KPI: yield sub" },
+  { key: "processes.kpi.loss", default: "Loss this month", group: "Processes", label: "KPI: loss" },
+  { key: "processes.kpi.lossSub", default: "input − output", group: "Processes", label: "KPI: loss sub" },
+  { key: "processes.kpi.legacyActive", default: "Sent-out active", group: "Processes", label: "KPI: legacy active" },
+  { key: "processes.kpi.legacyActiveSub", default: "vendor jobs open", group: "Processes", label: "KPI: legacy active sub" },
+
+  // ---- Transformation table columns ----
+  { key: "processes.col.when", default: "When", group: "Processes", label: "Table column: When" },
+  { key: "processes.col.store", default: "Store", group: "Processes", label: "Table column: Store" },
+  { key: "processes.col.transformation", default: "Transformation", group: "Processes", label: "Table column: Transformation" },
+  { key: "processes.col.inOut", default: "In / Out", group: "Processes", label: "Table column: In/Out" },
+  { key: "processes.col.lossYield", default: "Loss / Yield", group: "Processes", label: "Table column: Loss/Yield" },
+  { key: "processes.col.applied", default: "Applied", group: "Processes", label: "Table column: Applied types" },
+  { key: "processes.chip.legacy", default: "sent out", group: "Processes", label: "Legacy record chip" },
+
+  // ---- Transformation form ----
+  { key: "processes.form.record", default: "Record transformation", group: "Processes", label: "Transformation form: submit" },
+  { key: "processes.form.store.label", default: "Store", group: "Processes", label: "Transformation: store label" },
+  { key: "processes.form.store.hint", default: "where the work happens", group: "Processes", label: "Transformation: store hint" },
+  { key: "processes.form.selectStore", default: "— select store —", group: "Processes", label: "Transformation: store placeholder" },
+  { key: "processes.form.inputItem.label", default: "Raw item (in)", group: "Processes", label: "Transformation: input item label" },
+  { key: "processes.form.inputItem.hint", default: "raw material", group: "Processes", label: "Transformation: input item hint" },
+  { key: "processes.form.selectRaw", default: "— select raw —", group: "Processes", label: "Transformation: raw placeholder" },
+  { key: "processes.form.inputKg.label", default: "Input", group: "Processes", label: "Transformation: input kg label" },
+  { key: "processes.form.outputItem.label", default: "Processed item (out)", group: "Processes", label: "Transformation: output item label" },
+  { key: "processes.form.outputItem.hint", default: "finished product", group: "Processes", label: "Transformation: output item hint" },
+  { key: "processes.form.selectProcessed", default: "— select processed —", group: "Processes", label: "Transformation: processed placeholder" },
+  { key: "processes.form.outputKg.label", default: "Output", group: "Processes", label: "Transformation: output kg label" },
+  { key: "processes.form.types.label", default: "Processes applied", group: "Processes", label: "Transformation: types label" },
+  { key: "processes.form.types.hint", default: "only what this store can do", group: "Processes", label: "Transformation: types hint" },
+  { key: "processes.form.types.pickStoreFirst", default: "pick a store first", group: "Processes", label: "Transformation: types disabled reason" },
+  { key: "processes.form.onHand", default: "on hand:", group: "Processes", label: "Transformation: on-hand prefix" },
+  { key: "processes.form.loss", default: "Loss", group: "Processes", label: "Transformation: loss label" },
+  { key: "processes.form.yield", default: "Yield", group: "Processes", label: "Transformation: yield label" },
+  { key: "processes.form.effect.rawOut", default: "Raw out", group: "Processes", label: "Transformation: raw out" },
+  { key: "processes.form.effect.processedIn", default: "Processed in", group: "Processes", label: "Transformation: processed in" },
+  { key: "processes.form.postCost", default: "Post cost to expenses", group: "Processes", label: "Transformation: post cost checkbox" },
+  { key: "processes.form.costPlaceholder", default: "cost", group: "Processes", label: "Transformation: cost placeholder" },
 ];

@@ -3,27 +3,36 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Chip, GhostButton, PrimaryButton } from "@/components/ui";
-import { pkr } from "@/lib/format";
+import { pkr, kg } from "@/lib/format";
+import { type ProcessType } from "@/lib/enums";
+import ProcessTypesPicker from "@/components/ProcessTypesPicker";
 import { useCopy } from "@/lib/copy/CopyProvider";
-import { cancelProcess, completeProcess, createProcess, startProcess } from "./actions";
+import { cancelProcess, completeProcess, recordTransformation, startProcess } from "./actions";
 
 export interface ProcOption {
   id: string;
   name: string;
 }
+export interface StoreOption {
+  id: string;
+  name: string;
+  capabilities: string[];
+}
 
-/* ------------------------------ New process ------------------------------ */
+/* ----------------------- New in-house transformation ----------------------- */
 
 export function NewProcessForm({
-  items,
   stores,
+  rawItems,
+  processedItems,
+  onHand,
   weightUnit,
-  canCancel,
 }: {
-  items: ProcOption[];
-  stores: ProcOption[];
+  stores: StoreOption[];
+  rawItems: ProcOption[];
+  processedItems: ProcOption[];
+  onHand: Record<string, number>;
   weightUnit: string;
-  canCancel: boolean;
 }) {
   const t = useCopy();
   const router = useRouter();
@@ -31,36 +40,62 @@ export function NewProcessForm({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [f, setF] = useState({
-    name: "",
-    destination: "",
-    materialNote: "",
-    itemId: "",
-    fromStoreId: "",
-    quantityKg: "",
-    expectedDays: "",
-    estimatedCost: "",
+    storeId: "",
+    inputItemId: "",
+    inputKg: "",
+    outputItemId: "",
+    outputKg: "",
     notes: "",
-    startNow: true,
+    postToExpenses: false,
+    cost: "",
   });
-  void canCancel;
+  const [types, setTypes] = useState<ProcessType[]>([]);
+
+  const store = stores.find((s) => s.id === f.storeId);
+  const caps = store?.capabilities;
+  const inKg = Number(f.inputKg);
+  const outKg = Number(f.outputKg);
+  const bothKg = f.inputKg.trim() !== "" && f.outputKg.trim() !== "" && !Number.isNaN(inKg) && !Number.isNaN(outKg);
+  const loss = bothKg ? Math.round((inKg - outKg) * 1000) / 1000 : null;
+  const yieldP = bothKg && inKg > 0 ? Math.round((outKg / inKg) * 1000) / 10 : null;
+  const rawOnHand = f.storeId && f.inputItemId ? onHand[`${f.storeId}:${f.inputItemId}`] ?? 0 : null;
+  const procOnHand = f.storeId && f.outputItemId ? onHand[`${f.storeId}:${f.outputItemId}`] ?? 0 : null;
+
+  const typesOk = types.length > 0 && (!caps || types.every((x) => caps.includes(x)));
+  const canSubmit =
+    !!f.storeId &&
+    !!f.inputItemId &&
+    !!f.outputItemId &&
+    f.inputItemId !== f.outputItemId &&
+    inKg > 0 &&
+    outKg > 0 &&
+    loss !== null &&
+    loss >= 0 &&
+    typesOk &&
+    (!f.postToExpenses || Number(f.cost) > 0) &&
+    !isPending;
+
+  function reset() {
+    setF({ storeId: "", inputItemId: "", inputKg: "", outputItemId: "", outputKg: "", notes: "", postToExpenses: false, cost: "" });
+    setTypes([]);
+  }
 
   function submit() {
     setError(null);
     startTransition(async () => {
       try {
-        await createProcess({
-          name: f.name,
-          destination: f.destination,
-          materialNote: f.materialNote || undefined,
-          itemId: f.itemId || undefined,
-          fromStoreId: f.fromStoreId || undefined,
-          quantityKg: f.quantityKg ? Number(f.quantityKg) : undefined,
-          expectedDays: f.expectedDays ? Number(f.expectedDays) : undefined,
-          estimatedCost: f.estimatedCost ? Number(f.estimatedCost) : undefined,
+        await recordTransformation({
+          storeId: f.storeId,
+          inputItemId: f.inputItemId,
+          outputItemId: f.outputItemId,
+          inputKg: inKg,
+          outputKg: outKg,
+          processTypes: types,
           notes: f.notes || undefined,
-          startNow: f.startNow,
+          actualCost: f.postToExpenses && f.cost ? Number(f.cost) : undefined,
+          postToExpenses: f.postToExpenses,
         });
-        setF({ name: "", destination: "", materialNote: "", itemId: "", fromStoreId: "", quantityKg: "", expectedDays: "", estimatedCost: "", notes: "", startNow: true });
+        reset();
         setOpen(false);
         router.refresh();
       } catch (e) {
@@ -81,61 +116,106 @@ export function NewProcessForm({
     <Card className="animate-pop p-[18px]">
       <div className="mb-3 font-serif text-[17px] font-semibold text-ink">{t("processes.form.title")}</div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <Field label={t("processes.form.name.label")} hint={t("processes.form.name.hint")}>
-          <input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-        </Field>
-        <Field label={t("processes.form.destination.label")} hint={t("processes.form.destination.hint")}>
-          <input className="input" value={f.destination} onChange={(e) => setF({ ...f, destination: e.target.value })} />
-        </Field>
-        <Field label={t("processes.form.material.label")} hint={t("processes.form.material.hint")}>
-          <input className="input" value={f.materialNote} onChange={(e) => setF({ ...f, materialNote: e.target.value })} />
-        </Field>
-        <Field label={t("processes.form.item.label")} hint={t("processes.form.item.hint")}>
-          <select className="input" value={f.itemId} onChange={(e) => setF({ ...f, itemId: e.target.value })}>
-            <option value="">—</option>
-            {items.map((i) => (
-              <option key={i.id} value={i.id}>{i.name}</option>
-            ))}
-          </select>
-        </Field>
-        <Field label={t("processes.form.fromStore.label")} hint={t("processes.form.fromStore.hint")}>
-          <select className="input" value={f.fromStoreId} onChange={(e) => setF({ ...f, fromStoreId: e.target.value })}>
-            <option value="">—</option>
+        <Field label={t("processes.form.store.label")} hint={t("processes.form.store.hint")}>
+          <select className="input" data-testid="proc-store" value={f.storeId}
+            onChange={(e) => setF({ ...f, storeId: e.target.value })}>
+            <option value="">{t("processes.form.selectStore")}</option>
             {stores.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
         </Field>
-        <Field label={`${t("processes.form.quantity.label")} (${weightUnit})`} hint={t("processes.form.quantity.hint")}>
-          <input className="input font-mono" inputMode="decimal" value={f.quantityKg}
-            onChange={(e) => setF({ ...f, quantityKg: e.target.value })} />
+
+        <Field label={t("processes.form.inputItem.label")} hint={t("processes.form.inputItem.hint")}>
+          <select className="input" data-testid="proc-input-item" value={f.inputItemId}
+            onChange={(e) => setF({ ...f, inputItemId: e.target.value })}>
+            <option value="">{t("processes.form.selectRaw")}</option>
+            {rawItems.map((i) => (
+              <option key={i.id} value={i.id}>{i.name}</option>
+            ))}
+          </select>
+          {rawOnHand !== null && (
+            <span className="mt-1 block text-[11px] text-faint">{t("processes.form.onHand")} {kg(rawOnHand)}</span>
+          )}
         </Field>
-        <Field label={t("processes.form.turnaround.label")} hint={t("processes.form.turnaround.hint")}>
-          <input className="input font-mono" inputMode="numeric" value={f.expectedDays}
-            onChange={(e) => setF({ ...f, expectedDays: e.target.value })} />
+        <Field label={`${t("processes.form.inputKg.label")} (${weightUnit})`}>
+          <input className="input font-mono" data-testid="proc-input-kg" inputMode="decimal"
+            value={f.inputKg} onChange={(e) => setF({ ...f, inputKg: e.target.value })} />
         </Field>
-        <Field label={t("processes.form.estimatedCost.label")} hint={t("processes.form.estimatedCost.hint")}>
-          <input className="input font-mono" inputMode="decimal" value={f.estimatedCost}
-            onChange={(e) => setF({ ...f, estimatedCost: e.target.value })} />
+
+        <Field label={t("processes.form.outputItem.label")} hint={t("processes.form.outputItem.hint")}>
+          <select className="input" data-testid="proc-output-item" value={f.outputItemId}
+            onChange={(e) => setF({ ...f, outputItemId: e.target.value })}>
+            <option value="">{t("processes.form.selectProcessed")}</option>
+            {processedItems.map((i) => (
+              <option key={i.id} value={i.id}>{i.name}</option>
+            ))}
+          </select>
+          {procOnHand !== null && (
+            <span className="mt-1 block text-[11px] text-faint">{t("processes.form.onHand")} {kg(procOnHand)}</span>
+          )}
         </Field>
-        <Field label={t("processes.form.notes.label")} hint={t("processes.form.notes.hint")}>
-          <input className="input" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
+        <Field label={`${t("processes.form.outputKg.label")} (${weightUnit})`}>
+          <input className="input font-mono" data-testid="proc-output-kg" inputMode="decimal"
+            value={f.outputKg} onChange={(e) => setF({ ...f, outputKg: e.target.value })} />
         </Field>
+
+        <div className="sm:col-span-2 lg:col-span-3">
+          <Field label={t("processes.form.types.label")} hint={f.storeId ? t("processes.form.types.hint") : t("processes.form.types.pickStoreFirst")}>
+            <ProcessTypesPicker value={types} onChange={setTypes} allowed={caps} idPrefix="proc"
+              disabledReason={t("processes.form.types.pickStoreFirst")} />
+          </Field>
+        </div>
+
+        <div className="sm:col-span-2 lg:col-span-3">
+          <Field label={t("processes.form.notes.label")} hint={t("processes.form.notes.hint")}>
+            <input className="input" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
+          </Field>
+        </div>
       </div>
+
+      {/* Live stock-effect strip */}
+      {(bothKg || (f.inputItemId && f.outputItemId)) && (
+        <div className="mt-3 rounded-lg border border-hair2 bg-card2 px-3.5 py-2.5 text-[13px]">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+            <span className="text-faint">
+              {t("processes.form.loss")}:{" "}
+              <strong className={`font-mono ${loss !== null && loss < 0 ? "text-neg" : "text-text"}`}>
+                {loss !== null ? kg(loss) : "—"}
+              </strong>
+            </span>
+            <span className="text-faint">
+              {t("processes.form.yield")}:{" "}
+              <strong className="font-mono text-text">{yieldP !== null ? `${yieldP}%` : "—"}</strong>
+            </span>
+          </div>
+          {rawOnHand !== null && procOnHand !== null && inKg > 0 && outKg > 0 && loss !== null && loss >= 0 && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-6 gap-y-1 text-[12px] text-faint">
+              <span>{t("processes.form.effect.rawOut")}: <span className="font-mono text-neg">−{kg(inKg)}</span> → {kg(rawOnHand - inKg)}</span>
+              <span>{t("processes.form.effect.processedIn")}: <span className="font-mono text-pos">+{kg(outKg)}</span> → {kg(procOnHand + outKg)}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="mt-3.5 flex flex-wrap items-center justify-between gap-3">
         <label className="flex cursor-pointer items-center gap-2 text-[13px] text-text">
-          <input type="checkbox" className="h-4 w-4 accent-[var(--accent)]" checked={f.startNow}
-            onChange={(e) => setF({ ...f, startNow: e.target.checked })} />
-          {t("processes.form.startNow")}
+          <input type="checkbox" className="h-4 w-4 accent-[var(--accent)]" checked={f.postToExpenses}
+            onChange={(e) => setF({ ...f, postToExpenses: e.target.checked })} />
+          {t("processes.form.postCost")}
+          {f.postToExpenses && (
+            <input className="input !w-28 !py-1.5 text-right font-mono text-[13px]"
+              placeholder={t("processes.form.costPlaceholder")} inputMode="decimal"
+              value={f.cost} onChange={(e) => setF({ ...f, cost: e.target.value })} />
+          )}
         </label>
         <div className="flex items-center gap-2">
           {error && <span className="text-[12.5px] text-neg">⚠ {error}</span>}
-          <GhostButton type="button" onClick={() => setOpen(false)} disabled={isPending}>
+          <GhostButton type="button" onClick={() => { setOpen(false); }} disabled={isPending}>
             {t("processes.form.cancel")}
           </GhostButton>
-          <PrimaryButton type="button" onClick={submit}
-            disabled={isPending || !f.name.trim() || !f.destination.trim()}>
-            {isPending ? t("processes.form.saving") : t("processes.form.save")}
+          <PrimaryButton type="button" data-testid="proc-submit" onClick={submit} disabled={!canSubmit}>
+            {isPending ? t("processes.form.saving") : t("processes.form.record")}
           </PrimaryButton>
         </div>
       </div>

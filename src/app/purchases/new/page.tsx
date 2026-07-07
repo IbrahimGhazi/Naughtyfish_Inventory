@@ -27,7 +27,7 @@ export default async function NewPurchasePage() {
     prisma.item.findMany({
       where: { ...scope, active: true },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, fixedRate: true },
+      select: { id: true, name: true, nature: true, fixedRate: true },
     }),
     prisma.purchase.findFirst({
       where: scope,
@@ -41,6 +41,7 @@ export default async function NewPurchasePage() {
   const formItems: FormItem[] = items.map((i) => ({
     id: i.id,
     name: i.name,
+    nature: i.nature,
     rate: i.fixedRate == null ? null : Number(i.fixedRate),
   }));
   const nextReference = `PUR-${String((last?.purchaseNumber ?? 0) + 1).padStart(6, "0")}`;

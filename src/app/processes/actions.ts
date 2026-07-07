@@ -3,9 +3,13 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
-import { assertEntityAccess } from "@/lib/scope";
+import { assertEntityAccess, storeScope } from "@/lib/scope";
 import { assertCanMutate, OFFICE_ROLES } from "@/lib/roles";
 import { requireFeature } from "@/lib/config";
+import { PROCESS_TYPES, PROCESS_TYPE_LABELS } from "@/lib/enums";
+import { assertCapabilities, cleanTypes, computeLoss } from "@/lib/processes";
+import { issueStock, receiveStock } from "@/lib/stock";
+import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -196,4 +200,120 @@ export async function cancelProcess(id: string) {
     throw new Error("This process is already closed.");
   }
   revalidatePath("/processes");
+}
+
+/* ------------------------- In-house transformation ------------------------- */
+
+const TransformSchema = z.object({
+  storeId: z.string().min(1, "Pick a store."),
+  inputItemId: z.string().min(1, "Pick a raw item."),
+  outputItemId: z.string().min(1, "Pick a processed item."),
+  inputKg: z.coerce.number().min(0.001, "Enter the input weight."),
+  outputKg: z.coerce.number().min(0.001, "Enter the output weight."),
+  processTypes: z.array(z.enum(PROCESS_TYPES)).min(1, "Pick at least one process."),
+  name: z.string().trim().max(120).optional(),
+  notes: z.string().trim().max(500).optional(),
+  actualCost: z.coerce.number().min(0).optional(),
+  postToExpenses: z.boolean().optional(),
+});
+
+export type RecordTransformationInput = z.infer<typeof TransformSchema>;
+
+/** Find-or-create the flat "Processing" expense category and post one entry. */
+async function postProcessingExpense(
+  tx: Prisma.TransactionClient,
+  entityId: string,
+  userId: string,
+  amount: number,
+  note: string,
+): Promise<string> {
+  let cat = await tx.expenseCategory.findFirst({ where: { entityId, name: "Processing" } });
+  if (!cat) {
+    cat = await tx.expenseCategory.create({
+      data: { name: "Processing", entityId, isOwnerAdded: false },
+    });
+  }
+  const entry = await tx.expenseEntry.create({
+    data: { amount, note, categoryId: cat.id, entityId, enteredById: userId },
+  });
+  return entry.id;
+}
+
+/**
+ * Record a completed in-house transformation: consume `inputKg` of a RAW item at
+ * a store and produce `outputKg` of a PROCESSED item there (loss = input −
+ * output). Moves stock atomically (raw issued, processed received) and optionally
+ * posts a processing cost to Expenses. The Process row is an immutable record.
+ */
+export async function recordTransformation(input: RecordTransformationInput) {
+  const ctx = await getActiveContext();
+  await assertEntityAccess(ctx);
+  assertCanMutate(ctx, "processes", [...OFFICE_ROLES, "store_keeper"]);
+  await requireFeature("processes");
+
+  const p = TransformSchema.parse(input);
+  if (p.inputItemId === p.outputItemId) throw new Error("Input and output items must differ.");
+
+  const [store, inItem, outItem] = await Promise.all([
+    prisma.store.findFirst({ where: { id: p.storeId, ...storeScope(ctx) } }),
+    prisma.item.findFirst({ where: { id: p.inputItemId, entityId: ctx.entityId } }),
+    prisma.item.findFirst({ where: { id: p.outputItemId, entityId: ctx.entityId } }),
+  ]);
+  if (!store) throw new Error("Store is not accessible in this book.");
+  if (!inItem) throw new Error("Raw item is not in the active book.");
+  if (!outItem) throw new Error("Processed item is not in the active book.");
+  if (inItem.nature !== "raw") throw new Error("The input must be a raw item.");
+  if (outItem.nature !== "processed") throw new Error("The output must be a processed item.");
+
+  const types = cleanTypes(p.processTypes);
+  if (types.length === 0) throw new Error("Pick at least one process.");
+  assertCapabilities(store, types); // server-side capability gate
+
+  const lossKg = computeLoss(p.inputKg, p.outputKg); // throws if output > input
+
+  if (p.postToExpenses && !(p.actualCost && p.actualCost > 0)) {
+    throw new Error("Enter a cost greater than zero to post it to expenses.");
+  }
+
+  const label = p.name?.trim() || `${inItem.name} → ${outItem.name}`;
+  const typeNote = types.map((t) => PROCESS_TYPE_LABELS[t]).join(", ");
+  const now = new Date();
+
+  await prisma.$transaction(async (tx) => {
+    const proc = await tx.process.create({
+      data: {
+        name: label,
+        kind: "transformation",
+        status: "completed",
+        processTypes: JSON.stringify(types),
+        storeId: store.id,
+        inputItemId: inItem.id,
+        outputItemId: outItem.id,
+        inputKg: p.inputKg,
+        outputKg: p.outputKg,
+        lossKg,
+        notes: p.notes || null,
+        actualCost: p.actualCost ?? null,
+        completedAt: now,
+        stockMovedAt: now,
+        entityId: ctx.entityId,
+      },
+    });
+
+    await issueStock(tx, ctx.entityId, store.id, inItem.id, p.inputKg,
+      `Process ${label}: ${typeNote}`, { processId: proc.id });
+    await receiveStock(tx, ctx.entityId, store.id, outItem.id, p.outputKg,
+      `Process ${label}: ${typeNote}`, { processId: proc.id });
+
+    if (p.postToExpenses && p.actualCost && p.actualCost > 0) {
+      const expenseEntryId = await postProcessingExpense(
+        tx, ctx.entityId, ctx.user.id, p.actualCost, `Process: ${label}`,
+      );
+      await tx.process.update({ where: { id: proc.id }, data: { expenseEntryId } });
+    }
+  });
+
+  revalidatePath("/processes");
+  revalidatePath("/inventory");
+  revalidatePath("/");
 }

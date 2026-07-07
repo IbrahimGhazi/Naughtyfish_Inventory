@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createItem, updateItem, setItemActive } from "../actions";
+import { createItem, updateItem, setItemActive, createRawCounterpart } from "../actions";
 import { Field, EditToggle } from "../ui";
 import { Chip } from "@/components/ui";
-import { ITEM_CATEGORIES, type ItemCategory } from "@/lib/enums";
+import { ITEM_CATEGORIES, ITEM_NATURES, type ItemCategory, type ItemNature } from "@/lib/enums";
 import { pkr, pct } from "@/lib/format";
 import { useCopy } from "@/lib/copy/CopyProvider";
 
@@ -13,17 +13,20 @@ export interface ItemRow {
   id: string;
   name: string;
   category: string;
+  nature: string;
   cartonWeightKg: number;
   packetsPerCarton: number;
   isPrawn: boolean;
   fixedRate: number | null;
   defaultGlazingPct: number | null;
   active: boolean;
+  hasRawCounterpart?: boolean;
 }
 
 interface ItemValues {
   name: string;
   category: string;
+  nature: string;
   cartonWeightKg: string;
   packetsPerCarton: string;
   isPrawn: boolean;
@@ -36,6 +39,7 @@ function toPayload(v: ItemValues) {
   return {
     name: v.name.trim(),
     category: v.category as ItemCategory,
+    nature: v.nature as ItemNature,
     cartonWeightKg: Number(v.cartonWeightKg),
     packetsPerCarton: Number(v.packetsPerCarton),
     isPrawn: v.isPrawn,
@@ -66,6 +70,20 @@ function ItemFields({
           value={v.name}
           onChange={(e) => set({ name: e.target.value })}
         />
+      </Field>
+      <Field label={t("settings.items.field.nature")} hint={t("settings.items.field.natureHint")}>
+        <select
+          className="input"
+          data-testid={`${idPrefix}-nature`}
+          value={v.nature}
+          onChange={(e) => set({ nature: e.target.value })}
+        >
+          {ITEM_NATURES.map((n) => (
+            <option key={n} value={n}>
+              {n === "raw" ? t("settings.items.nature.raw") : t("settings.items.nature.processed")}
+            </option>
+          ))}
+        </select>
       </Field>
       <Field label={t("settings.items.field.category")}>
         <select
@@ -142,6 +160,7 @@ function ItemFields({
 const EMPTY: ItemValues = {
   name: "",
   category: "fish_fillet",
+  nature: "processed",
   cartonWeightKg: "20",
   packetsPerCarton: "10",
   isPrawn: false,
@@ -209,6 +228,7 @@ function EditItemForm({ item, onDone }: { item: ItemRow; onDone: () => void }) {
   const [v, setV] = useState<ItemValues>({
     name: item.name,
     category: item.category,
+    nature: item.nature,
     cartonWeightKg: String(item.cartonWeightKg),
     packetsPerCarton: String(item.packetsPerCarton),
     isPrawn: item.isPrawn,
@@ -291,6 +311,41 @@ function ActiveToggle({ item }: { item: ItemRow }) {
   );
 }
 
+/** Clone a processed item into a linked raw counterpart (so raw stock can be held). */
+function RawCounterpartButton({ item }: { item: ItemRow }) {
+  const t = useCopy();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function make() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await createRawCounterpart({ itemId: item.id });
+        router.refresh();
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    });
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={make}
+        disabled={isPending}
+        data-testid={`item-mkraw-${item.id}`}
+        className="shrink-0 rounded-lg border border-hair px-2.5 py-1 text-xs font-medium text-text transition-colors hover:bg-card2 disabled:opacity-40"
+      >
+        {isPending ? "…" : t("settings.items.mkRaw")}
+      </button>
+      {error && <span className="text-[11px] text-neg">{error}</span>}
+    </div>
+  );
+}
+
 export function ItemList({ items }: { items: ItemRow[] }) {
   const t = useCopy();
   if (items.length === 0) {
@@ -305,6 +360,7 @@ export function ItemList({ items }: { items: ItemRow[] }) {
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-ink">{it.name}</span>
+                  {it.nature === "raw" && <Chip tone="neutral">{t("settings.items.chip.raw")}</Chip>}
                   {!it.active && <Chip tone="warn">{t("settings.items.chip.inactive")}</Chip>}
                   {it.isPrawn && <Chip tone="info">{t("settings.items.chip.prawn")}</Chip>}
                 </div>
@@ -317,7 +373,10 @@ export function ItemList({ items }: { items: ItemRow[] }) {
                     : ""}
                 </div>
               </div>
-              <ActiveToggle item={it} />
+              <div className="flex shrink-0 items-center gap-2">
+                {it.nature === "processed" && !it.hasRawCounterpart && <RawCounterpartButton item={it} />}
+                <ActiveToggle item={it} />
+              </div>
             </div>
             <div className="mt-2">
               <EditToggle

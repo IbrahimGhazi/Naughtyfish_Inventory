@@ -11,12 +11,21 @@ import {
   type ShipmentType,
   type TransportMode,
 } from "@/lib/shipments";
+import { type ProcessType } from "@/lib/enums";
+import ProcessTypesPicker from "@/components/ProcessTypesPicker";
+import { kg } from "@/lib/format";
 import { createShipment } from "../actions";
 
 export interface FormStore {
   id: string;
   name: string;
   city: string | null;
+  capabilities: string[];
+}
+export interface FormItem {
+  id: string;
+  name: string;
+  nature: string;
 }
 export interface FormParty {
   id: string;
@@ -58,12 +67,14 @@ const ETA_PRESETS: { label: string; ms: number }[] = [
 export default function ShipmentForm({
   cities,
   stores,
+  items,
   parties,
   invoices,
   defaultOriginCity = "Karachi",
 }: {
   cities: string[];
   stores: FormStore[];
+  items: FormItem[];
   parties: FormParty[];
   invoices: FormInvoice[];
   /** White-label: platform-config origin city. */
@@ -90,12 +101,45 @@ export default function ShipmentForm({
   const [partyId, setPartyId] = useState("");
   const [notes, setNotes] = useState("");
 
+  // Inter-store transfer payload (revealed when the delivery type is inter_store).
+  const [destinationStoreId, setDestinationStoreId] = useState("");
+  const [transferItemId, setTransferItemId] = useState("");
+  const [transferKg, setTransferKg] = useState("");
+  const [applyProcess, setApplyProcess] = useState(false);
+  const [transferTypes, setTransferTypes] = useState<ProcessType[]>([]);
+  const [outputItemId, setOutputItemId] = useState("");
+  const [outputKg, setOutputKg] = useState("");
+
   const [error, setError] = useState<string | null>(null);
 
   const storeById = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);
   const invoiceById = useMemo(() => new Map(invoices.map((i) => [i.id, i])), [invoices]);
 
-  const canSubmit = !!originName.trim() && !!originCity && !!destinationCity && !isPending;
+  const isInterStore = shipmentType === "inter_store";
+  const destStore = storeById.get(destinationStoreId);
+  const destCaps = destStore?.capabilities;
+  const inKgT = Number(transferKg);
+  const outKgT = Number(outputKg);
+  const bothKgT = transferKg.trim() !== "" && outputKg.trim() !== "" && !Number.isNaN(inKgT) && !Number.isNaN(outKgT);
+  const lossT = bothKgT ? Math.round((inKgT - outKgT) * 1000) / 1000 : null;
+
+  const interStoreOk =
+    !isInterStore ||
+    (!!originStoreId &&
+      !!destinationStoreId &&
+      destinationStoreId !== originStoreId &&
+      !!transferItemId &&
+      inKgT > 0 &&
+      (!applyProcess ||
+        (transferTypes.length > 0 &&
+          (!destCaps || transferTypes.every((x) => destCaps.includes(x))) &&
+          !!outputItemId &&
+          outKgT > 0 &&
+          lossT !== null &&
+          lossT >= 0)));
+
+  const canSubmit =
+    !!originName.trim() && !!originCity && !!destinationCity && interStoreOk && !isPending;
 
   // Selecting an origin store auto-fills origin name + city.
   function pickStore(id: string) {
@@ -104,6 +148,16 @@ export default function ShipmentForm({
     if (store) {
       setOriginName(store.name);
       if (store.city && cities.includes(store.city)) setOriginCity(store.city);
+    }
+  }
+
+  // Selecting a destination store auto-fills destination name + city.
+  function pickDestStore(id: string) {
+    setDestinationStoreId(id);
+    const store = storeById.get(id);
+    if (store) {
+      setDestinationName(store.name);
+      if (store.city && cities.includes(store.city)) setDestinationCity(store.city);
     }
   }
 
@@ -145,6 +199,13 @@ export default function ShipmentForm({
           invoiceId: invoiceId || undefined,
           partyId: partyId || undefined,
           notes: notes || undefined,
+          destinationStoreId: isInterStore ? destinationStoreId || undefined : undefined,
+          transferItemId: isInterStore ? transferItemId || undefined : undefined,
+          transferKg: isInterStore && transferKg ? Number(transferKg) : undefined,
+          applyProcess: isInterStore ? applyProcess : undefined,
+          processTypes: isInterStore && applyProcess ? transferTypes : undefined,
+          outputItemId: isInterStore && applyProcess ? outputItemId || undefined : undefined,
+          outputKg: isInterStore && applyProcess && outputKg ? Number(outputKg) : undefined,
         });
         router.push(`/shipments/${res.id}`);
         router.refresh();
@@ -265,6 +326,116 @@ export default function ShipmentForm({
           </Field>
         </div>
       </section>
+
+      {/* Inter-store transfer (revealed when the delivery type is a store-to-store move) */}
+      {isInterStore && (
+        <section className="rounded-xl border border-hair bg-card p-[18px]">
+          <h2 className="mb-3 font-serif text-[17px] font-semibold text-ink">{t("shipments.form.transferHeading")}</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label={t("shipments.form.destStore")} hint={t("shipments.form.destStoreHint")}>
+              <select
+                className="input"
+                data-testid="ship-dest-store"
+                value={destinationStoreId}
+                onChange={(e) => pickDestStore(e.target.value)}
+              >
+                <option value="">{t("shipments.form.optionNone")}</option>
+                {stores.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label={t("shipments.form.transferItem")}>
+              <select
+                className="input"
+                data-testid="ship-transfer-item"
+                value={transferItemId}
+                onChange={(e) => setTransferItemId(e.target.value)}
+              >
+                <option value="">{t("shipments.form.optionNone")}</option>
+                <optgroup label={t("shipments.form.natureRaw")}>
+                  {items.filter((i) => i.nature === "raw").map((i) => (
+                    <option key={i.id} value={i.id}>{i.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label={t("shipments.form.natureProcessed")}>
+                  {items.filter((i) => i.nature === "processed").map((i) => (
+                    <option key={i.id} value={i.id}>{i.name}</option>
+                  ))}
+                </optgroup>
+              </select>
+            </Field>
+            <Field label={t("shipments.form.transferKg")}>
+              <input
+                className="input font-mono"
+                data-testid="ship-transfer-kg"
+                inputMode="decimal"
+                value={transferKg}
+                onChange={(e) => setTransferKg(e.target.value)}
+              />
+            </Field>
+          </div>
+          <label className="mt-3 flex cursor-pointer items-center gap-2 text-[13px] text-text">
+            <input
+              type="checkbox"
+              data-testid="ship-apply-process"
+              className="h-4 w-4 accent-[var(--accent)]"
+              checked={applyProcess}
+              onChange={(e) => setApplyProcess(e.target.checked)}
+            />
+            {t("shipments.form.applyProcess")}
+          </label>
+          {applyProcess && (
+            <div className="mt-3 space-y-3">
+              <Field
+                label={t("shipments.form.transferTypes")}
+                hint={destinationStoreId ? undefined : t("processes.form.types.pickStoreFirst")}
+              >
+                <ProcessTypesPicker
+                  value={transferTypes}
+                  onChange={setTransferTypes}
+                  allowed={destCaps}
+                  idPrefix="ship-transfer"
+                  disabledReason={t("processes.form.types.pickStoreFirst")}
+                />
+              </Field>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label={t("shipments.form.transferOutItem")}>
+                  <select
+                    className="input"
+                    data-testid="ship-transfer-out-item"
+                    value={outputItemId}
+                    onChange={(e) => setOutputItemId(e.target.value)}
+                  >
+                    <option value="">{t("shipments.form.optionNone")}</option>
+                    {items.filter((i) => i.nature === "processed").map((i) => (
+                      <option key={i.id} value={i.id}>{i.name}</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label={t("shipments.form.transferOutKg")}>
+                  <input
+                    className="input font-mono"
+                    data-testid="ship-transfer-out-kg"
+                    inputMode="decimal"
+                    value={outputKg}
+                    onChange={(e) => setOutputKg(e.target.value)}
+                  />
+                </Field>
+              </div>
+              {lossT !== null && (
+                <div className="text-[12px] text-faint">
+                  {t("shipments.form.transferLoss")}:{" "}
+                  <strong className={`font-mono ${lossT < 0 ? "text-neg" : "text-text"}`}>{kg(lossT)}</strong>
+                </div>
+              )}
+            </div>
+          )}
+          <p className="mt-3 text-[12px] text-faint">{t("shipments.form.transferOnDelivery")}</p>
+        </section>
+      )}
 
       {/* Schedule */}
       <section className="rounded-xl border border-hair bg-card p-[18px]">

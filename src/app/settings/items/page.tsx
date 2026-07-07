@@ -19,10 +19,18 @@ export default async function ItemsSettingsPage() {
     orderBy: [{ active: "desc" }, { name: "asc" }],
   });
 
+  // Which processed items already have a raw counterpart linked to them?
+  const processedWithRaw = new Set(
+    items
+      .filter((i) => i.nature === "raw" && i.defaultProcessedItemId)
+      .map((i) => i.defaultProcessedItemId as string),
+  );
+
   const rows: ItemRow[] = items.map((i) => ({
     id: i.id,
     name: i.name,
     category: i.category,
+    nature: i.nature,
     cartonWeightKg: Number(i.cartonWeightKg),
     packetsPerCarton: i.packetsPerCarton,
     isPrawn: i.isPrawn,
@@ -30,6 +38,7 @@ export default async function ItemsSettingsPage() {
     defaultGlazingPct:
       i.defaultGlazingPct != null ? Number(i.defaultGlazingPct) : null,
     active: i.active,
+    hasRawCounterpart: processedWithRaw.has(i.id),
   }));
 
   return (

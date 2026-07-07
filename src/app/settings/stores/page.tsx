@@ -7,6 +7,7 @@ import BackLink from "../BackLink";
 import { Card } from "../ui";
 import { PageHeader } from "@/components/ui";
 import { AddStoreForm, StoreList, type StoreRow } from "./StoreControls";
+import { parseTypes } from "@/lib/processes";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ export default async function StoresSettingsPage() {
     city: s.city,
     region: s.region,
     ownershipType: s.ownershipType,
+    processCapabilities: parseTypes(s.processCapabilities),
   }));
 
   return (

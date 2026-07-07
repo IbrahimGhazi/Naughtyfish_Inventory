@@ -12,9 +12,12 @@ import {
   PARTY_SUBTYPES,
   CHANNELS,
   ITEM_CATEGORIES,
+  ITEM_NATURES,
+  PROCESS_TYPES,
   ENTITY_ACCESS,
   REGION_SCOPES,
 } from "@/lib/enums";
+import { cleanTypes } from "@/lib/processes";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -43,9 +46,10 @@ const StoreCreateSchema = z.object({
   city: z.string().trim().max(80).optional(),
   region: z.enum(["north", "south"]).optional(),
   ownershipType: z.enum(STORE_OWNERSHIP),
+  processCapabilities: z.array(z.enum(PROCESS_TYPES)).default([]),
 });
 
-export async function createStore(input: z.infer<typeof StoreCreateSchema>) {
+export async function createStore(input: z.input<typeof StoreCreateSchema>) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
   assertCanMutate(ctx, "settings", ADMIN_ROLES);
@@ -57,6 +61,7 @@ export async function createStore(input: z.infer<typeof StoreCreateSchema>) {
       city: parsed.city || null,
       region: parsed.region || null,
       ownershipType: parsed.ownershipType,
+      processCapabilities: JSON.stringify(cleanTypes(parsed.processCapabilities)),
       entityId: ctx.entityId,
     },
   });
@@ -74,7 +79,7 @@ const StoreUpdateSchema = StoreCreateSchema.extend({
  * invoices, inventory, stock movements and shipments) — the owner explicitly
  * wants to be able to rename a store instead.
  */
-export async function updateStore(input: z.infer<typeof StoreUpdateSchema>) {
+export async function updateStore(input: z.input<typeof StoreUpdateSchema>) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
   assertCanMutate(ctx, "settings", ADMIN_ROLES);
@@ -93,11 +98,14 @@ export async function updateStore(input: z.infer<typeof StoreUpdateSchema>) {
       city: parsed.city || null,
       region: parsed.region || null,
       ownershipType: parsed.ownershipType,
+      processCapabilities: JSON.stringify(cleanTypes(parsed.processCapabilities)),
     },
   });
 
   revalidatePath("/settings/stores");
   revalidatePath("/settings");
+  revalidatePath("/processes");
+  revalidatePath("/shipments");
 }
 
 /* ----------------------------------------------------------------- Parties */
@@ -221,6 +229,7 @@ export async function updateParty(input: z.input<typeof PartyUpdateSchema>) {
 const ItemCreateSchema = z.object({
   name: z.string().trim().min(1).max(120),
   category: z.enum(ITEM_CATEGORIES),
+  nature: z.enum(ITEM_NATURES).default("processed"),
   cartonWeightKg: z.coerce.number().positive(),
   packetsPerCarton: z.coerce.number().int().positive(),
   isPrawn: z.coerce.boolean(),
@@ -229,7 +238,7 @@ const ItemCreateSchema = z.object({
   active: z.coerce.boolean().default(true),
 });
 
-export async function createItem(input: z.infer<typeof ItemCreateSchema>) {
+export async function createItem(input: z.input<typeof ItemCreateSchema>) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
   assertCanMutate(ctx, "settings", ADMIN_ROLES);
@@ -239,6 +248,7 @@ export async function createItem(input: z.infer<typeof ItemCreateSchema>) {
     data: {
       name: parsed.name,
       category: parsed.category,
+      nature: parsed.nature,
       cartonWeightKg: parsed.cartonWeightKg,
       packetsPerCarton: parsed.packetsPerCarton,
       isPrawn: parsed.isPrawn,
@@ -251,11 +261,12 @@ export async function createItem(input: z.infer<typeof ItemCreateSchema>) {
 
   revalidatePath("/settings/items");
   revalidatePath("/settings");
+  revalidatePath("/processes");
 }
 
 const ItemUpdateSchema = ItemCreateSchema.extend({ id: z.string().min(1) });
 
-export async function updateItem(input: z.infer<typeof ItemUpdateSchema>) {
+export async function updateItem(input: z.input<typeof ItemUpdateSchema>) {
   const ctx = await getActiveContext();
   await assertEntityAccess(ctx);
   assertCanMutate(ctx, "settings", ADMIN_ROLES);
@@ -271,6 +282,7 @@ export async function updateItem(input: z.infer<typeof ItemUpdateSchema>) {
     data: {
       name: parsed.name,
       category: parsed.category,
+      nature: parsed.nature,
       cartonWeightKg: parsed.cartonWeightKg,
       packetsPerCarton: parsed.packetsPerCarton,
       isPrawn: parsed.isPrawn,
@@ -282,6 +294,7 @@ export async function updateItem(input: z.infer<typeof ItemUpdateSchema>) {
 
   revalidatePath("/settings/items");
   revalidatePath("/settings");
+  revalidatePath("/processes");
 }
 
 const ItemActiveSchema = z.object({
@@ -312,6 +325,50 @@ export async function setItemActive(input: z.infer<typeof ItemActiveSchema>) {
 
   revalidatePath("/settings/items");
   revalidatePath("/settings");
+}
+
+/**
+ * Create a RAW counterpart for a processed item so the owner can hold raw stock
+ * and process it into this item. Clones the master figures, sets nature="raw",
+ * prefixes the name "Raw ", clears the fixed sale rate (raw isn't sold at the
+ * finished-product price), and links this processed item as the raw's default
+ * output. No-op-safe: refuses if a raw counterpart is already linked.
+ */
+export async function createRawCounterpart(input: { itemId: string }) {
+  const ctx = await getActiveContext();
+  await assertEntityAccess(ctx);
+  assertCanMutate(ctx, "settings", ADMIN_ROLES);
+  const id = z.string().min(1).parse(input.itemId);
+
+  const source = await prisma.item.findFirst({ where: { id, ...entityScope(ctx) } });
+  if (!source) throw new Error("Item not found in this book.");
+  if (source.nature !== "processed") throw new Error("Only a processed item can get a raw counterpart.");
+
+  const existing = await prisma.item.findFirst({
+    where: { entityId: ctx.entityId, nature: "raw", defaultProcessedItemId: source.id },
+    select: { id: true },
+  });
+  if (existing) throw new Error("A raw counterpart already exists for this item.");
+
+  await prisma.item.create({
+    data: {
+      name: `Raw ${source.name}`,
+      category: source.category,
+      nature: "raw",
+      cartonWeightKg: source.cartonWeightKg,
+      packetsPerCarton: source.packetsPerCarton,
+      isPrawn: source.isPrawn,
+      fixedRate: null,
+      defaultGlazingPct: null,
+      active: true,
+      defaultProcessedItemId: source.id,
+      entityId: ctx.entityId,
+    },
+  });
+
+  revalidatePath("/settings/items");
+  revalidatePath("/settings");
+  revalidatePath("/processes");
 }
 
 /* -------------------------------------------------------- Reference series */

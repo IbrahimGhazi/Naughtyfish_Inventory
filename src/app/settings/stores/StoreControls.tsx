@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createStore, updateStore } from "../actions";
 import { Field, EditToggle } from "../ui";
-import { STORE_OWNERSHIP } from "@/lib/enums";
+import { STORE_OWNERSHIP, PROCESS_TYPE_LABELS, type ProcessType } from "@/lib/enums";
+import ProcessTypesPicker from "@/components/ProcessTypesPicker";
 import { useCopy } from "@/lib/copy/CopyProvider";
 
 export interface StoreRow {
@@ -13,6 +14,7 @@ export interface StoreRow {
   city: string | null;
   region: string | null;
   ownershipType: string;
+  processCapabilities: string[];
 }
 
 const REGIONS = ["north", "south"] as const;
@@ -26,6 +28,7 @@ export function AddStoreForm() {
   const [city, setCity] = useState("");
   const [region, setRegion] = useState("");
   const [ownershipType, setOwnershipType] = useState<string>("own");
+  const [capabilities, setCapabilities] = useState<ProcessType[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
 
@@ -41,11 +44,13 @@ export function AddStoreForm() {
           city: city.trim() || undefined,
           region: (region || undefined) as "north" | "south" | undefined,
           ownershipType: ownershipType as (typeof STORE_OWNERSHIP)[number],
+          processCapabilities: capabilities,
         });
         setName("");
         setCity("");
         setRegion("");
         setOwnershipType("own");
+        setCapabilities([]);
         setOk(true);
         router.refresh();
       } catch (e) {
@@ -103,6 +108,9 @@ export function AddStoreForm() {
           </select>
         </Field>
       </div>
+      <Field label={t("settings.stores.field.capabilities")} hint={t("settings.stores.field.capabilitiesHint")}>
+        <ProcessTypesPicker value={capabilities} onChange={setCapabilities} idPrefix="store-add" />
+      </Field>
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -130,6 +138,9 @@ function EditStoreForm({ store, onDone }: { store: StoreRow; onDone: () => void 
   const [city, setCity] = useState(store.city ?? "");
   const [region, setRegion] = useState(store.region ?? "");
   const [ownershipType, setOwnershipType] = useState(store.ownershipType);
+  const [capabilities, setCapabilities] = useState<ProcessType[]>(
+    store.processCapabilities as ProcessType[],
+  );
   const [error, setError] = useState<string | null>(null);
 
   const canSubmit = !!name.trim() && !isPending;
@@ -144,6 +155,7 @@ function EditStoreForm({ store, onDone }: { store: StoreRow; onDone: () => void 
           city: city.trim() || undefined,
           region: (region || undefined) as "north" | "south" | undefined,
           ownershipType: ownershipType as (typeof STORE_OWNERSHIP)[number],
+          processCapabilities: capabilities,
         });
         router.refresh();
         onDone();
@@ -202,6 +214,9 @@ function EditStoreForm({ store, onDone }: { store: StoreRow; onDone: () => void 
           </select>
         </Field>
       </div>
+      <Field label={t("settings.stores.field.capabilities")} hint={t("settings.stores.field.capabilitiesHint")}>
+        <ProcessTypesPicker value={capabilities} onChange={setCapabilities} idPrefix={`store-edit-${store.id}`} />
+      </Field>
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -237,6 +252,14 @@ export function StoreList({ stores }: { stores: StoreRow[] }) {
                 <div className="text-xs text-faint">
                   {[s.city, s.region, s.ownershipType].filter(Boolean).join(" · ") || "—"}
                 </div>
+                {s.processCapabilities.length > 0 && (
+                  <div className="text-xs text-faint">
+                    {t("settings.stores.row.doesPrefix")}{" "}
+                    {s.processCapabilities
+                      .map((c) => PROCESS_TYPE_LABELS[c as ProcessType] ?? c)
+                      .join(", ")}
+                  </div>
+                )}
               </div>
             }
           >

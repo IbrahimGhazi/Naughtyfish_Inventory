@@ -39,6 +39,22 @@ export const shipmentsCopy: CopyFragment = [
   { key: "shipments.form.destNameHint", default: "optional", group: "Shipments — Form", label: "‘Destination name’ field hint" },
   { key: "shipments.form.destNamePlaceholder", default: "e.g. Lahore — PC Lahore warehouse", group: "Shipments — Form", label: "‘Destination name’ placeholder" },
   { key: "shipments.form.destCity", default: "Destination city", group: "Shipments — Form", label: "‘Destination city’ field label" },
+
+  // Inter-store transfer section (shipmentType = inter_store)
+  { key: "shipments.form.transferHeading", default: "Inter-store transfer", group: "Shipments — Form", label: "Transfer section heading" },
+  { key: "shipments.form.destStore", default: "Destination store", group: "Shipments — Form", label: "Destination store field label" },
+  { key: "shipments.form.destStoreHint", default: "auto-fills name & city", group: "Shipments — Form", label: "Destination store hint" },
+  { key: "shipments.form.transferItem", default: "Item to transfer", group: "Shipments — Form", label: "Transfer item label" },
+  { key: "shipments.form.transferKg", default: "Weight", group: "Shipments — Form", label: "Transfer weight label" },
+  { key: "shipments.form.natureRaw", default: "Raw", group: "Shipments — Form", label: "Item optgroup — raw" },
+  { key: "shipments.form.natureProcessed", default: "Processed", group: "Shipments — Form", label: "Item optgroup — processed" },
+  { key: "shipments.form.applyProcess", default: "Process on arrival", group: "Shipments — Form", label: "Apply-process checkbox" },
+  { key: "shipments.form.transferTypes", default: "Processes applied", group: "Shipments — Form", label: "Transfer process types label" },
+  { key: "shipments.form.transferOutItem", default: "Processed item (out)", group: "Shipments — Form", label: "Transfer output item label" },
+  { key: "shipments.form.transferOutKg", default: "Output weight", group: "Shipments — Form", label: "Transfer output weight label" },
+  { key: "shipments.form.transferLoss", default: "Loss", group: "Shipments — Form", label: "Transfer loss label" },
+  { key: "shipments.form.transferOnDelivery", default: "Stock moves when this shipment is marked delivered.", group: "Shipments — Form", label: "Transfer on-delivery note", multiline: true },
+
   { key: "shipments.form.scheduleHeading", default: "Schedule", group: "Shipments — Form", label: "Schedule section heading" },
   { key: "shipments.form.departure", default: "Departure", group: "Shipments — Form", label: "‘Departure’ field label" },
   { key: "shipments.form.departureNow", default: "Now", group: "Shipments — Form", label: "Departure ‘Now’ button" },

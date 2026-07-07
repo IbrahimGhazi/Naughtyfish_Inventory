@@ -46,6 +46,27 @@ export type Channel = (typeof CHANNELS)[number];
 export const ITEM_CATEGORIES = ["fish_fillet", "prawn"] as const;
 export type ItemCategory = (typeof ITEM_CATEGORIES)[number];
 
+/** Whether an item is unworked raw material or a finished (processed) product.
+ *  Existing items default to "processed" — they are the sold forms. */
+export const ITEM_NATURES = ["raw", "processed"] as const;
+export type ItemNature = (typeof ITEM_NATURES)[number];
+
+/** In-house processing steps a store may perform (Store.processCapabilities) and
+ *  that a transformation/transfer applies. Stored as a JSON array of these keys. */
+export const PROCESS_TYPES = ["cleaning_cutting", "blast_freezing", "glazing", "packing"] as const;
+export type ProcessType = (typeof PROCESS_TYPES)[number];
+
+export const PROCESS_TYPE_LABELS: Record<ProcessType, string> = {
+  cleaning_cutting: "Cleaning + cutting",
+  blast_freezing: "Blast freezing",
+  glazing: "Glazing",
+  packing: "Packing",
+};
+
+export function isProcessType(v: string): v is ProcessType {
+  return (PROCESS_TYPES as readonly string[]).includes(v);
+}
+
 export const CHEQUE_DIRECTIONS = ["incoming", "outgoing"] as const;
 export const CHEQUE_STATUSES = ["issued", "cleared", "pending", "held", "bounced"] as const;
 

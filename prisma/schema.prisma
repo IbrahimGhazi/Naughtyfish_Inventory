@@ -134,6 +134,7 @@ model Item {
   id                   String   @id @default(cuid())
   name                 String
   category             String   @default("fish_fillet")
+  nature               String   @default("processed") // raw | processed (src/lib/enums.ts ITEM_NATURES)
   cartonWeightKg       Decimal  @default(20) // per-item; 20/15/13/10
   packetsPerCarton     Int      @default(10) // prawn ~50 (confirm)
   isPrawn              Boolean  @default(false)
@@ -144,14 +145,25 @@ model Item {
   entity   Entity @relation(fields: [entityId], references: [id])
   entityId String
 
-  glazingSettings  GlazingSetting[]
-  invoiceLines     InvoiceLineItem[]
-  inventoryLines   StoreInventoryLine[]
-  stockMovements   StockMovement[]
-  processes        Process[]
-  purchaseLines    PurchaseLineItem[]
+  // Optional convenience link: a raw item → the processed form it usually
+  // becomes (UI prefill only; a process still picks input/output freely).
+  defaultProcessedItem   Item?   @relation("RawToProcessed", fields: [defaultProcessedItemId], references: [id])
+  defaultProcessedItemId String?
+  rawSources             Item[]  @relation("RawToProcessed")
+
+  glazingSettings   GlazingSetting[]
+  invoiceLines      InvoiceLineItem[]
+  inventoryLines    StoreInventoryLine[]
+  stockMovements    StockMovement[]
+  processes         Process[]  @relation("ProcessLegacyItem")
+  processInputs     Process[]  @relation("ProcessInput")
+  processOutputs    Process[]  @relation("ProcessOutput")
+  purchaseLines     PurchaseLineItem[]
+  transferShipments Shipment[] @relation("ShipmentTransferItem")
+  outputShipments   Shipment[] @relation("ShipmentOutputItem")
 
   @@index([entityId])
+  @@index([entityId, nature])
 }
 
 /// Expected glazing % per item, optionally per party — drives the variance alert.
@@ -177,6 +189,7 @@ model Store {
   city          String?
   region        String? // north | south
   ownershipType String   @default("own")
+  processCapabilities String @default("[]") // JSON array of PROCESS_TYPES (validated in app code)
   createdAt     DateTime @default(now())
 
   entity   Entity @relation(fields: [entityId], references: [id])
@@ -189,7 +202,9 @@ model Store {
   stockMovementsFrom StockMovement[] @relation("StockFrom")
   stockMovementsTo   StockMovement[] @relation("StockTo")
   originShipments Shipment[] @relation("ShipmentOrigin")
-  processes      Process[]
+  destinationShipments Shipment[] @relation("ShipmentDestination")
+  processes      Process[]   @relation("ProcessFromStore")
+  processesAt    Process[]   @relation("ProcessStore")
   purchases      Purchase[]
   expenses       ExpenseEntry[]
 
@@ -239,6 +254,9 @@ model StockMovement {
   // "receive" movements created by a purchase keep their provenance.
   purchase    Purchase? @relation(fields: [purchaseId], references: [id])
   purchaseId  String?
+  // Provenance for process/transfer movements (plain ids — no FK relation).
+  processId   String?
+  shipmentId  String?
   entity      Entity   @relation(fields: [entityId], references: [id])
   entityId    String
 
@@ -508,6 +526,13 @@ model Shipment {
   currentLng         Float?
   locationAccuracyM  Float? // reported accuracy radius in metres
   locationUpdatedAt  DateTime?
+  // Store-to-store transfer payload (shipmentType = "inter_store"). A single
+  // line moves on delivery; stockMovedAt guards against double-posting.
+  transferKg    Decimal?
+  applyProcess  Boolean   @default(false)
+  processTypes  String    @default("[]") // JSON array of PROCESS_TYPES applied at destination
+  outputKg      Decimal?  // processed yield when applyProcess
+  stockMovedAt  DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -519,6 +544,12 @@ model Shipment {
   invoiceId     String?
   originStore   Store?   @relation("ShipmentOrigin", fields: [originStoreId], references: [id])
   originStoreId String?
+  destinationStore   Store? @relation("ShipmentDestination", fields: [destinationStoreId], references: [id])
+  destinationStoreId String?
+  transferItem   Item?  @relation("ShipmentTransferItem", fields: [transferItemId], references: [id])
+  transferItemId String?
+  outputItem     Item?  @relation("ShipmentOutputItem", fields: [outputItemId], references: [id])
+  outputItemId   String?
   // The rider (delivery user) currently driving this truck delivery.
   assignedRider   User?   @relation("AssignedRider", fields: [assignedRiderId], references: [id])
   assignedRiderId String?
@@ -537,10 +568,11 @@ model Shipment {
 model Process {
   id              String    @id @default(cuid())
   name            String // e.g. "Fillet cutting — Batch 12"
+  kind            String    @default("transformation") // transformation | dispatch (legacy vendor send-out)
   status          String    @default("planned")
-  materialNote    String? // free-text description of what was sent
-  quantityKg      Decimal? // optional weight sent out
-  destination     String // where it goes: vendor / facility name
+  materialNote    String? // legacy: free-text description of what was sent
+  quantityKg      Decimal? // legacy: optional weight sent out
+  destination     String? // legacy: vendor / facility name (null for transformations)
   startedAt       DateTime?
   expectedReadyAt DateTime?
   completedAt     DateTime?
@@ -550,16 +582,31 @@ model Process {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
+  // In-house transformation (kind = "transformation"): consume inputKg of a raw
+  // item at a store, produce outputKg of a processed item; loss = input − output.
+  processTypes  String    @default("[]") // JSON array of PROCESS_TYPES applied
+  inputKg       Decimal?
+  outputKg      Decimal?
+  lossKg        Decimal?
+  stockMovedAt  DateTime? // set once stock has been moved (idempotency)
+
   entity         Entity        @relation(fields: [entityId], references: [id])
   entityId       String
-  item           Item?         @relation(fields: [itemId], references: [id])
+  item           Item?         @relation("ProcessLegacyItem", fields: [itemId], references: [id])
   itemId         String?
-  fromStore      Store?        @relation(fields: [fromStoreId], references: [id])
+  fromStore      Store?        @relation("ProcessFromStore", fields: [fromStoreId], references: [id])
   fromStoreId    String?
+  inputItem      Item?         @relation("ProcessInput", fields: [inputItemId], references: [id])
+  inputItemId    String?
+  outputItem     Item?         @relation("ProcessOutput", fields: [outputItemId], references: [id])
+  outputItemId   String?
+  store          Store?        @relation("ProcessStore", fields: [storeId], references: [id])
+  storeId        String?
   expenseEntry   ExpenseEntry? @relation(fields: [expenseEntryId], references: [id])
   expenseEntryId String?       @unique
 
   @@index([entityId, status])
+  @@index([storeId])
 }
 
 /// A purchase from a supplier (payables side of the ledger). Line items priced
@@ -602,6 +649,7 @@ model PurchaseLineItem {
   cartons   Int?
   packets   Int?
   amount    Decimal // round2(weightKg × ratePerKg)
+  processTypes String @default("[]") // JSON PROCESS_TYPES the supplier applied (informational)
 
   purchase   Purchase @relation(fields: [purchaseId], references: [id])
   purchaseId String

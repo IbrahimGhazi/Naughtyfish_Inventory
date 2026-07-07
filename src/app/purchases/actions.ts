@@ -7,6 +7,8 @@ import { assertEntityAccess } from "@/lib/scope";
 import { assertCanMutate, OFFICE_ROLES } from "@/lib/roles";
 import { requireFeature } from "@/lib/config";
 import { round3 } from "@/lib/inventory";
+import { PROCESS_TYPES } from "@/lib/enums";
+import { cleanTypes } from "@/lib/processes";
 import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
@@ -21,6 +23,8 @@ const LineSchema = z.object({
   ratePerKg: z.coerce.number().positive("Rate must be greater than zero."),
   cartons: z.coerce.number().int().min(0).optional(),
   packets: z.coerce.number().int().min(0).optional(),
+  // Optional: which processes the supplier already applied (processed items only).
+  processTypes: z.array(z.enum(PROCESS_TYPES)).optional(),
 });
 
 const CreateSchema = z.object({
@@ -143,6 +147,7 @@ export async function createPurchase(input: CreatePurchaseInput): Promise<{
       cartons: l.cartons ?? 0,
       packets: l.packets ?? 0,
       amount: round2(w * l.ratePerKg),
+      processTypes: JSON.stringify(cleanTypes(l.processTypes ?? [])),
     };
   });
   const total = round2(lines.reduce((s, l) => s + l.amount, 0));
@@ -179,6 +184,7 @@ export async function createPurchase(input: CreatePurchaseInput): Promise<{
               cartons: l.cartons || null,
               packets: l.packets || null,
               amount: l.amount,
+              processTypes: l.processTypes,
             })),
           },
         },

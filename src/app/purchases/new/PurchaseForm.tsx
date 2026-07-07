@@ -5,6 +5,8 @@ import Link from "next/link";
 import { pkr, kg } from "@/lib/format";
 import { useCopy } from "@/lib/copy/CopyProvider";
 import DatePicker from "@/components/DatePicker";
+import ProcessTypesPicker from "@/components/ProcessTypesPicker";
+import { type ProcessType } from "@/lib/enums";
 import { createPurchase } from "../actions";
 
 export interface FormSupplier {
@@ -18,6 +20,7 @@ export interface FormStore {
 export interface FormItem {
   id: string;
   name: string;
+  nature: string;
   rate: number | null; // item's fixedRate as a convenience default
 }
 
@@ -27,9 +30,10 @@ interface Line {
   ratePerKg: string;
   cartons: string;
   packets: string;
+  processTypes: ProcessType[];
 }
 
-const EMPTY_LINE: Line = { itemId: "", weightKg: "", ratePerKg: "", cartons: "", packets: "" };
+const EMPTY_LINE: Line = { itemId: "", weightKg: "", ratePerKg: "", cartons: "", packets: "", processTypes: [] };
 
 /** Fully-blank rows are ignored; any partially-filled row must be complete. */
 const rowIsEmpty = (l: Line) => !l.itemId && !l.weightKg && !l.ratePerKg && !l.cartons && !l.packets;
@@ -100,6 +104,7 @@ export default function PurchaseForm({
             ratePerKg: Number(l.ratePerKg),
             cartons: l.cartons ? Number(l.cartons) : undefined,
             packets: l.packets ? Number(l.packets) : undefined,
+            processTypes: l.processTypes.length ? l.processTypes : undefined,
           })),
         });
         setSaved(res);
@@ -221,31 +226,41 @@ export default function PurchaseForm({
             <span className="text-right">{t("purchases.new.colAmount")}</span>
             <span />
           </div>
-          {lines.map((l, ix) => (
+          {lines.map((l, ix) => {
+            const item = items.find((i) => i.id === l.itemId);
+            const isProcessed = item?.nature === "processed";
+            return (
+            <div key={ix} className="border-b border-row">
             <div
-              key={ix}
-              className="animate-pop grid grid-cols-[1fr_88px_88px_70px_70px_96px_30px] items-center gap-2 border-b border-row px-3.5 py-2.5"
+              className="animate-pop grid grid-cols-[1fr_88px_88px_70px_70px_96px_30px] items-center gap-2 px-3.5 py-2.5"
             >
               <select
                 className="input"
                 data-testid={`pur-line-item-${ix}`}
                 value={l.itemId}
                 onChange={(e) => {
-                  const item = items.find((i) => i.id === e.target.value);
+                  const picked = items.find((i) => i.id === e.target.value);
                   patchLine(ix, {
                     itemId: e.target.value,
                     // Convenience: prefill the item's fixed rate; stays editable.
                     ratePerKg:
-                      l.ratePerKg || (item?.rate != null ? String(item.rate) : l.ratePerKg),
+                      l.ratePerKg || (picked?.rate != null ? String(picked.rate) : l.ratePerKg),
+                    // Supplier processes only make sense for a processed item.
+                    processTypes: picked?.nature === "processed" ? l.processTypes : [],
                   });
                 }}
               >
                 <option value="">{t("purchases.new.itemPick")}</option>
-                {items.map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.name}
-                  </option>
-                ))}
+                <optgroup label={t("purchases.new.natureRaw")}>
+                  {items.filter((i) => i.nature === "raw").map((i) => (
+                    <option key={i.id} value={i.id}>{i.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label={t("purchases.new.natureProcessed")}>
+                  {items.filter((i) => i.nature === "processed").map((i) => (
+                    <option key={i.id} value={i.id}>{i.name}</option>
+                  ))}
+                </optgroup>
               </select>
               <input
                 className="input font-mono"
@@ -296,7 +311,24 @@ export default function PurchaseForm({
                 ×
               </button>
             </div>
-          ))}
+            {isProcessed && (
+              <div className="bg-card2 px-3.5 py-2">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-faint2">
+                  {t("purchases.new.suppliedAs")}
+                  <span className="ml-1 font-normal normal-case tracking-normal text-faint">· {t("purchases.new.suppliedAsHint")}</span>
+                </span>
+                <div className="mt-1.5">
+                  <ProcessTypesPicker
+                    value={l.processTypes}
+                    onChange={(next) => patchLine(ix, { processTypes: next })}
+                    idPrefix={`pur-line-${ix}`}
+                  />
+                </div>
+              </div>
+            )}
+            </div>
+            );
+          })}
         </div>
         </div>
           <button
