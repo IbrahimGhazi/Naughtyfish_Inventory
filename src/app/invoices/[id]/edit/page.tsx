@@ -72,7 +72,6 @@ export default async function EditInvoicePage({
     ratePerKg: String(Number(li.ratePerKg)),
     cartonCount: li.cartonCount !== null ? String(li.cartonCount) : "",
     packetCount: li.packetCount !== null ? String(li.packetCount) : "",
-    expectedPacketCount: "",
   }));
 
   return (

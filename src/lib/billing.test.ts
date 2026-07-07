@@ -149,32 +149,6 @@ describe("computeLine — glazing variance alert (money recovery)", () => {
   });
 });
 
-describe("computeLine — packet short-count alert (dispute defense)", () => {
-  it("flags 44 packets where 45 were expected", () => {
-    const line = computeLine({
-      grossWeightKg: 100,
-      glazingPercent: 5,
-      ratePerKg: 100,
-      channel: "north",
-      packetCount: 44,
-      expectedPacketCount: 45,
-    });
-    expect(line.packetShortAlert).toEqual({ expected: 45, actual: 44, shortBy: 1 });
-  });
-
-  it("no alert when counts match", () => {
-    const line = computeLine({
-      grossWeightKg: 100,
-      glazingPercent: 5,
-      ratePerKg: 100,
-      channel: "north",
-      packetCount: 45,
-      expectedPacketCount: 45,
-    });
-    expect(line.packetShortAlert).toBeUndefined();
-  });
-});
-
 describe("computeLine — validation", () => {
   it("throws when a north line has neither final weight nor %", () => {
     expect(() =>

@@ -121,7 +121,6 @@ const LineSchema = z.object({
   ratePerKg: z.coerce.number().min(0),
   cartonCount: z.coerce.number().int().min(0).optional(),
   packetCount: z.coerce.number().int().min(0).optional(),
-  expectedPacketCount: z.coerce.number().int().min(0).optional(),
 });
 
 const InvoiceSchema = z.object({
@@ -218,7 +217,6 @@ export async function createInvoice(input: CreateInvoiceInput, clientId?: string
       isPrawn: item.isPrawn,
       cartonCount: l.cartonCount,
       packetCount: l.packetCount,
-      expectedPacketCount: l.expectedPacketCount,
       expectedGlazingPercent: expectedByItem.get(l.itemId),
     };
     return { line: computeLine(li), item, raw: l };
@@ -392,7 +390,6 @@ export async function updateInvoice(input: UpdateInvoiceInput) {
       isPrawn: item.isPrawn,
       cartonCount: l.cartonCount,
       packetCount: l.packetCount,
-      expectedPacketCount: l.expectedPacketCount,
       expectedGlazingPercent: expectedByItem.get(l.itemId),
     };
     return { line: computeLine(li), item, raw: l };

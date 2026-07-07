@@ -25,7 +25,6 @@ export interface EditLineRow {
   ratePerKg: string;
   cartonCount: string;
   packetCount: string;
-  expectedPacketCount: string;
 }
 
 const emptyLine: EditLineRow = {
@@ -36,7 +35,6 @@ const emptyLine: EditLineRow = {
   ratePerKg: "",
   cartonCount: "",
   packetCount: "",
-  expectedPacketCount: "",
 };
 
 export default function EditInvoiceForm({
@@ -92,7 +90,6 @@ export default function EditInvoiceForm({
         isPrawn: item.isPrawn,
         cartonCount: r.cartonCount ? parseInt(r.cartonCount) : undefined,
         packetCount: r.packetCount ? parseInt(r.packetCount) : undefined,
-        expectedPacketCount: r.expectedPacketCount ? parseInt(r.expectedPacketCount) : undefined,
         expectedGlazingPercent: item.expectedGlazingPct ?? undefined,
       });
       return { result };
@@ -120,7 +117,6 @@ export default function EditInvoiceForm({
             ratePerKg: Number(r.ratePerKg),
             cartonCount: r.cartonCount ? Number(r.cartonCount) : undefined,
             packetCount: r.packetCount ? Number(r.packetCount) : undefined,
-            expectedPacketCount: r.expectedPacketCount ? Number(r.expectedPacketCount) : undefined,
           })),
         });
         router.push(`/invoices/${invoiceId}`);
@@ -172,7 +168,6 @@ export default function EditInvoiceForm({
           <div>
             {rows.map((r, i) => {
               const c = computed[i];
-              const item = itemById.get(r.itemId);
               return (
                 <div key={i} className="animate-pop border-b border-row px-3.5 py-2.5">
                   <div className="grid grid-cols-[1fr_76px_92px_84px_88px_90px_100px_30px] items-center gap-2">
@@ -220,11 +215,12 @@ export default function EditInvoiceForm({
                       <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-packets-${i}`} inputMode="numeric" value={r.packetCount}
                         onChange={(e) => updateRow(i, { packetCount: e.target.value })} />
                     </Field>
-                    <Field label={t("invoices.editForm.labelExpectedPackets")} hint={t("invoices.editForm.hintShortCount")}>
-                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-expected-${i}`} inputMode="numeric" value={r.expectedPacketCount}
-                        onChange={(e) => updateRow(i, { expectedPacketCount: e.target.value })}
-                        placeholder={item ? String((Number(r.cartonCount) || 0) * item.packetsPerCarton || "") : ""} />
+                    {channel === "north" && (
+                    <Field label={t("invoices.editForm.labelGlazing")} hint={t("invoices.editForm.hintOptional")}>
+                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-glazing-${i}`} inputMode="decimal" value={r.glazingPercent}
+                        onChange={(e) => updateRow(i, { glazingPercent: e.target.value })} placeholder="0" />
                     </Field>
+                    )}
                     <div className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-1 self-end text-[12px] sm:col-span-2">
                       {c?.error && <span className="text-warn">⚠ {c.error}</span>}
                       {c?.result && (
@@ -233,11 +229,6 @@ export default function EditInvoiceForm({
                           {c.result.varianceAlert && (
                             <Chip tone="neg">
                               {t("invoices.editForm.overDeduction")} {pct(c.result.varianceAlert.actualPercent)} {t("invoices.editForm.varianceVs")} {pct(c.result.varianceAlert.expectedPercent)} (+{pct(c.result.varianceAlert.exceededByPercent)})
-                            </Chip>
-                          )}
-                          {c.result.packetShortAlert && (
-                            <Chip tone="warn">
-                              {t("invoices.editForm.short")} {c.result.packetShortAlert.shortBy}: {c.result.packetShortAlert.actual}/{c.result.packetShortAlert.expected}
                             </Chip>
                           )}
                         </>

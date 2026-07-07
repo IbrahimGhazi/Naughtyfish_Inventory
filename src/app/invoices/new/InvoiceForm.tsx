@@ -35,7 +35,6 @@ interface LineRow {
   ratePerKg: string;
   cartonCount: string;
   packetCount: string;
-  expectedPacketCount: string;
 }
 
 const emptyLine: LineRow = {
@@ -46,7 +45,6 @@ const emptyLine: LineRow = {
   ratePerKg: "",
   cartonCount: "",
   packetCount: "",
-  expectedPacketCount: "",
 };
 
 export interface FormLabels {
@@ -127,7 +125,6 @@ export default function InvoiceForm({
         isPrawn: item.isPrawn,
         cartonCount: r.cartonCount ? parseInt(r.cartonCount) : undefined,
         packetCount: r.packetCount ? parseInt(r.packetCount) : undefined,
-        expectedPacketCount: r.expectedPacketCount ? parseInt(r.expectedPacketCount) : undefined,
         expectedGlazingPercent: item.expectedGlazingPct ?? undefined,
       });
       return { result };
@@ -164,7 +161,6 @@ export default function InvoiceForm({
             ratePerKg: Number(r.ratePerKg),
             cartonCount: r.cartonCount ? Number(r.cartonCount) : undefined,
             packetCount: r.packetCount ? Number(r.packetCount) : undefined,
-            expectedPacketCount: r.expectedPacketCount ? Number(r.expectedPacketCount) : undefined,
           })),
         });
         setDone(res);
@@ -304,7 +300,6 @@ export default function InvoiceForm({
           <div>
             {rows.map((r, i) => {
               const c = computed[i];
-              const item = itemById.get(r.itemId);
               return (
                 <div key={i} className="animate-pop border-b border-row px-3.5 py-2.5">
                   <div className="grid grid-cols-[1fr_76px_92px_84px_88px_90px_100px_30px] items-center gap-2">
@@ -350,11 +345,10 @@ export default function InvoiceForm({
                         onChange={(e) => updateRow(i, { packetCount: e.target.value })} />
                     </Field>
                     )}
-                    {showPackaging && (
-                    <Field label={`${t("invoices.form.expectedPrefix")} ${labels.subUnitPlural.toLowerCase()}`} hint={t("invoices.form.hintShortCount")}>
-                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`expected-${i}`} inputMode="numeric" value={r.expectedPacketCount}
-                        onChange={(e) => updateRow(i, { expectedPacketCount: e.target.value })}
-                        placeholder={item ? String((Number(r.cartonCount) || 0) * item.packetsPerCarton || "") : ""} />
+                    {showGlazing && channel === "north" && (
+                    <Field label={`${labels.glazingLabel} %`} hint={t("invoices.form.hintOptional")}>
+                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`glaze-${i}`} inputMode="decimal" value={r.glazingPercent}
+                        onChange={(e) => updateRow(i, { glazingPercent: e.target.value })} placeholder="0" />
                     </Field>
                     )}
                     <div className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] self-end sm:col-span-2">
@@ -367,11 +361,6 @@ export default function InvoiceForm({
                           {c.result.varianceAlert && (
                             <Chip tone="neg">
                               {t("invoices.form.overDeduction")} {pct(c.result.varianceAlert.actualPercent)} {t("invoices.form.varianceVs")} {pct(c.result.varianceAlert.expectedPercent)} (+{pct(c.result.varianceAlert.exceededByPercent)})
-                            </Chip>
-                          )}
-                          {c.result.packetShortAlert && (
-                            <Chip tone="warn">
-                              {t("invoices.form.short")} {c.result.packetShortAlert.shortBy}: {c.result.packetShortAlert.actual}/{c.result.packetShortAlert.expected}
                             </Chip>
                           )}
                         </>

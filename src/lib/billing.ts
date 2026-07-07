@@ -102,7 +102,6 @@ export interface LineInput {
   /** Dispute-defense counts captured at delivery. Not used in math, carried through. */
   cartonCount?: number;
   packetCount?: number;
-  expectedPacketCount?: number;
 
   /** Variance alert: the party's expected/baseline glazing% for this item. */
   expectedGlazingPercent?: number;
@@ -116,13 +115,6 @@ export interface VarianceAlert {
   exceededByPercent: number;
 }
 
-export interface PacketShortAlert {
-  expected: number;
-  actual: number;
-  /** expected − actual, positive means a short delivery. */
-  shortBy: number;
-}
-
 export interface LineResult {
   grossWeightKg: number;
   netWeightKg: number;
@@ -134,8 +126,6 @@ export interface LineResult {
   packetCount?: number;
   /** Present only when the buyer's glazing deduction exceeds the agreed baseline. */
   varianceAlert?: VarianceAlert;
-  /** Present only when packetCount < expectedPacketCount. */
-  packetShortAlert?: PacketShortAlert;
 }
 
 /**
@@ -199,18 +189,6 @@ export function computeLine(input: LineInput): LineResult {
         expectedPercent: roundPercent(input.expectedGlazingPercent),
         actualPercent: glazingPercent,
         exceededByPercent: exceededBy,
-      };
-    }
-  }
-
-  // Packet short-count alert — dispute defense (44 where 45 expected).
-  if (input.expectedPacketCount !== undefined && input.packetCount !== undefined) {
-    const shortBy = input.expectedPacketCount - input.packetCount;
-    if (shortBy > 0) {
-      result.packetShortAlert = {
-        expected: input.expectedPacketCount,
-        actual: input.packetCount,
-        shortBy,
       };
     }
   }
