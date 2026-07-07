@@ -158,7 +158,8 @@ export async function createParty(input: z.input<typeof PartyCreateSchema>) {
   });
 
   revalidatePath("/settings/parties");
-  revalidatePath("/parties");
+  revalidatePath("/parties/customers");
+  revalidatePath("/parties/suppliers");
   revalidatePath("/settings");
 }
 
@@ -209,7 +210,8 @@ export async function updateParty(input: z.input<typeof PartyUpdateSchema>) {
   });
 
   revalidatePath("/settings/parties");
-  revalidatePath("/parties");
+  revalidatePath("/parties/customers");
+  revalidatePath("/parties/suppliers");
   revalidatePath(`/parties/${existing.id}`);
   revalidatePath("/settings");
 }

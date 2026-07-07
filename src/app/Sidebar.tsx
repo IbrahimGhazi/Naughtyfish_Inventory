@@ -77,8 +77,10 @@ export default async function Sidebar({
     const sales: NavItem[] = [];
     if (can("invoices"))
       sales.push({ href: "/invoices", key: "invoices", label: t("shell.nav.invoices"), d: ICONS.invoices, count: invoiceCount || undefined });
-    if (can("parties"))
-      sales.push({ href: "/parties", key: "parties", label: t("shell.nav.parties"), d: ICONS.parties });
+    if (can("parties")) {
+      sales.push({ href: "/parties/customers", key: "parties-customers", label: t("shell.nav.customers"), d: ICONS.parties });
+      sales.push({ href: "/parties/suppliers", key: "parties-suppliers", label: t("shell.nav.suppliers"), d: ICONS.parties });
+    }
 
     const buying: NavItem[] = [];
     if (f.purchases && can("purchases"))

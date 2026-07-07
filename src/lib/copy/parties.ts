@@ -6,17 +6,19 @@ import type { CopyFragment } from "./types";
  * entries here; render sites call t("<key>"). Keys MUST be globally unique.
  */
 export const partiesCopy: CopyFragment = [
-  // Parties list (src/app/parties/page.tsx)
+  // Parties list — now split into two sidebar tabs (src/app/parties/customers,
+  // src/app/parties/suppliers).
   { key: "parties.list.eyebrow", default: "Sales", group: "Parties", label: "Parties list page eyebrow" },
-  { key: "parties.list.title", default: "Parties", group: "Parties", label: "Parties list page title" },
-  { key: "parties.list.subtitle", default: "Customers and suppliers — click a party to open its ledger.", group: "Parties", label: "Parties list page subtitle" },
   { key: "parties.list.customers", default: "Customers", group: "Parties", label: "Customers group heading" },
   { key: "parties.list.suppliers", default: "Suppliers", group: "Parties", label: "Suppliers group heading" },
+  { key: "parties.list.customersSubtitle", default: "Your buyers — click one to open its ledger.", group: "Parties", label: "Customers page subtitle" },
+  { key: "parties.list.suppliersSubtitle", default: "Your suppliers — click one to open its ledger.", group: "Parties", label: "Suppliers page subtitle" },
   { key: "parties.list.noCustomers", default: "No customers yet.", group: "Parties", label: "Empty state — no customers" },
   { key: "parties.list.noSuppliers", default: "No suppliers yet.", group: "Parties", label: "Empty state — no suppliers" },
 
   // Party ledger (src/app/parties/[id]/page.tsx)
-  { key: "parties.ledger.backAll", default: "← All parties", group: "Party ledger", label: "Back link to parties list" },
+  { key: "parties.ledger.backCustomers", default: "← All customers", group: "Party ledger", label: "Back link to customers list" },
+  { key: "parties.ledger.backSuppliers", default: "← All suppliers", group: "Party ledger", label: "Back link to suppliers list" },
   { key: "parties.ledger.recordPayment", default: "+ Record payment", group: "Party ledger", label: "Record payment button" },
   { key: "parties.ledger.netOutstanding", default: "Net outstanding", group: "Party ledger", label: "Net outstanding summary label" },
   { key: "parties.ledger.openingBalance", default: "opening balance", group: "Party ledger", label: "Opening balance prefix in summary line" },

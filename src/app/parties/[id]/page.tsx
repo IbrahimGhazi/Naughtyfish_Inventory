@@ -66,7 +66,9 @@ export default async function PartyLedgerPage({
   return (
     <div className="animate-rise space-y-4">
       <div>
-        <BackLink href="/parties">{t("parties.ledger.backAll")}</BackLink>
+        <BackLink href={party.partyType === "supplier" ? "/parties/suppliers" : "/parties/customers"}>
+          {party.partyType === "supplier" ? t("parties.ledger.backSuppliers") : t("parties.ledger.backCustomers")}
+        </BackLink>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="font-serif text-[28px] font-semibold leading-tight text-ink">
