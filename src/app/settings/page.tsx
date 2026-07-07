@@ -129,6 +129,30 @@ export default async function SettingsPage() {
           </CrossLink>
         </div>
       </Card>
+
+      {/* Danger zone — irreversible book-wide data reset (admin only). */}
+      {isAdmin && (
+        <Card className="mt-4 p-[18px]" style={{ borderColor: "var(--neg)" }}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-neg">
+                {t("settings.hub.danger.title")}
+              </h2>
+              <p className="mt-0.5 text-xs text-muted">
+                {t("settings.hub.danger.desc")}
+              </p>
+            </div>
+            <Link
+              href="/settings/reset"
+              data-testid="hub-link-reset"
+              className="shrink-0 rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors"
+              style={{ borderColor: "var(--neg)", color: "var(--neg)" }}
+            >
+              {t("settings.hub.danger.link")}
+            </Link>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
