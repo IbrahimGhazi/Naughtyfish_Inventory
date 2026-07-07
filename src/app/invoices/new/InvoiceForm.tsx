@@ -26,6 +26,11 @@ export interface FormStore {
   id: string;
   name: string;
 }
+export interface FormNote {
+  id: string;
+  text: string;
+  isDefault: boolean;
+}
 
 interface LineRow {
   itemId: string;
@@ -68,6 +73,7 @@ export default function InvoiceForm({
   parties,
   items,
   stores,
+  savedNotes = [],
   labels = DEFAULT_LABELS,
   showGlazing = true,
   showPackaging = true,
@@ -76,6 +82,7 @@ export default function InvoiceForm({
   parties: FormParty[];
   items: FormItem[];
   stores: FormStore[];
+  savedNotes?: FormNote[];
   labels?: FormLabels;
   showGlazing?: boolean;
   showPackaging?: boolean;
@@ -89,7 +96,9 @@ export default function InvoiceForm({
   const [channel, setChannel] = useState<Channel>("north");
   const [sourceStoreId, setSourceStoreId] = useState("");
   const [referenceNumber, setReferenceNumber] = useState("");
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(
+    () => savedNotes.find((n) => n.isDefault)?.text ?? "",
+  );
   const [rows, setRows] = useState<LineRow[]>([{ ...emptyLine }]);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ id: string; invoiceNumber: number; referenceNumber: string | null; total: number } | null>(null);
@@ -275,6 +284,25 @@ export default function InvoiceForm({
               />
             </Field>
             <Field label={t("invoices.form.labelNotes")} hint={t("invoices.form.hintOptional")}>
+              {savedNotes.length > 0 && (
+                <select
+                  className="input mb-2"
+                  data-testid="invoice-note-pick"
+                  value=""
+                  onChange={(e) => {
+                    const n = savedNotes.find((x) => x.id === e.target.value);
+                    if (n) setNotes(n.text);
+                  }}
+                >
+                  <option value="">{t("invoices.form.notesPick")}</option>
+                  {savedNotes.map((n) => (
+                    <option key={n.id} value={n.id}>
+                      {n.isDefault ? "★ " : ""}
+                      {n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text}
+                    </option>
+                  ))}
+                </select>
+              )}
               <input className="input" placeholder={t("invoices.form.notesPlaceholder")} value={notes}
                 onChange={(e) => setNotes(e.target.value)} />
             </Field>

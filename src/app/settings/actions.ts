@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
@@ -230,7 +231,7 @@ const ItemCreateSchema = z.object({
   name: z.string().trim().min(1).max(120),
   category: z.enum(ITEM_CATEGORIES),
   nature: z.enum(ITEM_NATURES).default("processed"),
-  cartonWeightKg: z.coerce.number().positive(),
+  cartonWeightKg: z.coerce.number().positive().optional(),
   packetsPerCarton: z.coerce.number().int().positive(),
   isPrawn: z.coerce.boolean(),
   fixedRate: z.coerce.number().min(0).optional().nullable(),
@@ -558,5 +559,88 @@ export async function updateUser(input: z.infer<typeof UserUpdateSchema>) {
   await prisma.user.update({ where: { id: existing.id }, data });
 
   revalidatePath("/settings/users");
+  revalidatePath("/settings");
+}
+
+/* ---------------------------------------------------- Invoice notes library */
+
+const NoteCreateSchema = z.object({
+  text: z.string().trim().min(1, "Write the note text.").max(500),
+  isDefault: z.coerce.boolean().default(false),
+});
+const NoteUpdateSchema = NoteCreateSchema.extend({ id: z.string().min(1) });
+
+/** Ensure at most one default note per book: clear the others in the same tx. */
+async function clearOtherDefaults(
+  tx: Prisma.TransactionClient,
+  entityId: string,
+  keepId?: string,
+) {
+  await tx.invoiceNote.updateMany({
+    where: { entityId, isDefault: true, ...(keepId ? { id: { not: keepId } } : {}) },
+    data: { isDefault: false },
+  });
+}
+
+export async function createInvoiceNote(input: z.input<typeof NoteCreateSchema>) {
+  const ctx = await getActiveContext();
+  await assertEntityAccess(ctx);
+  assertCanMutate(ctx, "settings", ADMIN_ROLES);
+  const parsed = NoteCreateSchema.parse(input);
+
+  const count = await prisma.invoiceNote.count({ where: entityScope(ctx) });
+  await prisma.$transaction(async (tx) => {
+    if (parsed.isDefault) await clearOtherDefaults(tx, ctx.entityId);
+    await tx.invoiceNote.create({
+      data: {
+        text: parsed.text,
+        isDefault: parsed.isDefault,
+        sortOrder: count,
+        entityId: ctx.entityId,
+      },
+    });
+  });
+
+  revalidatePath("/settings/invoice-notes");
+  revalidatePath("/settings");
+}
+
+export async function updateInvoiceNote(input: z.input<typeof NoteUpdateSchema>) {
+  const ctx = await getActiveContext();
+  await assertEntityAccess(ctx);
+  assertCanMutate(ctx, "settings", ADMIN_ROLES);
+  const parsed = NoteUpdateSchema.parse(input);
+
+  const existing = await prisma.invoiceNote.findFirst({
+    where: { id: parsed.id, ...entityScope(ctx) },
+  });
+  if (!existing) throw new Error("Note not found in this book.");
+
+  await prisma.$transaction(async (tx) => {
+    if (parsed.isDefault) await clearOtherDefaults(tx, ctx.entityId, existing.id);
+    await tx.invoiceNote.update({
+      where: { id: existing.id },
+      data: { text: parsed.text, isDefault: parsed.isDefault },
+    });
+  });
+
+  revalidatePath("/settings/invoice-notes");
+  revalidatePath("/settings");
+}
+
+export async function deleteInvoiceNote(input: { id: string }) {
+  const ctx = await getActiveContext();
+  await assertEntityAccess(ctx);
+  assertCanMutate(ctx, "settings", ADMIN_ROLES);
+  const id = z.string().min(1).parse(input.id);
+
+  const existing = await prisma.invoiceNote.findFirst({
+    where: { id, ...entityScope(ctx) },
+  });
+  if (!existing) throw new Error("Note not found in this book.");
+
+  await prisma.invoiceNote.delete({ where: { id: existing.id } });
+
+  revalidatePath("/settings/invoice-notes");
   revalidatePath("/settings");
 }

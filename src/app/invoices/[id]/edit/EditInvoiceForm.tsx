@@ -45,6 +45,7 @@ export default function EditInvoiceForm({
   items,
   initialLines,
   initialNotes,
+  savedNotes = [],
 }: {
   invoiceId: string;
   invoiceNumber: number;
@@ -53,6 +54,7 @@ export default function EditInvoiceForm({
   items: EditFormItem[];
   initialLines: EditLineRow[];
   initialNotes: string;
+  savedNotes?: { id: string; text: string; isDefault: boolean }[];
 }) {
   const t = useCopy();
   const router = useRouter();
@@ -283,6 +285,30 @@ export default function EditInvoiceForm({
             <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em]" style={{ color: "var(--side-dim)" }}>
               {t("invoices.editForm.summaryNotes")}
             </div>
+            {savedNotes.length > 0 && (
+              <select
+                data-testid="edit-note-pick"
+                value=""
+                onChange={(e) => {
+                  const n = savedNotes.find((x) => x.id === e.target.value);
+                  if (n) setNotes(n.text);
+                }}
+                className="mb-1.5 w-full rounded-lg px-2.5 py-2 text-[13px] outline-none"
+                style={{
+                  background: "rgba(242,235,217,.08)",
+                  border: "1px solid rgba(242,235,217,.22)",
+                  color: "var(--side-fg)",
+                }}
+              >
+                <option value="">{t("invoices.form.notesPick")}</option>
+                {savedNotes.map((n) => (
+                  <option key={n.id} value={n.id} style={{ color: "#111" }}>
+                    {n.isDefault ? "★ " : ""}
+                    {n.text.length > 50 ? n.text.slice(0, 50) + "…" : n.text}
+                  </option>
+                ))}
+              </select>
+            )}
             <input
               data-testid="edit-notes"
               placeholder={t("invoices.editForm.notesPlaceholder")}

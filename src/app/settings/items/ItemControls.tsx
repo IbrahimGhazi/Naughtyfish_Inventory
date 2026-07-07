@@ -40,7 +40,7 @@ function toPayload(v: ItemValues) {
     name: v.name.trim(),
     category: v.category as ItemCategory,
     nature: v.nature as ItemNature,
-    cartonWeightKg: Number(v.cartonWeightKg),
+    cartonWeightKg: v.cartonWeightKg.trim() ? Number(v.cartonWeightKg) : undefined,
     packetsPerCarton: Number(v.packetsPerCarton),
     isPrawn: v.isPrawn,
     fixedRate: v.fixedRate.trim() ? Number(v.fixedRate) : null,
@@ -105,11 +105,12 @@ function ItemFields({
           ))}
         </select>
       </Field>
-      <Field label={t("settings.items.field.cartonKg")}>
+      <Field label={t("settings.items.field.cartonKg")} hint={t("settings.items.field.cartonKgHint")}>
         <input
           className="input"
           data-testid={`${idPrefix}-cartonkg`}
           inputMode="decimal"
+          placeholder="20"
           value={v.cartonWeightKg}
           onChange={(e) => set({ cartonWeightKg: e.target.value })}
         />
@@ -161,7 +162,7 @@ const EMPTY: ItemValues = {
   name: "",
   category: "fish_fillet",
   nature: "processed",
-  cartonWeightKg: "20",
+  cartonWeightKg: "",
   packetsPerCarton: "10",
   isPrawn: false,
   fixedRate: "",
@@ -181,7 +182,7 @@ export function AddItemForm() {
   const set = (patch: Partial<ItemValues>) => setV((prev) => ({ ...prev, ...patch }));
   const canSubmit =
     !!v.name.trim() &&
-    Number(v.cartonWeightKg) > 0 &&
+    (v.cartonWeightKg.trim() === "" || Number(v.cartonWeightKg) > 0) &&
     Number(v.packetsPerCarton) > 0 &&
     !isPending;
 
@@ -242,7 +243,7 @@ function EditItemForm({ item, onDone }: { item: ItemRow; onDone: () => void }) {
   const set = (patch: Partial<ItemValues>) => setV((prev) => ({ ...prev, ...patch }));
   const canSubmit =
     !!v.name.trim() &&
-    Number(v.cartonWeightKg) > 0 &&
+    (v.cartonWeightKg.trim() === "" || Number(v.cartonWeightKg) > 0) &&
     Number(v.packetsPerCarton) > 0 &&
     !isPending;
 

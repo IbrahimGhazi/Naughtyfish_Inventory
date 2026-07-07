@@ -225,9 +225,9 @@ export async function createInvoice(input: CreateInvoiceInput, clientId?: string
   const total = computeInvoiceTotal(computed.map((c) => c.line));
 
   const result = await prisma.$transaction(async (tx) => {
-    // Single global invoice number series (plan §4.2): 100 → 101 → 102 …
+    // Single global invoice number series (plan §4.2): 1000 → 1001 → 1002 …
     const last = await tx.invoice.findFirst({ orderBy: { invoiceNumber: "desc" } });
-    const invoiceNumber = (last?.invoiceNumber ?? 100) + 1;
+    const invoiceNumber = (last?.invoiceNumber ?? 999) + 1;
 
     // Optional reference number — freely typed by the office, stored as-is.
     const referenceNumber = parsed.referenceNumber || null;

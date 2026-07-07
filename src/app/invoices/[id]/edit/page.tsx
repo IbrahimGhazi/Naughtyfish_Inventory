@@ -35,9 +35,14 @@ export default async function EditInvoicePage({
 
   const channel = invoice.channel as Channel;
 
-  const [items, glazing] = await Promise.all([
+  const [items, glazing, savedNotes] = await Promise.all([
     prisma.item.findMany({ where: { ...scope, active: true }, orderBy: { name: "asc" } }),
     prisma.glazingSetting.findMany({ where: scope }),
+    prisma.invoiceNote.findMany({
+      where: scope,
+      orderBy: [{ isDefault: "desc" }, { sortOrder: "asc" }],
+      select: { id: true, text: true, isDefault: true },
+    }),
   ]);
 
   // Item-level expected glazing baseline for the live variance hint.
@@ -94,6 +99,7 @@ export default async function EditInvoicePage({
         items={formItems}
         initialLines={initialLines}
         initialNotes={invoice.notes ?? ""}
+        savedNotes={savedNotes}
       />
     </div>
   );

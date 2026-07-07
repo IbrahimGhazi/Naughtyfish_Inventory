@@ -58,6 +58,7 @@ export const invoicesCopy: CopyFragment = [
   { key: "invoices.form.labelNotes", default: "Notes", group: "Invoice Form", label: "Field label: Notes" },
   { key: "invoices.form.hintOptional", default: "optional", group: "Invoice Form", label: "Field hint: optional" },
   { key: "invoices.form.notesPlaceholder", default: "Notes (optional)", group: "Invoice Form", label: "Notes input placeholder" },
+  { key: "invoices.form.notesPick", default: "Insert a saved note…", group: "Invoice Form", label: "Saved-note picker placeholder" },
   { key: "invoices.form.colItem", default: "Item", group: "Invoice Form", label: "Line table header: Item" },
   { key: "invoices.form.colGross", default: "Gross", group: "Invoice Form", label: "Line table header: Gross (before unit)" },
   { key: "invoices.form.colNetIn", default: "Net", group: "Invoice Form", label: "Line table header: Net (before ‘{unit} in’)" },

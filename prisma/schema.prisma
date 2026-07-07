@@ -39,6 +39,7 @@ model Entity {
   shipments        Shipment[]
   processes        Process[]
   purchases        Purchase[]
+  invoiceNotes     InvoiceNote[]
 }
 
 /// Per-deployment white-label configuration (platform panel). Exactly one row
@@ -350,6 +351,24 @@ model Invoice {
   badDebts        BadDebtEntry[]
 
   @@index([entityId, partyId])
+}
+
+/// Reusable invoice notes (a per-book library). The owner keeps a handful of
+/// stock notes and picks one when billing; exactly one may be the default,
+/// pre-filled on a new invoice. Selecting a note COPIES its text into the
+/// invoice's own `notes` field (a snapshot) — editing the library later never
+/// rewrites past invoices.
+model InvoiceNote {
+  id        String   @id @default(cuid())
+  text      String
+  isDefault Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  entity   Entity @relation(fields: [entityId], references: [id])
+  entityId String
+
+  @@index([entityId])
 }
 
 model InvoiceLineItem {

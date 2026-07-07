@@ -8,6 +8,7 @@ import InvoiceForm, {
   type FormLabels,
   type FormParty,
   type FormStore,
+  type FormNote,
 } from "@/app/invoices/new/InvoiceForm";
 import { PageHeader, BackLink } from "@/components/ui";
 
@@ -25,11 +26,16 @@ export default async function DeliveryNewInvoicePage() {
   const cfg = await getAppConfig();
   const t = await getCopy();
 
-  const [parties, items, stores, glazing] = await Promise.all([
+  const [parties, items, stores, glazing, notes] = await Promise.all([
     prisma.party.findMany({ where: { ...scope, partyType: "customer" }, orderBy: { name: "asc" } }),
     prisma.item.findMany({ where: { ...scope, active: true }, orderBy: { name: "asc" } }),
     prisma.store.findMany({ where: storeScope(ctx), orderBy: { name: "asc" } }),
     prisma.glazingSetting.findMany({ where: scope }),
+    prisma.invoiceNote.findMany({
+      where: scope,
+      orderBy: [{ isDefault: "desc" }, { sortOrder: "asc" }],
+      select: { id: true, text: true, isDefault: true },
+    }),
   ]);
 
   const expectedByItem = new Map<string, number>();
@@ -55,6 +61,7 @@ export default async function DeliveryNewInvoicePage() {
     subType: p.subType,
   }));
   const formStores: FormStore[] = stores.map((s) => ({ id: s.id, name: s.name }));
+  const formNotes: FormNote[] = notes;
 
   const labels: FormLabels = {
     packagePlural: cfg.terminology.packagePlural,
@@ -79,6 +86,7 @@ export default async function DeliveryNewInvoicePage() {
         parties={formParties}
         items={formItems}
         stores={formStores}
+        savedNotes={formNotes}
         labels={labels}
         showGlazing={cfg.features.glazing}
         showPackaging={cfg.features.packaging}

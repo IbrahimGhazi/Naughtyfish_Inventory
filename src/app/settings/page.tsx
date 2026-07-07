@@ -21,12 +21,13 @@ export default async function SettingsPage() {
   const scope = entityScope(ctx);
   const isAdmin = ADMIN_ROLES.includes(ctx.user.role);
 
-  const [storeCount, partyCount, itemCount, seriesCount, userCount] =
+  const [storeCount, partyCount, itemCount, seriesCount, noteCount, userCount] =
     await Promise.all([
       prisma.store.count({ where: scope }),
       prisma.party.count({ where: scope }),
       prisma.item.count({ where: scope }),
       prisma.referenceSeries.count({ where: scope }),
+      prisma.invoiceNote.count({ where: scope }),
       prisma.user.count({ where: scope }),
     ]);
   const roleCount = isAdmin ? (await getAllRoles()).length : 0;
@@ -73,6 +74,13 @@ export default async function SettingsPage() {
           title={t("settings.hub.references.title")}
           desc={t("settings.hub.references.desc")}
           count={seriesCount}
+        />
+        <HubCard
+          href="/settings/invoice-notes"
+          testId="hub-notes"
+          title={t("settings.hub.notes.title")}
+          desc={t("settings.hub.notes.desc")}
+          count={noteCount}
         />
         {isAdmin ? (
           <>

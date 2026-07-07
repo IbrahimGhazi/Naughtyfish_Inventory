@@ -616,6 +616,12 @@ export const settingsCopy: CopyFragment = [
     label: "Carton weight field label",
   },
   {
+    key: "settings.items.field.cartonKgHint",
+    default: "optional — defaults to 20",
+    group: "Items",
+    label: "Carton weight field hint",
+  },
+  {
     key: "settings.items.field.packets",
     default: "Packets / carton",
     group: "Items",
@@ -692,6 +698,33 @@ export const settingsCopy: CopyFragment = [
     group: "Items",
     label: "Empty-state message",
   },
+
+  /* ===================== Invoice notes library ===================== */
+  { key: "settings.hub.notes.title", default: "Invoice notes", group: "Invoice notes", label: "Hub card title" },
+  {
+    key: "settings.hub.notes.desc",
+    default: "Reusable notes for invoices; pick one when billing.",
+    group: "Invoice notes",
+    label: "Hub card description",
+  },
+  { key: "settings.notes.eyebrow", default: "Master data", group: "Invoice notes", label: "Page eyebrow" },
+  { key: "settings.notes.title", default: "Invoice notes", group: "Invoice notes", label: "Page title" },
+  {
+    key: "settings.notes.subtitle",
+    default: "Save notes you reuse on invoices. Mark one as default and it pre-fills on every new invoice; you can still pick another or edit it per invoice.",
+    group: "Invoice notes",
+    label: "Page subtitle",
+    multiline: true,
+  },
+  { key: "settings.notes.addTitle", default: "Add a note", group: "Invoice notes", label: "Add form title" },
+  { key: "settings.notes.placeholder", default: "e.g. Goods once sold will not be returned.", group: "Invoice notes", label: "Note text placeholder" },
+  { key: "settings.notes.makeDefault", default: "Use as the default note", group: "Invoice notes", label: "Default checkbox label" },
+  { key: "settings.notes.add", default: "Add note", group: "Invoice notes", label: "Add button" },
+  { key: "settings.notes.save", default: "Save", group: "Invoice notes", label: "Save button" },
+  { key: "settings.notes.saving", default: "Saving…", group: "Invoice notes", label: "Save button (pending)" },
+  { key: "settings.notes.delete", default: "Delete", group: "Invoice notes", label: "Delete button" },
+  { key: "settings.notes.defaultChip", default: "Default", group: "Invoice notes", label: "Default note chip" },
+  { key: "settings.notes.empty", default: "No saved notes yet — add one above.", group: "Invoice notes", label: "Empty state" },
 
   /* ===================== Danger zone — data reset ===================== */
   { key: "settings.hub.danger.title", default: "Danger zone", group: "Danger zone", label: "Hub danger card title" },
