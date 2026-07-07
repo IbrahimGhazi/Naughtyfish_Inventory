@@ -165,7 +165,9 @@ async function main() {
   }
 
   // --- Expense categories (flat, owner-editable) ----------------------------
-  const cats = ["Fuel / Petrol", "Labor", "Cartons", "Packing", "Vehicle"];
+  // Rent / Wages / Other seed the store-management cost types (plan: per-store
+  // rent, monthly wages, other + custom add).
+  const cats = ["Rent", "Wages", "Other", "Fuel / Petrol", "Labor", "Cartons", "Packing", "Vehicle"];
   for (const entity of [cstar, nf]) {
     for (const name of cats) {
       await prisma.expenseCategory.create({ data: { name, entityId: entity.id } });

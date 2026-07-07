@@ -38,6 +38,7 @@ export async function addExpenseCategory(input: z.infer<typeof CategorySchema>) 
   });
 
   revalidatePath("/expenses");
+  revalidatePath("/stores");
 }
 
 const EntrySchema = z.object({
@@ -45,9 +46,15 @@ const EntrySchema = z.object({
   amount: z.coerce.number().positive(),
   date: z.string().optional(),
   note: z.string().optional(),
+  /** Optional store attribution (store-management costs). Rolls into P&L. */
+  storeId: z.string().optional(),
 });
 
-/** Record an expense entry against a category. */
+/**
+ * Record an expense entry against a category, optionally attributed to a store
+ * (store-management costs). Store-tagged entries are still ordinary expenses —
+ * they roll into the Expenses total and the dashboard P&L automatically.
+ */
 export async function addExpenseEntry(input: z.infer<typeof EntrySchema>) {
   const ctx = await getActiveContext();
   assertCanMutate(ctx, "expenses", OFFICE_ROLES);
@@ -61,17 +68,30 @@ export async function addExpenseEntry(input: z.infer<typeof EntrySchema>) {
   });
   if (!category) throw new Error("Category is not in the active book.");
 
+  // If a store is given, it must belong to the active book too (never trust ids).
+  let storeId: string | undefined;
+  if (parsed.storeId) {
+    const store = await prisma.store.findFirst({
+      where: { id: parsed.storeId, ...entityScope(ctx) },
+      select: { id: true },
+    });
+    if (!store) throw new Error("Store is not in the active book.");
+    storeId = store.id;
+  }
+
   await prisma.expenseEntry.create({
     data: {
       amount: parsed.amount,
       date: parsed.date ? new Date(parsed.date) : new Date(),
       note: parsed.note,
       categoryId: category.id,
+      storeId,
       entityId: ctx.entityId,
       enteredById: ctx.user.id,
     },
   });
 
   revalidatePath("/expenses");
+  revalidatePath("/stores");
   revalidatePath("/");
 }

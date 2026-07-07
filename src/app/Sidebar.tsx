@@ -20,6 +20,7 @@ const ICONS: Record<string, string> = {
   reports: "M18 20V10M12 20V4M6 20v-6",
   settings: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M2 14h4M10 8h4M18 16h4",
   purchases: "M6 6h15l-1.5 9h-12L6 6zM6 6L5 3H2M9.5 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3M17.5 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3",
+  stores: "M3 9l1.6-5h14.8L21 9M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9M3 9h18M9 20v-6h6v6",
   platform: "M12 2l9 5v10l-9 5-9-5V7l9-5zM12 22V12M3 7l9 5 9-5",
   delivery: "M3 7h11v10H3zM14 10h4l3 3v4h-7v-7M6.5 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3M17.5 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3",
   camera: "M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8",
@@ -99,8 +100,10 @@ export default async function Sidebar({
       money.push({ href: "/cheques", key: "cheques", label: t("shell.nav.cheques"), d: ICONS.cheques, count: dueCheques || undefined });
     if (f.banks && can("banks"))
       money.push({ href: "/banks", key: "banks", label: t("shell.nav.banks"), d: ICONS.banks });
-    if (f.expenses && can("expenses"))
+    if (f.expenses && can("expenses")) {
       money.push({ href: "/expenses", key: "expenses", label: t("shell.nav.expenses"), d: ICONS.expenses });
+      money.push({ href: "/stores", key: "stores", label: t("shell.nav.storeCosts"), d: ICONS.stores });
+    }
 
     const insight: NavItem[] = [];
     if (f.reports && can("reports"))

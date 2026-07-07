@@ -191,6 +191,7 @@ model Store {
   originShipments Shipment[] @relation("ShipmentOrigin")
   processes      Process[]
   purchases      Purchase[]
+  expenses       ExpenseEntry[]
 
   @@index([entityId])
 }
@@ -469,9 +470,14 @@ model ExpenseEntry {
   entityId   String
   enteredBy  User?           @relation(fields: [enteredById], references: [id])
   enteredById String?
+  // Optional store attribution for store-management costs (rent, wages, …);
+  // null for general expenses. SET NULL on store delete keeps the money record.
+  store      Store?          @relation(fields: [storeId], references: [id])
+  storeId    String?
   process    Process?
 
   @@index([entityId, categoryId])
+  @@index([storeId])
 }
 
 /// A shipment/parcel in transit from an origin to a destination city.

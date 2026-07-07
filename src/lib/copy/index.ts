@@ -23,6 +23,7 @@ import { shipmentsCopy } from "./shipments";
 import { chequesCopy } from "./cheques";
 import { banksCopy } from "./banks";
 import { expensesCopy } from "./expenses";
+import { storesCopy } from "./stores";
 import { reportsCopy } from "./reports";
 import { settingsCopy } from "./settings";
 import { processesCopy } from "./processes";
@@ -43,6 +44,7 @@ export const COPY_CATALOG: readonly CopyEntry[] = [
   ...chequesCopy,
   ...banksCopy,
   ...expensesCopy,
+  ...storesCopy,
   ...reportsCopy,
   ...settingsCopy,
   ...processesCopy,

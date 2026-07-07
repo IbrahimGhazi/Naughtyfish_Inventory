@@ -22,6 +22,7 @@ const TITLES: [string, string, string][] = [
   ["/cheques", "shell.topbar.eyebrow.money", "shell.topbar.title.cheques"],
   ["/banks", "shell.topbar.eyebrow.money", "shell.topbar.title.banks"],
   ["/expenses", "shell.topbar.eyebrow.money", "shell.topbar.title.expenses"],
+  ["/stores", "shell.topbar.eyebrow.money", "shell.topbar.title.storeCosts"],
   ["/reports/bad-debts", "shell.topbar.eyebrow.insight", "shell.topbar.title.badDebts"],
   ["/reports/weekly", "shell.topbar.eyebrow.insight", "shell.topbar.title.weeklyStatement"],
   ["/reports", "shell.topbar.eyebrow.insight", "shell.topbar.title.reports"],
