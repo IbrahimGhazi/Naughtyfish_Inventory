@@ -159,7 +159,7 @@ export default function EditInvoiceForm({
             <span>{t("invoices.editForm.colItem")}</span>
             <span>{t("invoices.editForm.colCartons")}</span>
             <span>{t("invoices.editForm.colGross")}</span>
-            <span>{channel === "north" ? t("invoices.editForm.colNetIn") : t("invoices.editForm.colGlaz")}</span>
+            <span>{t("invoices.editForm.labelGlazing")}</span>
             <span>{t("invoices.editForm.colRate")}</span>
             <span className="text-right">{t("invoices.editForm.colNet")}</span>
             <span className="text-right">{t("invoices.editForm.colAmount")}</span>
@@ -184,13 +184,8 @@ export default function EditInvoiceForm({
                       onChange={(e) => updateRow(i, { cartonCount: e.target.value })} />
                     <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-gross-${i}`} inputMode="decimal" value={r.grossWeightKg}
                       onChange={(e) => updateRow(i, { grossWeightKg: e.target.value })} />
-                    {channel === "north" ? (
-                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-final-${i}`} inputMode="decimal" value={r.finalWeightKg}
-                        onChange={(e) => updateRow(i, { finalWeightKg: e.target.value })} placeholder={t("invoices.editForm.netKgPlaceholder")} />
-                    ) : (
-                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-glazing-${i}`} inputMode="decimal" value={r.glazingPercent}
-                        onChange={(e) => updateRow(i, { glazingPercent: e.target.value })} placeholder="0" />
-                    )}
+                    <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-glazing-${i}`} inputMode="decimal" value={r.glazingPercent}
+                      onChange={(e) => updateRow(i, { glazingPercent: e.target.value })} placeholder="0" />
                     <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-rate-${i}`} inputMode="decimal" value={r.ratePerKg}
                       onChange={(e) => updateRow(i, { ratePerKg: e.target.value })} />
                     <span className="text-right font-mono text-[13px] text-text">
@@ -216,9 +211,9 @@ export default function EditInvoiceForm({
                         onChange={(e) => updateRow(i, { packetCount: e.target.value })} />
                     </Field>
                     {channel === "north" && (
-                    <Field label={t("invoices.editForm.labelGlazing")} hint={t("invoices.editForm.hintOptional")}>
-                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-glazing-${i}`} inputMode="decimal" value={r.glazingPercent}
-                        onChange={(e) => updateRow(i, { glazingPercent: e.target.value })} placeholder="0" />
+                    <Field label={t("invoices.editForm.colNetIn")} hint={t("invoices.editForm.hintOptional")}>
+                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`edit-final-${i}`} inputMode="decimal" value={r.finalWeightKg}
+                        onChange={(e) => updateRow(i, { finalWeightKg: e.target.value })} placeholder={t("invoices.editForm.netKgPlaceholder")} />
                     </Field>
                     )}
                     <div className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-1 self-end text-[12px] sm:col-span-2">

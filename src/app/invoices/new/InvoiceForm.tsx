@@ -291,7 +291,7 @@ export default function InvoiceForm({
             <span>{t("invoices.form.colItem")}</span>
             <span>{labels.packagePlural}</span>
             <span>{t("invoices.form.colGross")} {labels.weightUnit}</span>
-            <span>{channel === "north" ? `${t("invoices.form.colNetIn")} ${labels.weightUnit} in` : `${labels.glazingLabel.slice(0, 6)} %`}</span>
+            <span>{labels.glazingLabel} %</span>
             <span>{t("invoices.form.colRate")}</span>
             <span className="text-right">{t("invoices.form.colNet")} {labels.weightUnit}</span>
             <span className="text-right">{t("invoices.form.colAmount")}</span>
@@ -313,13 +313,8 @@ export default function InvoiceForm({
                       onChange={(e) => updateRow(i, { cartonCount: e.target.value })} />
                     <input className="input !py-1.5 font-mono text-[13px]" data-testid={`gross-${i}`} inputMode="decimal" value={r.grossWeightKg}
                       onChange={(e) => updateRow(i, { grossWeightKg: e.target.value })} />
-                    {channel === "north" ? (
-                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`final-${i}`} inputMode="decimal" value={r.finalWeightKg}
-                        onChange={(e) => updateRow(i, { finalWeightKg: e.target.value })} placeholder={`net ${labels.weightUnit}`} />
-                    ) : (
-                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`glaze-${i}`} inputMode="decimal" value={r.glazingPercent}
-                        onChange={(e) => updateRow(i, { glazingPercent: e.target.value })} placeholder="0" />
-                    )}
+                    <input className="input !py-1.5 font-mono text-[13px]" data-testid={`glaze-${i}`} inputMode="decimal" value={r.glazingPercent}
+                      onChange={(e) => updateRow(i, { glazingPercent: e.target.value })} placeholder="0" />
                     <input className="input !py-1.5 font-mono text-[13px]" data-testid={`rate-${i}`} inputMode="decimal" value={r.ratePerKg}
                       onChange={(e) => updateRow(i, { ratePerKg: e.target.value })} />
                     <span className="text-right font-mono text-[13px] text-text">
@@ -345,10 +340,10 @@ export default function InvoiceForm({
                         onChange={(e) => updateRow(i, { packetCount: e.target.value })} />
                     </Field>
                     )}
-                    {showGlazing && channel === "north" && (
-                    <Field label={`${labels.glazingLabel} %`} hint={t("invoices.form.hintOptional")}>
-                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`glaze-${i}`} inputMode="decimal" value={r.glazingPercent}
-                        onChange={(e) => updateRow(i, { glazingPercent: e.target.value })} placeholder="0" />
+                    {channel === "north" && (
+                    <Field label={`${t("invoices.form.colNetIn")} ${labels.weightUnit} in`} hint={t("invoices.form.hintOptional")}>
+                      <input className="input !py-1.5 font-mono text-[13px]" data-testid={`final-${i}`} inputMode="decimal" value={r.finalWeightKg}
+                        onChange={(e) => updateRow(i, { finalWeightKg: e.target.value })} placeholder={`net ${labels.weightUnit}`} />
                     </Field>
                     )}
                     <div className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] self-end sm:col-span-2">
