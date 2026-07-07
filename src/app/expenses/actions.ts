@@ -41,6 +41,36 @@ export async function addExpenseCategory(input: z.infer<typeof CategorySchema>) 
   revalidatePath("/stores");
 }
 
+/**
+ * Remove an expense category. Blocked when the category still has entries —
+ * expense/store-cost money records are never orphaned (the FK is RESTRICT too).
+ * Reassign or delete those entries first.
+ */
+export async function deleteExpenseCategory(categoryId: string) {
+  const ctx = await getActiveContext();
+  assertCanMutate(ctx, "expenses", OFFICE_ROLES);
+  await assertEntityAccess(ctx);
+  await requireFeature("expenses");
+
+  const category = await prisma.expenseCategory.findFirst({
+    where: { id: categoryId, ...entityScope(ctx) },
+    select: { id: true },
+  });
+  if (!category) throw new Error("Category is not in the active book.");
+
+  const inUse = await prisma.expenseEntry.count({ where: { categoryId: category.id } });
+  if (inUse > 0) {
+    throw new Error(
+      `This category has ${inUse} expense${inUse === 1 ? "" : "s"} — remove or reassign them first.`,
+    );
+  }
+
+  await prisma.expenseCategory.delete({ where: { id: category.id } });
+
+  revalidatePath("/expenses");
+  revalidatePath("/stores");
+}
+
 const EntrySchema = z.object({
   categoryId: z.string().min(1),
   amount: z.coerce.number().positive(),

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useCopy } from "@/lib/copy/CopyProvider";
-import { addExpenseCategory, addExpenseEntry } from "./actions";
+import { addExpenseCategory, addExpenseEntry, deleteExpenseCategory } from "./actions";
 
 export interface FormCategory {
   id: string;
@@ -56,6 +56,88 @@ export function AddCategoryForm() {
       </button>
       {error && <span className="text-xs text-neg">{error}</span>}
     </div>
+  );
+}
+
+/**
+ * A category chip with its running total. Categories with NO entries can be
+ * removed (× → inline confirm); categories that already have expenses show no
+ * remove control — the server rejects deleting them and the money is preserved.
+ */
+export function CategoryChip({
+  id,
+  name,
+  total,
+  isOwnerAdded,
+  hasEntries,
+}: {
+  id: string;
+  name: string;
+  total: string;
+  isOwnerAdded: boolean;
+  hasEntries: boolean;
+}) {
+  const t = useCopy();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function remove() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await deleteExpenseCategory(id);
+        router.refresh();
+      } catch (e) {
+        setError((e as Error).message);
+        setConfirming(false);
+      }
+    });
+  }
+
+  return (
+    <span
+      data-testid={`exp-cat-${id}`}
+      className="inline-flex items-center gap-1.5 rounded-full border border-hair bg-card px-3 py-1.5 text-[12.5px] font-semibold text-text"
+    >
+      {name}
+      <span className="font-mono text-[11px] text-gold">{total}</span>
+      {isOwnerAdded && <span className="text-[11px] text-faint">{t("expenses.catAddedSuffix")}</span>}
+      {!hasEntries &&
+        (confirming ? (
+          <span className="ml-1 inline-flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={remove}
+              disabled={isPending}
+              data-testid={`exp-cat-del-confirm-${id}`}
+              className="text-[11px] font-semibold text-neg hover:underline disabled:opacity-50"
+            >
+              {t("expenses.catRemoveYes")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              className="text-[11px] text-faint hover:underline"
+            >
+              {t("expenses.catRemoveNo")}
+            </button>
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirming(true)}
+            title={t("expenses.catRemove")}
+            aria-label={t("expenses.catRemove")}
+            data-testid={`exp-cat-del-${id}`}
+            className="-mr-1 ml-0.5 text-[15px] leading-none text-faint hover:text-neg"
+          >
+            ×
+          </button>
+        ))}
+      {error && <span className="ml-1 text-[10.5px] font-normal text-neg">{error}</span>}
+    </span>
   );
 }
 

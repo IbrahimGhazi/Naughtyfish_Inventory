@@ -6,7 +6,7 @@ import { entityScope } from "@/lib/scope";
 import { getAppConfig, getCopy } from "@/lib/config";
 import { pkr, dateShort } from "@/lib/format";
 import { Card, Chip, PageHeader, Th } from "@/components/ui";
-import { AddCategoryForm, AddEntryForm, type FormCategory } from "./ExpenseControls";
+import { AddCategoryForm, AddEntryForm, CategoryChip, type FormCategory } from "./ExpenseControls";
 
 export const dynamic = "force-dynamic";
 
@@ -34,11 +34,13 @@ export default async function ExpensesPage() {
       where: { ...scope, date: { gte: monthStart } },
       _sum: { amount: true },
     }),
-    // Per-category totals feed the category chips.
+    // Per-category totals + entry counts feed the category chips (count drives
+    // whether a category is removable).
     prisma.expenseEntry.groupBy({
       by: ["categoryId"],
       where: scope,
       _sum: { amount: true },
+      _count: { _all: true },
     }),
   ]);
 
@@ -46,6 +48,7 @@ export default async function ExpensesPage() {
   const totalByCategory = new Map(
     byCategory.map((g) => [g.categoryId, Number(g._sum.amount ?? 0)]),
   );
+  const countByCategory = new Map(byCategory.map((g) => [g.categoryId, g._count._all]));
 
   const formCategories: FormCategory[] = categories.map((c) => ({ id: c.id, name: c.name }));
 
@@ -73,17 +76,14 @@ export default async function ExpensesPage() {
         ) : (
           <div className="flex flex-wrap gap-2">
             {categories.map((c) => (
-              <span
+              <CategoryChip
                 key={c.id}
-                data-testid={`exp-cat-${c.id}`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-hair bg-card px-3 py-1.5 text-[12.5px] font-semibold text-text"
-              >
-                {c.name}
-                <span className="font-mono text-[11px] text-gold">
-                  {pkr(totalByCategory.get(c.id) ?? 0)}
-                </span>
-                {c.isOwnerAdded && <span className="text-[11px] text-faint">{t("expenses.catAddedSuffix")}</span>}
-              </span>
+                id={c.id}
+                name={c.name}
+                total={pkr(totalByCategory.get(c.id) ?? 0)}
+                isOwnerAdded={c.isOwnerAdded}
+                hasEntries={(countByCategory.get(c.id) ?? 0) > 0}
+              />
             ))}
           </div>
         )}
