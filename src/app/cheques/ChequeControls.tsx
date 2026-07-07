@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useCopy } from "@/lib/copy/CopyProvider";
+import DatePicker from "@/components/DatePicker";
 import { updateChequeStatus, createOutgoingCheque } from "./actions";
 
 const NEXT_BY_STATUS: Record<string, string[]> = {
@@ -137,12 +138,10 @@ export function OutgoingChequeForm({ banks }: { banks: FormBank[] }) {
             onChange={(e) => setRecipientName(e.target.value)} />
         </Field>
         <Field label={t("cheques.fieldIssueDate")}>
-          <input type="date" className="input" data-testid="out-issue" value={issueDate}
-            onChange={(e) => setIssueDate(e.target.value)} />
+          <DatePicker data-testid="out-issue" value={issueDate} onChange={setIssueDate} />
         </Field>
         <Field label={t("cheques.fieldClearingDue")} hint={t("cheques.fieldClearingDueHint")}>
-          <input type="date" className="input" data-testid="out-due" value={clearingDue}
-            onChange={(e) => setClearingDue(e.target.value)} />
+          <DatePicker data-testid="out-due" value={clearingDue} onChange={setClearingDue} />
         </Field>
       </div>
       {error && <p className="text-sm text-neg">{error}</p>}

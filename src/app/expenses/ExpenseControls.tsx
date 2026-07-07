@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useCopy } from "@/lib/copy/CopyProvider";
+import DatePicker from "@/components/DatePicker";
 import { addExpenseCategory, addExpenseEntry, deleteExpenseCategory } from "./actions";
 
 export interface FormCategory {
@@ -193,8 +194,7 @@ export function AddEntryForm({ categories }: { categories: FormCategory[] }) {
             onChange={(e) => setAmount(e.target.value)} />
         </Field>
         <Field label={t("expenses.fieldDate")} hint={t("expenses.dateHint")}>
-          <input type="date" className="input" data-testid="exp-entry-date" value={date}
-            onChange={(e) => setDate(e.target.value)} />
+          <DatePicker data-testid="exp-entry-date" value={date} onChange={setDate} />
         </Field>
         <Field label={t("expenses.fieldNote")}>
           <input className="input" data-testid="exp-entry-note" value={note}

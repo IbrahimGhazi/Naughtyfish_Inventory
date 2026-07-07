@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { pkr, kg } from "@/lib/format";
 import { useCopy } from "@/lib/copy/CopyProvider";
+import DatePicker from "@/components/DatePicker";
 import { createPurchase } from "../actions";
 
 export interface FormSupplier {
@@ -190,13 +191,7 @@ export default function PurchaseForm({
             />
           </Field>
           <Field label={t("purchases.new.date")}>
-            <input
-              type="date"
-              className="input"
-              data-testid="pur-date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
+            <DatePicker data-testid="pur-date" value={date} onChange={setDate} />
           </Field>
           <div className="sm:col-span-2">
             <Field label={t("purchases.new.notes")} hint={t("purchases.new.notesHint")}>

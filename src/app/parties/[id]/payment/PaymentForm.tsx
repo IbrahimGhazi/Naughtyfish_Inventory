@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { pkr, dateShort } from "@/lib/format";
 import { useCopy } from "@/lib/copy/CopyProvider";
+import DatePicker from "@/components/DatePicker";
 import { createPayment } from "@/app/payments/actions";
 
 export interface FormInvoice {
@@ -133,13 +134,7 @@ export default function PaymentForm({
           />
         </Field>
         <Field label={t("parties.form.date")} hint={t("parties.form.dateHint")}>
-          <input
-            type="date"
-            className="input"
-            data-testid="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
+          <DatePicker data-testid="date" value={date} onChange={setDate} />
         </Field>
         {isSupplier ? (
           <Field label={t("purchases.pay.against")}>
@@ -251,22 +246,10 @@ export default function PaymentForm({
             </select>
           </Field>
           <Field label={t("parties.form.issueDate")}>
-            <input
-              type="date"
-              className="input"
-              data-testid="issue-date"
-              value={issueDate}
-              onChange={(e) => setIssueDate(e.target.value)}
-            />
+            <DatePicker data-testid="issue-date" value={issueDate} onChange={setIssueDate} />
           </Field>
           <Field label={t("parties.form.clearingDue")} hint={t("parties.form.clearingDueHint")}>
-            <input
-              type="date"
-              className="input"
-              data-testid="clearing-due"
-              value={clearingDue}
-              onChange={(e) => setClearingDue(e.target.value)}
-            />
+            <DatePicker data-testid="clearing-due" value={clearingDue} onChange={setClearingDue} />
           </Field>
         </div>
       )}

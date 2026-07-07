@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { pkr } from "@/lib/format";
 import { useCopy } from "@/lib/copy/CopyProvider";
+import DatePicker from "@/components/DatePicker";
 import { createBadDebt, deleteBadDebt } from "./actions";
 import type { BadDebtSubCategory } from "./summary";
 
@@ -223,13 +224,7 @@ export function AddBadDebtForm({
 
         <Field label={t("reports.badDebts.form.date")}>
           <div className="flex gap-2">
-            <input
-              type="date"
-              className="input"
-              data-testid="bd-date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
+            <DatePicker data-testid="bd-date" value={date} onChange={setDate} />
             <button
               type="button"
               data-testid="bd-today"

@@ -26,6 +26,7 @@ import type {
 import type { CreatePaymentInput } from "@/app/payments/actions";
 import SharePdfButton from "@/components/SharePdfButton";
 import type { StatementPdfData, InvoicePdfData } from "@/lib/pdf/types";
+import DatePicker from "@/components/DatePicker";
 import InvoiceForm from "./InvoiceForm";
 
 type Channel = "north" | "local";
@@ -507,10 +508,10 @@ function PaymentForm({
         />
       </label>
 
-      <label className="block">
+      <div className="block">
         <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.08em] text-faint2">Date</span>
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input w-full" />
-      </label>
+        <DatePicker value={date} onChange={setDate} className="w-full" />
+      </div>
 
       <label className="block">
         <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.08em] text-faint2">

@@ -7,6 +7,7 @@ import { pkr, dateShort } from "@/lib/format";
 import type { TFn } from "@/lib/copy";
 import { BackLink, Card, PrimaryButton, Th } from "@/components/ui";
 import SharePdfButton from "@/components/SharePdfButton";
+import DatePicker from "@/components/DatePicker";
 import type { WeeklyPdfData } from "@/lib/pdf/types";
 import {
   buildWeeklyStatement,
@@ -156,26 +157,24 @@ export default async function WeeklyStatementPage({
 
       {/* Explicit from/to GET form (like the party ledger as-of filter). */}
       <form className="flex flex-wrap items-end gap-2 text-sm" action="/reports/weekly">
-        <label className="text-xs font-semibold uppercase tracking-[0.1em] text-faint2">
+        <div className="text-xs font-semibold uppercase tracking-[0.1em] text-faint2">
           {t("reports.weekly.from")}
-          <input
-            type="date"
+          <DatePicker
             name="from"
             defaultValue={fromValue}
             data-testid="wk-from"
-            className="input mt-1 block font-normal normal-case tracking-normal"
+            className="mt-1 block font-normal normal-case tracking-normal"
           />
-        </label>
-        <label className="text-xs font-semibold uppercase tracking-[0.1em] text-faint2">
+        </div>
+        <div className="text-xs font-semibold uppercase tracking-[0.1em] text-faint2">
           {t("reports.weekly.to")}
-          <input
-            type="date"
+          <DatePicker
             name="to"
             defaultValue={toValue}
             data-testid="wk-to"
-            className="input mt-1 block font-normal normal-case tracking-normal"
+            className="mt-1 block font-normal normal-case tracking-normal"
           />
-        </label>
+        </div>
         <button
           type="submit"
           data-testid="wk-apply"

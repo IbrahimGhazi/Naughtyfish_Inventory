@@ -165,7 +165,9 @@ body {
   background: var(--card-2);
   color: var(--faint);
 }
-.dark input[type="date"],
+/* input[type="date"] was replaced everywhere by <DatePicker> (a themed
+   dropdown — the native date popup can't be recolored past light/dark).
+   datetime-local/time inputs remain native, so keep their dark popup fix. */
 .dark input[type="datetime-local"],
 .dark input[type="time"] {
   color-scheme: dark;

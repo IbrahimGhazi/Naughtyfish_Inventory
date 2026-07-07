@@ -9,6 +9,7 @@ import { getCopy, getAppConfig } from "@/lib/config";
 import { pkr, dateShort } from "@/lib/format";
 import { BackLink, Card, Chip, PrimaryButton, Th } from "@/components/ui";
 import SharePdfButton from "@/components/SharePdfButton";
+import DatePicker from "@/components/DatePicker";
 import type { StatementPdfData } from "@/lib/pdf/types";
 
 export const dynamic = "force-dynamic";
@@ -115,12 +116,12 @@ export default async function PartyLedgerPage({
         </Card>
 
         <form className="shrink-0" action={`/parties/${id}`}>
-          <label>
+          <div>
             <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
               {t("parties.ledger.asOfDate")}
             </div>
             <div className="flex gap-1.5">
-              <input type="date" name="asOf" defaultValue={asOf} className="input" />
+              <DatePicker name="asOf" defaultValue={asOf} />
               <button className="rounded-lg border border-hair bg-card px-3 py-2 text-sm font-semibold text-text transition-colors hover:bg-card2">
                 {t("parties.ledger.apply")}
               </button>
@@ -133,7 +134,7 @@ export default async function PartyLedgerPage({
                 </Link>
               )}
             </div>
-          </label>
+          </div>
         </form>
       </div>
 
