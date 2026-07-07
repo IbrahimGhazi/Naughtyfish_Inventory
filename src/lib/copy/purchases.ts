@@ -86,6 +86,7 @@ export const purchasesCopy: CopyFragment = [
   { key: "purchases.detail.notes", default: "Notes", group: "Purchase Detail", label: "Notes card title" },
   { key: "purchases.detail.settled", default: "Settled", group: "Purchase Detail", label: "Settled chip" },
   { key: "purchases.detail.open", default: "Open", group: "Purchase Detail", label: "Open (unpaid) chip" },
+  { key: "purchases.detail.print", default: "Print / PDF", group: "Purchase Detail", label: "Print / Save as PDF button" },
 
   // Supplier payment linkage (PaymentForm)
   { key: "purchases.pay.against", default: "Against purchase", group: "Pay Supplier", label: "Purchase select label" },

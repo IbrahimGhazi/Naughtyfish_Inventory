@@ -63,9 +63,19 @@ export default async function PurchaseDetailPage({
               · {dateShort(purchase.date)}
             </div>
           </div>
-          <Chip tone={due > 0 ? "warn" : "pos"}>
-            {due > 0 ? t("purchases.detail.open") : t("purchases.detail.settled")}
-          </Chip>
+          <div className="flex items-center gap-2.5">
+            <Link
+              href={`/purchases/${purchase.id}/print`}
+              data-testid="print-purchase"
+              className="inline-flex items-center justify-center rounded-lg px-3.5 py-2 text-sm font-semibold"
+              style={{ background: "var(--ink)", color: "var(--card)" }}
+            >
+              {t("purchases.detail.print")}
+            </Link>
+            <Chip tone={due > 0 ? "warn" : "pos"}>
+              {due > 0 ? t("purchases.detail.open") : t("purchases.detail.settled")}
+            </Chip>
+          </div>
         </div>
       </div>
 

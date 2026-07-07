@@ -2,54 +2,50 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveContext } from "@/lib/session";
-import { canView } from "@/lib/roles";
+import { requirePage } from "@/lib/roles";
 import { entityScope } from "@/lib/scope";
-import { pkr, kg, pct, dateShort } from "@/lib/format";
-import { getAppConfig, getCopy } from "@/lib/config";
+import { pkr, kg, dateShort } from "@/lib/format";
+import { getAppConfig } from "@/lib/config";
 import { printCss, IconLine, MetaLine, SumRow, Th, Td } from "@/components/PrintKit";
 import PrintButton from "./PrintButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function InvoicePrintPage({
+/**
+ * Printable A4 purchase document — the same branded layout as the sales invoice
+ * print page, but with purchase-appropriate headings: the supplier bills US, so
+ * the two parties are "Supplier" (bill from) and "Bill To" (this book), and the
+ * lines bill on gross weight × rate (no glazing/net split).
+ */
+export default async function PurchasePrintPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
   const ctx = await getActiveContext();
-  const [t, cfg] = await Promise.all([getCopy(), getAppConfig()]);
+  requirePage(ctx, "purchases");
+  const cfg = await getAppConfig();
+  if (!cfg.features.purchases) redirect("/");
 
-  const CHANNEL_NOTE: Record<string, string> = {
-    north: t("invoices.print.noteNorth"),
-    local: t("invoices.print.noteLocal"),
-  };
-
-  const invoice = await prisma.invoice.findFirst({
+  const purchase = await prisma.purchase.findFirst({
     where: { id, ...entityScope(ctx) },
     include: {
-      party: true,
+      supplier: true,
       entity: true,
-      lineItems: { include: { item: true } },
+      store: { select: { name: true } },
+      lineItems: { include: { item: { select: { name: true } } } },
       payments: { select: { amount: true } },
     },
   });
-  if (!invoice) notFound();
+  if (!purchase) notFound();
 
-  // Delivery may print ONLY invoices it created; other roles need the grant.
-  if (ctx.user.role === "delivery") {
-    if (invoice.createdById !== ctx.user.id) redirect("/delivery");
-  } else if (!canView(ctx, "invoices")) {
-    redirect("/");
-  }
-
-  const total = Number(invoice.totalAmount);
-  const paid = invoice.payments.reduce((s, p) => s + Number(p.amount), 0);
+  const total = Number(purchase.totalAmount);
+  const paid = purchase.payments.reduce((s, p) => s + Number(p.amount), 0);
   const balance = total - paid;
 
-  // Palette sampled from the SeaStar brand mark (whale-tail teal + deep navy)
-  // so the invoice matches the logo rather than the app's slate UI theme.
-  const teal = "#2fa39c"; // header panel, table head, grand-total band
+  // Palette sampled from the SeaStar brand mark (whale-tail teal + deep navy).
+  const teal = "#2fa39c"; // table head, grand-total band
   const tealDeep = "#1f7d78"; // emphasis / icon accents
   const navy = "#16242f"; // headings, brand text
   const rule = "#e3e8ea"; // hairline row dividers
@@ -57,7 +53,8 @@ export default async function InvoicePrintPage({
   const logo = cfg.branding.logoDataUrl;
   const brandName = cfg.branding.appName;
   const tagline = cfg.branding.tagline;
-  const fromName = invoice.entity?.name || brandName;
+  const buyerName = purchase.entity?.name || brandName;
+  const supplier = purchase.supplier;
 
   return (
     <div className="text-slate-900">
@@ -66,10 +63,10 @@ export default async function InvoicePrintPage({
       {/* Screen-only toolbar */}
       <div className="no-print mx-auto mb-2 flex max-w-[210mm] items-center justify-between px-1 pt-2">
         <Link
-          href={`/invoices/${invoice.id}`}
+          href={`/purchases/${purchase.id}`}
           className="text-[12.5px] font-semibold text-slate-500 hover:text-slate-900"
         >
-          {t("invoices.print.back")}
+          ← Back to purchase
         </Link>
         <PrintButton />
       </div>
@@ -119,18 +116,18 @@ export default async function InvoicePrintPage({
             )}
           </div>
 
-          {/* INVOICE title + number */}
+          {/* PURCHASE title + number */}
           <div style={{ textAlign: "right", paddingTop: "12mm" }}>
             <div style={{ fontSize: "40pt", fontWeight: 800, letterSpacing: "1px", lineHeight: 0.9, color: navy }}>
-              INVOICE
+              PURCHASE
             </div>
             <div style={{ marginTop: "6px", fontSize: "11pt", color: muted }}>
-              Invoice No #{invoice.invoiceNumber}
+              No. {purchase.reference}
             </div>
           </div>
         </div>
 
-        {/* --------------------- Invoice To / Invoice From --------------------- */}
+        {/* --------------------- Supplier / Bill To --------------------- */}
         <div
           style={{
             display: "flex",
@@ -139,37 +136,41 @@ export default async function InvoicePrintPage({
             padding: "9mm 14mm 0",
           }}
         >
-          {/* To */}
+          {/* Supplier (bill from) */}
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: "8.5pt", textTransform: "uppercase", letterSpacing: "1.5px", color: tealDeep, fontWeight: 700 }}>
-              Invoice To
+              Supplier
             </div>
             <div style={{ marginTop: "4px", fontSize: "14pt", fontWeight: 700, color: navy }}>
-              {invoice.party.name}
+              {supplier.name}
             </div>
+            {supplier.contactPerson && (
+              <div style={{ fontSize: "9pt", color: muted }}>Attn: {supplier.contactPerson}</div>
+            )}
             <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "3px", fontSize: "9.5pt", color: muted }}>
-              {invoice.party.phone && <IconLine icon="phone" accent={teal}>{invoice.party.phone}</IconLine>}
-              {invoice.party.email && <IconLine icon="mail" accent={teal}>{invoice.party.email}</IconLine>}
-              {invoice.party.address && <IconLine icon="pin" accent={teal}>{invoice.party.address}</IconLine>}
-              <IconLine icon="id" accent={teal}>
-                {invoice.party.ntn ? `${t("invoices.print.ntnPrefix")} ${invoice.party.ntn}` : t("invoices.print.noNtn")}
-              </IconLine>
+              {supplier.phone && <IconLine icon="phone" accent={teal}>{supplier.phone}</IconLine>}
+              {supplier.email && <IconLine icon="mail" accent={teal}>{supplier.email}</IconLine>}
+              {supplier.address && <IconLine icon="pin" accent={teal}>{supplier.address}</IconLine>}
+              <IconLine icon="id" accent={teal}>{supplier.ntn ? `NTN ${supplier.ntn}` : "No NTN on file"}</IconLine>
             </div>
           </div>
 
-          {/* From */}
+          {/* Bill to (this book) */}
           <div style={{ flex: 1, textAlign: "right" }}>
             <div style={{ fontSize: "8.5pt", textTransform: "uppercase", letterSpacing: "1.5px", color: tealDeep, fontWeight: 700 }}>
-              Invoice From
+              Bill To
             </div>
             <div style={{ marginTop: "4px", fontSize: "14pt", fontWeight: 700, color: navy }}>
-              {fromName}
+              {buyerName}
             </div>
             {tagline && <div style={{ fontSize: "9pt", color: muted }}>{tagline}</div>}
             <div style={{ marginTop: "7px", display: "flex", flexDirection: "column", gap: "2px", fontSize: "9.5pt" }}>
-              <MetaLine label={t("invoices.print.dateLabel")} value={dateShort(invoice.date)} muted={muted} navy={navy} />
-              <MetaLine label="Reference" value={invoice.referenceNumber || "—"} muted={muted} navy={navy} />
-              <MetaLine label="Channel" value={invoice.channel} muted={muted} navy={tealDeep} capitalize />
+              <MetaLine label="Date" value={dateShort(purchase.date)} muted={muted} navy={navy} />
+              <MetaLine label="Reference" value={purchase.reference} muted={muted} navy={navy} />
+              {purchase.supplierBillNo && (
+                <MetaLine label="Bill No" value={purchase.supplierBillNo} muted={muted} navy={navy} />
+              )}
+              <MetaLine label="Store" value={purchase.store.name} muted={muted} navy={tealDeep} />
             </div>
           </div>
         </div>
@@ -180,37 +181,29 @@ export default async function InvoicePrintPage({
             <thead>
               <tr style={{ background: teal, color: "#fff" }}>
                 <Th w="6%">SL</Th>
-                <Th align="left">{t("invoices.print.colItem")}</Th>
-                <Th align="right">{t("invoices.print.colGross")}</Th>
-                <Th align="right">{t("invoices.print.colGlazing")}</Th>
-                <Th align="right">{t("invoices.print.colNet")}</Th>
-                <Th align="right">{t("invoices.print.colRate")}</Th>
-                <Th align="right">{t("invoices.print.colAmount")}</Th>
+                <Th align="left">Item</Th>
+                <Th align="right">Cartons</Th>
+                <Th align="right">Weight</Th>
+                <Th align="right">Rate / kg</Th>
+                <Th align="right">Amount</Th>
               </tr>
             </thead>
             <tbody>
-              {invoice.lineItems.map((li, i) => {
-                const sub = [
-                  li.cartonCount ? `${li.cartonCount} ctn` : "",
-                  li.packetCount ? `${li.packetCount} pkt` : "",
-                ]
-                  .filter(Boolean)
-                  .join(" · ");
-                return (
-                  <tr key={li.id} style={{ borderBottom: `1px solid ${rule}` }}>
-                    <Td muted={muted}>{String(i + 1).padStart(2, "0")}</Td>
-                    <Td align="left">
-                      <div style={{ fontWeight: 700, color: navy }}>{li.item.name}</div>
-                      {sub && <div style={{ fontSize: "8pt", color: muted, marginTop: "1px" }}>{sub}</div>}
-                    </Td>
-                    <Td align="right">{kg(Number(li.grossWeightKg))}</Td>
-                    <Td align="right">{pct(Number(li.glazingPct))}</Td>
-                    <Td align="right">{kg(Number(li.netWeightKg))}</Td>
-                    <Td align="right">{pkr(Number(li.ratePerKg))}</Td>
-                    <Td align="right" bold>{pkr(Number(li.amount))}</Td>
-                  </tr>
-                );
-              })}
+              {purchase.lineItems.map((l, i) => (
+                <tr key={l.id} style={{ borderBottom: `1px solid ${rule}` }}>
+                  <Td muted={muted}>{String(i + 1).padStart(2, "0")}</Td>
+                  <Td align="left">
+                    <div style={{ fontWeight: 700, color: navy }}>{l.item.name}</div>
+                    {l.packets ? (
+                      <div style={{ fontSize: "8pt", color: muted, marginTop: "1px" }}>{l.packets} pkt</div>
+                    ) : null}
+                  </Td>
+                  <Td align="right">{l.cartons ?? "—"}</Td>
+                  <Td align="right">{kg(Number(l.weightKg))}</Td>
+                  <Td align="right">{pkr(Number(l.ratePerKg))}</Td>
+                  <Td align="right" bold>{pkr(Number(l.amount))}</Td>
+                </tr>
+              ))}
             </tbody>
           </table>
 
@@ -236,7 +229,7 @@ export default async function InvoicePrintPage({
           }}
         >
           <div style={{ fontSize: "9pt", letterSpacing: "0.5px", textTransform: "uppercase", opacity: 0.92 }}>
-            Invoice No #{invoice.invoiceNumber} · {dateShort(invoice.date)}
+            No. {purchase.reference} · {dateShort(purchase.date)}
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: "10mm" }}>
             <span style={{ fontSize: "11pt", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase" }}>
@@ -248,7 +241,7 @@ export default async function InvoicePrintPage({
           </div>
         </div>
 
-        {/* --------------------- Terms + signature --------------------- */}
+        {/* --------------------- Notes + signature --------------------- */}
         <div
           style={{
             display: "flex",
@@ -260,14 +253,14 @@ export default async function InvoicePrintPage({
         >
           <div style={{ flex: 1, maxWidth: "100mm" }}>
             <div style={{ fontSize: "8.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: tealDeep }}>
-              {t("invoices.print.notes")}
+              Notes
             </div>
             <p style={{ marginTop: "4px", fontSize: "8.5pt", color: muted, lineHeight: 1.5 }}>
-              {CHANNEL_NOTE[invoice.channel] ?? ""}
+              Goods received into {purchase.store.name}.
             </p>
-            {invoice.notes && (
+            {purchase.notes && (
               <p style={{ marginTop: "6px", fontSize: "8.5pt", color: "#475569", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
-                {invoice.notes}
+                {purchase.notes}
               </p>
             )}
           </div>
@@ -275,9 +268,9 @@ export default async function InvoicePrintPage({
           <div style={{ textAlign: "center", minWidth: "58mm" }}>
             <div style={{ height: "16mm" }} />
             <div style={{ borderTop: `1px solid ${muted}`, paddingTop: "4px", fontSize: "9pt", fontWeight: 700, color: navy }}>
-              {fromName}
+              {buyerName}
             </div>
-            <div style={{ fontSize: "8pt", color: muted }}>Authorised signatory</div>
+            <div style={{ fontSize: "8pt", color: muted }}>Received by</div>
           </div>
         </div>
 
@@ -286,7 +279,7 @@ export default async function InvoicePrintPage({
           <div style={{ marginTop: "8mm", borderTop: `2px solid ${teal}`, paddingTop: "3mm", paddingBottom: "6mm", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "8.5pt", color: muted }}>
             <span style={{ fontWeight: 700, color: navy }}>{brandName}</span>
             <span>{tagline}</span>
-            <span>Thank you for your business.</span>
+            <span>Goods-received record.</span>
           </div>
         </div>
       </div>
