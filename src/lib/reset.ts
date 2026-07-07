@@ -2,8 +2,9 @@ import type { Prisma } from "@prisma/client";
 
 /**
  * Danger-zone data reset. Deletes ALL business + master data for ONE book
- * (entity) — parties, items, stores, invoices, purchases, deliveries, payments,
- * shipments, stock, processes, cheques and expense entries — while KEEPING the
+ * (entity) — parties, items, stores, invoices, invoice-expenses, purchases,
+ * deliveries, payments, shipments, stock, processes, cheques and expense
+ * entries — while KEEPING the
  * things that would otherwise lock the owner out or break the app: the login
  * accounts (User), the books themselves (Entity), roles, deployment config
  * (AppConfig), the expense-category taxonomy, bank accounts and reference series.
@@ -44,8 +45,10 @@ export async function deleteEntityBusinessData(
     tx.storeInventoryLine.deleteMany({ where: { store: { entityId } } }),
   );
 
-  // 4. Processes reference expense entries — remove them before the entries.
+  // 4. Processes and invoice-expenses reference expense entries — remove them
+  // before the entries (and before the invoices invoice-expenses point at).
   await many("processes", tx.process.deleteMany({ where: { entityId } }));
+  await many("invoiceExpenses", tx.invoiceExpense.deleteMany({ where: { entityId } }));
   await many("expenseEntries", tx.expenseEntry.deleteMany({ where: { entityId } }));
 
   // 5. Invoices (line items cascade). Everything that referenced them is gone.

@@ -40,6 +40,7 @@ model Entity {
   processes        Process[]
   purchases        Purchase[]
   invoiceNotes     InvoiceNote[]
+  invoiceExpenses  InvoiceExpense[]
 }
 
 /// Per-deployment white-label configuration (platform panel). Exactly one row
@@ -349,8 +350,29 @@ model Invoice {
   stockMovements  StockMovement[]
   shipments       Shipment[]
   badDebts        BadDebtEntry[]
+  invoiceExpenses InvoiceExpense[]
 
   @@index([entityId, partyId])
+}
+
+/// A custom, free-text cost tied to ONE invoice (e.g. "Labour — carrying
+/// cartons"). Each row mirrors into a real ExpenseEntry (categoryId = the
+/// find-or-create "Invoice expenses" category) so it counts in Expenses/P&L —
+/// `expenseEntryId` is the provenance link, same pattern as Process.
+model InvoiceExpense {
+  id        String   @id @default(cuid())
+  label     String
+  amount    Decimal
+  createdAt DateTime @default(now())
+
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId String
+  entity    Entity  @relation(fields: [entityId], references: [id])
+  entityId  String
+  expenseEntry   ExpenseEntry? @relation(fields: [expenseEntryId], references: [id])
+  expenseEntryId String?       @unique
+
+  @@index([invoiceId])
 }
 
 /// Reusable invoice notes (a per-book library). The owner keeps a handful of
@@ -511,7 +533,8 @@ model ExpenseEntry {
   // null for general expenses. SET NULL on store delete keeps the money record.
   store      Store?          @relation(fields: [storeId], references: [id])
   storeId    String?
-  process    Process?
+  process         Process?
+  invoiceExpense  InvoiceExpense?
 
   @@index([entityId, categoryId])
   @@index([storeId])

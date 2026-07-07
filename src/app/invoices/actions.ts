@@ -123,6 +123,11 @@ const LineSchema = z.object({
   packetCount: z.coerce.number().int().min(0).optional(),
 });
 
+const InvoiceExpenseSchema = z.object({
+  label: z.string().trim().min(1).max(120),
+  amount: z.coerce.number().positive(),
+});
+
 const InvoiceSchema = z.object({
   partyId: z.string().min(1),
   channel: z.enum(["north", "local"]),
@@ -130,6 +135,11 @@ const InvoiceSchema = z.object({
   /** Freely typed by the office — any alphanumeric text, not auto-generated. */
   referenceNumber: z.string().trim().max(40).optional(),
   notes: z.string().optional(),
+  /** "YYYY-MM-DD"; defaults to today (server clock) when omitted/blank. */
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date.").optional(),
+  /** Custom per-invoice costs (e.g. "Labour — carrying cartons"); each mirrors
+   *  into a real ExpenseEntry so it counts in Expenses/P&L. */
+  expenses: z.array(InvoiceExpenseSchema).max(20).optional(),
   lines: z.array(LineSchema).min(1),
 });
 
@@ -224,6 +234,12 @@ export async function createInvoice(input: CreateInvoiceInput, clientId?: string
 
   const total = computeInvoiceTotal(computed.map((c) => c.line));
 
+  // Noon-local avoids the UTC-midnight day-shift bug near timezone boundaries.
+  const invoiceDate = parsed.date ? new Date(`${parsed.date}T12:00:00`) : new Date();
+  if (Number.isNaN(invoiceDate.getTime())) throw new Error("Invalid date.");
+
+  const expenses = parsed.expenses ?? [];
+
   const result = await prisma.$transaction(async (tx) => {
     // Single global invoice number series (plan §4.2): 1000 → 1001 → 1002 …
     const last = await tx.invoice.findFirst({ orderBy: { invoiceNumber: "desc" } });
@@ -241,7 +257,7 @@ export async function createInvoice(input: CreateInvoiceInput, clientId?: string
         status: isDeliveryDraft ? "draft" : "submitted",
         notes: parsed.notes,
         totalAmount: total,
-        date: new Date(),
+        date: invoiceDate,
         partyId: parsed.partyId,
         entityId: ctx.entityId,
         sourceStoreId: parsed.sourceStoreId || null,
@@ -262,6 +278,41 @@ export async function createInvoice(input: CreateInvoiceInput, clientId?: string
         },
       },
     });
+
+    // Custom per-invoice costs (e.g. "Labour — carrying cartons"). Each row
+    // mirrors into a real ExpenseEntry (find-or-create "Invoice expenses"
+    // category) so it counts in Expenses/P&L; expenseEntryId is provenance.
+    if (expenses.length > 0) {
+      let cat = await tx.expenseCategory.findFirst({
+        where: { entityId: ctx.entityId, name: "Invoice expenses" },
+      });
+      if (!cat) {
+        cat = await tx.expenseCategory.create({
+          data: { name: "Invoice expenses", entityId: ctx.entityId, isOwnerAdded: false },
+        });
+      }
+      for (const exp of expenses) {
+        const entry = await tx.expenseEntry.create({
+          data: {
+            amount: exp.amount,
+            note: `${exp.label} (INV-${invoiceNumber})`,
+            categoryId: cat.id,
+            entityId: ctx.entityId,
+            enteredById: ctx.user.id,
+            storeId: parsed.sourceStoreId || null,
+          },
+        });
+        await tx.invoiceExpense.create({
+          data: {
+            label: exp.label,
+            amount: exp.amount,
+            invoiceId: invoice.id,
+            entityId: ctx.entityId,
+            expenseEntryId: entry.id,
+          },
+        });
+      }
+    }
 
     // Immutable dispute-defense delivery record (plan §4.1), snapshotting names.
     await tx.deliveryRecord.create({

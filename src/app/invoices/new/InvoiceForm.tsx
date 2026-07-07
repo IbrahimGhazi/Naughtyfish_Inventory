@@ -5,8 +5,14 @@ import { useRouter } from "next/navigation";
 import { computeLine, computeInvoiceTotal, type Channel, type LineResult } from "@/lib/billing";
 import { pkr, kg, pct } from "@/lib/format";
 import { Card, Chip } from "@/components/ui";
+import DatePicker from "@/components/DatePicker";
 import { useCopy } from "@/lib/copy/CopyProvider";
 import { createInvoice } from "../actions";
+
+function todayYMD(): string {
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+}
 
 export interface FormItem {
   id: string;
@@ -96,10 +102,12 @@ export default function InvoiceForm({
   const [channel, setChannel] = useState<Channel>("north");
   const [sourceStoreId, setSourceStoreId] = useState("");
   const [referenceNumber, setReferenceNumber] = useState("");
+  const [date, setDate] = useState(() => todayYMD());
   const [notes, setNotes] = useState(
     () => savedNotes.find((n) => n.isDefault)?.text ?? "",
   );
   const [rows, setRows] = useState<LineRow[]>([{ ...emptyLine }]);
+  const [expenseRows, setExpenseRows] = useState<{ label: string; amount: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ id: string; invoiceNumber: number; referenceNumber: string | null; total: number } | null>(null);
 
@@ -162,6 +170,10 @@ export default function InvoiceForm({
           sourceStoreId: sourceStoreId || undefined,
           referenceNumber: referenceNumber.trim() || undefined,
           notes: notes || undefined,
+          date: date || undefined,
+          expenses: expenseRows
+            .filter((r) => r.label.trim() && r.amount.trim())
+            .map((r) => ({ label: r.label.trim(), amount: Number(r.amount) })),
           lines: rows.map((r) => ({
             itemId: r.itemId,
             grossWeightKg: Number(r.grossWeightKg),
@@ -282,6 +294,9 @@ export default function InvoiceForm({
                 value={referenceNumber}
                 onChange={(e) => setReferenceNumber(e.target.value)}
               />
+            </Field>
+            <Field label={t("invoices.form.labelDate")}>
+              <DatePicker data-testid="invoice-date" value={date} onChange={setDate} />
             </Field>
             <Field label={t("invoices.form.labelNotes")} hint={t("invoices.form.hintOptional")}>
               {savedNotes.length > 0 && (
@@ -406,6 +421,64 @@ export default function InvoiceForm({
         <div className="px-0.5 text-[12px] text-faint">
           {t("invoices.form.recomputeHintPrefix")} {labels.glazingLabel.toLowerCase()} {t("invoices.form.recomputeHintSuffix")}
         </div>
+
+        {/* Custom per-invoice expenses (e.g. "Labour — carrying cartons").
+            Internal cost tracking only — never shown on the customer-facing
+            invoice/PDF; posts to Expenses on save. */}
+        <Card className="p-[18px]">
+          <div className="mb-2 flex items-baseline justify-between">
+            <h3 className="font-serif text-[15px] font-semibold text-ink">
+              {t("invoices.form.expensesTitle")}
+            </h3>
+            <span className="text-[11px] text-faint">{t("invoices.form.expensesHint")}</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            {expenseRows.map((row, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  className="input flex-1"
+                  data-testid={`inv-expense-label-${i}`}
+                  placeholder={t("invoices.form.expensesLabelPlaceholder")}
+                  value={row.label}
+                  onChange={(e) =>
+                    setExpenseRows((rs) =>
+                      rs.map((r, idx) => (idx === i ? { ...r, label: e.target.value } : r)),
+                    )
+                  }
+                />
+                <input
+                  className="input w-28"
+                  data-testid={`inv-expense-amount-${i}`}
+                  inputMode="decimal"
+                  placeholder={t("invoices.form.expensesAmountPlaceholder")}
+                  value={row.amount}
+                  onChange={(e) =>
+                    setExpenseRows((rs) =>
+                      rs.map((r, idx) => (idx === i ? { ...r, amount: e.target.value } : r)),
+                    )
+                  }
+                />
+                <button
+                  type="button"
+                  data-testid={`inv-expense-remove-${i}`}
+                  onClick={() => setExpenseRows((rs) => rs.filter((_, idx) => idx !== i))}
+                  className="shrink-0 rounded-lg px-2 py-1.5 text-sm text-faint hover:text-neg"
+                  aria-label={t("invoices.form.expensesRemove")}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            data-testid="inv-expense-add"
+            onClick={() => setExpenseRows((rs) => [...rs, { label: "", amount: "" }])}
+            className="mt-2.5 text-[13px] font-semibold text-accent hover:underline"
+          >
+            {t("invoices.form.expensesAdd")}
+          </button>
+        </Card>
 
         {error && <p className="text-sm text-neg">{error}</p>}
       </div>

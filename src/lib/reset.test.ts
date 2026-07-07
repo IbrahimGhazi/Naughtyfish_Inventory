@@ -26,6 +26,7 @@ function fakeTx() {
     glazingSetting: model("glazingSetting"),
     storeInventoryLine: model("storeInventoryLine"),
     process: model("process"),
+    invoiceExpense: model("invoiceExpense"),
     expenseEntry: model("expenseEntry"),
     invoice: model("invoice"),
     purchaseLineItem: model("purchaseLineItem"),
@@ -55,8 +56,10 @@ describe("deleteEntityBusinessData", () => {
     before("stockMovement", "item");
     // Purchase line items have no cascade → before purchases.
     before("purchaseLineItem", "purchase");
-    // Processes reference expense entries.
+    // Processes and invoice-expenses reference expense entries.
     before("process", "expenseEntry");
+    before("invoiceExpense", "expenseEntry");
+    before("invoiceExpense", "invoice");
     // Master data last: everything referencing item/store/party is gone first.
     before("invoice", "item");
     before("glazingSetting", "item");

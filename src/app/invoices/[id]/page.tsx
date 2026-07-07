@@ -37,6 +37,7 @@ export default async function InvoiceDetailPage({
       lineItems: { include: { item: true } },
       payments: { include: { cheque: true }, orderBy: { date: "asc" } },
       deliveryRecords: { orderBy: { version: "desc" } },
+      invoiceExpenses: { orderBy: { createdAt: "asc" } },
     },
   });
   if (!invoice) notFound();
@@ -271,6 +272,29 @@ export default async function InvoiceDetailPage({
             {t("invoices.detail.notes")}
           </div>
           <p className="mt-1 whitespace-pre-wrap text-text">{invoice.notes}</p>
+        </Card>
+      )}
+
+      {/* Internal cost tracking (money stays office-side) — never on the PDF. */}
+      {isOffice && invoice.invoiceExpenses.length > 0 && (
+        <Card className="p-[18px] text-sm">
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint2">
+            {t("invoices.detail.expenses")}
+          </div>
+          <div className="mt-1.5 flex flex-col gap-1">
+            {invoice.invoiceExpenses.map((e) => (
+              <div key={e.id} className="flex items-center justify-between gap-2">
+                <span className="text-text">{e.label}</span>
+                <span className="font-mono text-ink">{pkr(Number(e.amount))}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 flex items-center justify-between border-t border-hair2 pt-2 text-[12px] font-semibold">
+            <span className="text-faint2 uppercase tracking-[0.08em]">{t("invoices.detail.expensesTotal")}</span>
+            <span className="font-mono text-ink">
+              {pkr(invoice.invoiceExpenses.reduce((s, e) => s + Number(e.amount), 0))}
+            </span>
+          </div>
         </Card>
       )}
 
