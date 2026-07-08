@@ -13,6 +13,12 @@ import EditInvoiceForm, {
 
 export const dynamic = "force-dynamic";
 
+/** Server-local YYYY-MM-DD — matches how updateInvoice parses the date string
+ *  back into a Date (both run in the same server timezone, so this round-trips). */
+function toYMD(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export default async function EditInvoicePage({
   params,
 }: {
@@ -29,6 +35,7 @@ export default async function EditInvoicePage({
     include: {
       party: true,
       lineItems: { include: { item: true } },
+      invoiceExpenses: { orderBy: { createdAt: "asc" } },
     },
   });
   if (!invoice) notFound();
@@ -99,6 +106,11 @@ export default async function EditInvoicePage({
         items={formItems}
         initialLines={initialLines}
         initialNotes={invoice.notes ?? ""}
+        initialDate={toYMD(invoice.date)}
+        initialExpenses={invoice.invoiceExpenses.map((e) => ({
+          label: e.label,
+          amount: String(Number(e.amount)),
+        }))}
         savedNotes={savedNotes}
       />
     </div>

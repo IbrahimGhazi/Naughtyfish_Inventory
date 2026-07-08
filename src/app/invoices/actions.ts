@@ -128,6 +128,61 @@ const InvoiceExpenseSchema = z.object({
   amount: z.coerce.number().positive(),
 });
 
+/**
+ * Replace an invoice's custom cost rows (e.g. "Labour — carrying cartons").
+ * Each row mirrors into a real ExpenseEntry (find-or-create "Invoice expenses"
+ * category) so it counts in Expenses/P&L; expenseEntryId is the provenance
+ * link. Used by both create (nothing to remove yet) and edit (full
+ * replace-set — same "corrections replace the prior amount" semantics as the
+ * line items).
+ */
+async function replaceInvoiceExpenses(
+  tx: Tx,
+  entityId: string,
+  userId: string,
+  invoiceId: string,
+  invoiceNumber: number,
+  sourceStoreId: string | null,
+  expenses: { label: string; amount: number }[],
+  oldExpenseEntryIds: string[] = [],
+) {
+  if (oldExpenseEntryIds.length > 0) {
+    await tx.invoiceExpense.deleteMany({ where: { invoiceId } });
+    await tx.expenseEntry.deleteMany({ where: { id: { in: oldExpenseEntryIds } } });
+  }
+  if (expenses.length === 0) return;
+
+  let cat = await tx.expenseCategory.findFirst({
+    where: { entityId, name: "Invoice expenses" },
+  });
+  if (!cat) {
+    cat = await tx.expenseCategory.create({
+      data: { name: "Invoice expenses", entityId, isOwnerAdded: false },
+    });
+  }
+  for (const exp of expenses) {
+    const entry = await tx.expenseEntry.create({
+      data: {
+        amount: exp.amount,
+        note: `${exp.label} (INV-${invoiceNumber})`,
+        categoryId: cat.id,
+        entityId,
+        enteredById: userId,
+        storeId: sourceStoreId,
+      },
+    });
+    await tx.invoiceExpense.create({
+      data: {
+        label: exp.label,
+        amount: exp.amount,
+        invoiceId,
+        entityId,
+        expenseEntryId: entry.id,
+      },
+    });
+  }
+}
+
 const InvoiceSchema = z.object({
   partyId: z.string().min(1),
   channel: z.enum(["north", "local"]),
@@ -279,40 +334,15 @@ export async function createInvoice(input: CreateInvoiceInput, clientId?: string
       },
     });
 
-    // Custom per-invoice costs (e.g. "Labour — carrying cartons"). Each row
-    // mirrors into a real ExpenseEntry (find-or-create "Invoice expenses"
-    // category) so it counts in Expenses/P&L; expenseEntryId is provenance.
-    if (expenses.length > 0) {
-      let cat = await tx.expenseCategory.findFirst({
-        where: { entityId: ctx.entityId, name: "Invoice expenses" },
-      });
-      if (!cat) {
-        cat = await tx.expenseCategory.create({
-          data: { name: "Invoice expenses", entityId: ctx.entityId, isOwnerAdded: false },
-        });
-      }
-      for (const exp of expenses) {
-        const entry = await tx.expenseEntry.create({
-          data: {
-            amount: exp.amount,
-            note: `${exp.label} (INV-${invoiceNumber})`,
-            categoryId: cat.id,
-            entityId: ctx.entityId,
-            enteredById: ctx.user.id,
-            storeId: parsed.sourceStoreId || null,
-          },
-        });
-        await tx.invoiceExpense.create({
-          data: {
-            label: exp.label,
-            amount: exp.amount,
-            invoiceId: invoice.id,
-            entityId: ctx.entityId,
-            expenseEntryId: entry.id,
-          },
-        });
-      }
-    }
+    await replaceInvoiceExpenses(
+      tx,
+      ctx.entityId,
+      ctx.user.id,
+      invoice.id,
+      invoiceNumber,
+      parsed.sourceStoreId || null,
+      expenses,
+    );
 
     // Immutable dispute-defense delivery record (plan §4.1), snapshotting names.
     await tx.deliveryRecord.create({
@@ -366,6 +396,10 @@ export async function createInvoice(input: CreateInvoiceInput, clientId?: string
 const UpdateInvoiceSchema = z.object({
   invoiceId: z.string().min(1),
   notes: z.string().optional(),
+  /** "YYYY-MM-DD"; omitted/blank keeps the invoice's existing date unchanged. */
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date.").optional(),
+  /** Full replace-set, same as `lines` — omitted means "no expenses". */
+  expenses: z.array(InvoiceExpenseSchema).max(20).optional(),
   lines: z.array(LineSchema).min(1),
 });
 
@@ -392,6 +426,7 @@ export async function updateInvoice(input: UpdateInvoiceInput) {
     include: {
       deliveryRecords: { orderBy: { version: "desc" }, take: 1 },
       lineItems: true,
+      invoiceExpenses: true,
     },
   });
   if (!invoice) throw new Error("Invoice not found in this book.");
@@ -448,6 +483,16 @@ export async function updateInvoice(input: UpdateInvoiceInput) {
 
   const total = computeInvoiceTotal(computed.map((c) => c.line));
 
+  // Blank/omitted keeps the invoice's existing date — never silently reset to
+  // "now" the way createInvoice's default does.
+  const invoiceDate = parsed.date ? new Date(`${parsed.date}T12:00:00`) : invoice.date;
+  if (Number.isNaN(invoiceDate.getTime())) throw new Error("Invalid date.");
+
+  const expenses = parsed.expenses ?? [];
+  const oldExpenseEntryIds = invoice.invoiceExpenses
+    .map((e) => e.expenseEntryId)
+    .filter((id): id is string => id !== null);
+
   await prisma.$transaction(async (tx) => {
     // Replace the invoice line items with the recomputed set.
     await tx.invoiceLineItem.deleteMany({ where: { invoiceId: invoice.id } });
@@ -462,6 +507,7 @@ export async function updateInvoice(input: UpdateInvoiceInput) {
         status: invoice.status === "draft" ? "draft" : "edited",
         version: invoice.version + 1,
         notes: parsed.notes,
+        date: invoiceDate,
         totalAmount: total,
         lineItems: {
           create: computed.map(({ line, item }) => ({
@@ -479,6 +525,17 @@ export async function updateInvoice(input: UpdateInvoiceInput) {
         },
       },
     });
+
+    await replaceInvoiceExpenses(
+      tx,
+      ctx.entityId,
+      ctx.user.id,
+      invoice.id,
+      invoice.invoiceNumber,
+      invoice.sourceStoreId,
+      expenses,
+      oldExpenseEntryIds,
+    );
 
     // Append a NEW versioned delivery record — NEVER touch the existing ones.
     const latest = invoice.deliveryRecords[0];

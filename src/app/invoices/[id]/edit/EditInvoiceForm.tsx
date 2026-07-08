@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { computeLine, computeInvoiceTotal, type Channel, type LineResult } from "@/lib/billing";
 import { pkr, kg, pct } from "@/lib/format";
 import { Card, Chip } from "@/components/ui";
+import DatePicker from "@/components/DatePicker";
 import { useCopy } from "@/lib/copy/CopyProvider";
 import { updateInvoice } from "../../actions";
 
@@ -45,6 +46,8 @@ export default function EditInvoiceForm({
   items,
   initialLines,
   initialNotes,
+  initialDate,
+  initialExpenses = [],
   savedNotes = [],
 }: {
   invoiceId: string;
@@ -54,14 +57,20 @@ export default function EditInvoiceForm({
   items: EditFormItem[];
   initialLines: EditLineRow[];
   initialNotes: string;
+  initialDate: string;
+  initialExpenses?: { label: string; amount: string }[];
   savedNotes?: { id: string; text: string; isDefault: boolean }[];
 }) {
   const t = useCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [notes, setNotes] = useState(initialNotes);
+  const [date, setDate] = useState(initialDate);
   const [rows, setRows] = useState<EditLineRow[]>(
     initialLines.length ? initialLines : [{ ...emptyLine }],
+  );
+  const [expenseRows, setExpenseRows] = useState<{ label: string; amount: string }[]>(
+    initialExpenses,
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -111,6 +120,10 @@ export default function EditInvoiceForm({
         await updateInvoice({
           invoiceId,
           notes: notes || undefined,
+          date: date || undefined,
+          expenses: expenseRows
+            .filter((r) => r.label.trim() && r.amount.trim())
+            .map((r) => ({ label: r.label.trim(), amount: Number(r.amount) })),
           lines: rows.map((r) => ({
             itemId: r.itemId,
             grossWeightKg: Number(r.grossWeightKg),
@@ -147,6 +160,9 @@ export default function EditInvoiceForm({
               <div className="input bg-card2 capitalize text-muted">
                 {channel === "north" ? t("invoices.editForm.channelNorth") : t("invoices.editForm.channelLocal")}
               </div>
+            </Field>
+            <Field label={t("invoices.editForm.labelDate")}>
+              <DatePicker data-testid="edit-date" value={date} onChange={setDate} />
             </Field>
           </div>
         </Card>
@@ -252,6 +268,64 @@ export default function EditInvoiceForm({
         <div className="px-0.5 text-[12px] text-faint">
           {t("invoices.editForm.footNote")}
         </div>
+
+        {/* Custom per-invoice expenses (e.g. "Labour — carrying cartons").
+            Internal cost tracking only — never on the customer-facing PDF.
+            Saving replaces the full set (same "correction" semantics as lines). */}
+        <Card className="p-[18px]">
+          <div className="mb-2 flex items-baseline justify-between">
+            <h3 className="font-serif text-[15px] font-semibold text-ink">
+              {t("invoices.editForm.expensesTitle")}
+            </h3>
+            <span className="text-[11px] text-faint">{t("invoices.editForm.expensesHint")}</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            {expenseRows.map((row, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  className="input flex-1"
+                  data-testid={`edit-expense-label-${i}`}
+                  placeholder={t("invoices.editForm.expensesLabelPlaceholder")}
+                  value={row.label}
+                  onChange={(e) =>
+                    setExpenseRows((rs) =>
+                      rs.map((r, idx) => (idx === i ? { ...r, label: e.target.value } : r)),
+                    )
+                  }
+                />
+                <input
+                  className="input w-28"
+                  data-testid={`edit-expense-amount-${i}`}
+                  inputMode="decimal"
+                  placeholder={t("invoices.editForm.expensesAmountPlaceholder")}
+                  value={row.amount}
+                  onChange={(e) =>
+                    setExpenseRows((rs) =>
+                      rs.map((r, idx) => (idx === i ? { ...r, amount: e.target.value } : r)),
+                    )
+                  }
+                />
+                <button
+                  type="button"
+                  data-testid={`edit-expense-remove-${i}`}
+                  onClick={() => setExpenseRows((rs) => rs.filter((_, idx) => idx !== i))}
+                  className="shrink-0 rounded-lg px-2 py-1.5 text-sm text-faint hover:text-neg"
+                  aria-label={t("invoices.editForm.expensesRemove")}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            data-testid="edit-expense-add"
+            onClick={() => setExpenseRows((rs) => [...rs, { label: "", amount: "" }])}
+            className="mt-2.5 text-[13px] font-semibold text-accent hover:underline"
+          >
+            {t("invoices.editForm.expensesAdd")}
+          </button>
+        </Card>
 
         {error && <p className="text-sm text-neg">{error}</p>}
       </div>
