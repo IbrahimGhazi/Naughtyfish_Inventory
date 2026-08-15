@@ -20,9 +20,14 @@ const CONFIG = {
   // Base site. No trailing slash.
   siteUrl: "https://masajid.masjidinformationsystem.com",
 
-  // Page to read times from, relative to siteUrl. If the site has a page per
-  // masjid, put that path here (e.g. "/masjid/al-noor"). Can be overridden
-  // per-widget with the widget parameter (long-press widget -> Edit Widget).
+  // Which masjid to show. Matched against the site's masjid list by username
+  // or English name, case-insensitive substring — e.g. "masjidehamza" or
+  // "Hamza". Leave empty to use the first masjid the site lists. Can be
+  // overridden per-widget with the widget parameter (long-press -> Edit Widget).
+  masjid: "",
+
+  // Page to read times from, relative to siteUrl. Only used by the HTML
+  // strategies; leave empty for this site, which is a client-rendered app.
   pagePath: "",
 
   // If you know the JSON endpoint, set it and discovery is skipped entirely.
@@ -557,6 +562,21 @@ function apiCandidatesFromBundle(js) {
   return { paths: [...paths], hosts: [...hosts] };
 }
 
+/**
+ * Snippets of bundle source around each mention of "Authorization", which is
+ * where an app reveals how it builds that header.
+ */
+function authContextFromBundle(js, max = 6, radius = 220) {
+  const out = [];
+  const re = /Authorization/g;
+  let m;
+  while ((m = re.exec(js)) !== null && out.length < max) {
+    const from = Math.max(0, m.index - radius);
+    out.push(js.slice(from, m.index + radius).replace(/\s+/g, " "));
+  }
+  return out;
+}
+
 // Words that suggest an endpoint carries what we want, best first.
 const ENDPOINT_HINTS = [
   /timing|prayer|salah|salaah|namaz|jamaat|jamaah|iqamah/i,
@@ -645,15 +665,15 @@ function pageUrl() {
   return CONFIG.siteUrl + (path.startsWith("/") || path === "" ? path : `/${path}`);
 }
 
-async function fetchText(url) {
+async function fetchText(url, extraHeaders) {
   const req = new Request(url);
   req.timeoutInterval = CONFIG.timeout;
-  req.headers = {
+  req.headers = Object.assign({
     // Ask for the server-rendered page a browser would receive.
     "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
     "Accept": "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
     "Accept-Language": "en",
-  };
+  }, extraHeaders || {});
   const body = await req.loadString();
   return { body, status: req.response ? req.response.statusCode : null };
 }
@@ -668,6 +688,7 @@ async function loadSchedule(trace) {
   // 1. A known endpoint — either configured, or remembered from an earlier
   //    bundle scan. Either way this skips all discovery, so the common case
   //    is a single request.
+  const savedAuth = loadDiscoveredAuth();
   const known = [];
   if (CONFIG.apiUrl) known.push(["apiUrl", CONFIG.apiUrl]);
   const remembered = loadDiscoveredApi();
@@ -675,7 +696,7 @@ async function loadSchedule(trace) {
 
   for (const [label, url] of known) {
     try {
-      const { body, status } = await fetchText(url);
+      const { body, status } = await fetchText(url, savedAuth ? { Authorization: savedAuth } : null);
       log(`${label} ${url} -> HTTP ${status}, ${body.length} bytes`);
       const schedule = scheduleFromJson(JSON.parse(body));
       if (schedule) {
@@ -720,7 +741,20 @@ async function loadSchedule(trace) {
     }
   }
 
-  // 6. Read the endpoints out of the app's own JS bundle. This is the one that
+  // 6. The authenticated list-then-timings handshake. Cheap to attempt (one
+  //    request) and a no-op on any site without that masjid list.
+  try {
+    const viaAuth = await discoverViaAuthApi(log);
+    if (viaAuth) {
+      saveDiscoveredApi(viaAuth.apiUrl);
+      saveDiscoveredAuth(viaAuth.auth);
+      return viaAuth.schedule;
+    }
+  } catch (e) {
+    log(`auth api error: ${e.message}`);
+  }
+
+  // 7. Read the endpoints out of the app's own JS bundle. This is the one that
   //    works for a client-rendered SPA, where the HTML carries no data and
   //    guessing endpoint names is hopeless.
   if (html) {
@@ -752,6 +786,115 @@ async function loadSchedule(trace) {
       }
     } catch (e) {
       log(`probe ${path} failed: ${e.message}`);
+    }
+  }
+
+  return null;
+}
+
+// ============================================================================
+// AUTHENTICATED API (the MIS Masajid shape)
+//
+// The target site's timings endpoints exist but answer
+//   HTTP 400 {"error":"Authorization header is missing"}
+// while its masjid list is public and carries a per-masjid `username`. So the
+// handshake is: list the masajid, pick one, then call the timings endpoint
+// presenting that masjid's identifier as the Authorization header.
+//
+// The exact header format is not documented, so we try the plausible ones and
+// remember whichever the server accepts.
+// ============================================================================
+
+const MIS = {
+  list: "/api/v1/masjid/all",
+  timings: ["/api/v1/timings/today", "/api/v1/timings/fixed-times"],
+};
+
+// Fields on a masjid record that could serve as its identifier.
+const ID_FIELDS = ["username", "id", "_id", "masjidId", "uid", "slug", "code"];
+
+function masjidLabel(m) {
+  for (const k of ["engName", "name", "masjidName", "title", "username"]) {
+    if (typeof m[k] === "string" && m[k].trim()) return m[k].trim();
+  }
+  return "Masjid";
+}
+
+/** The masjid CONFIG.masjid names, or the first one if unset. */
+function pickMasjid(list) {
+  const override = (args.widgetParameter || "").trim();
+  const want = (override || CONFIG.masjid || "").trim().toLowerCase();
+  if (!want) return list[0];
+
+  return list.find((m) =>
+    [m.username, m.engName, m.name, m.masjidName].some(
+      (v) => typeof v === "string" && v.toLowerCase().includes(want)
+    )
+  ) || null;
+}
+
+/** Authorization header values worth trying for a given masjid. */
+function authCandidates(m) {
+  const values = [];
+  const add = (v) => { if (v && !values.includes(v)) values.push(v); };
+  for (const k of ID_FIELDS) {
+    const v = m[k];
+    if (typeof v !== "string" || !v) continue;
+    add(v);
+    add(`Bearer ${v}`);
+  }
+  return values;
+}
+
+/**
+ * List the masajid, pick one, and call the timings endpoints with each
+ * plausible Authorization value until the server accepts one.
+ * Returns { schedule, apiUrl, auth } so the working combination can be cached.
+ */
+async function discoverViaAuthApi(log) {
+  let list;
+  try {
+    const { body, status } = await fetchText(CONFIG.siteUrl + MIS.list);
+    list = JSON.parse(body);
+    log(`masjid list -> HTTP ${status}, ${Array.isArray(list) ? `${list.length} entries` : "not an array"}`);
+  } catch (e) {
+    log(`masjid list failed: ${e.message}`);
+    return null;
+  }
+  if (!Array.isArray(list) || !list.length) return null;
+
+  const chosen = pickMasjid(list);
+  if (!chosen) {
+    log(`no masjid matched "${CONFIG.masjid || args.widgetParameter}" — check the name`);
+    return null;
+  }
+  log(`masjid: ${masjidLabel(chosen)}`);
+
+  const candidates = authCandidates(chosen);
+  if (!candidates.length) {
+    log("masjid record carries no usable identifier");
+    return null;
+  }
+
+  for (const path of MIS.timings) {
+    const url = CONFIG.siteUrl + path;
+    for (const auth of candidates) {
+      try {
+        const { body, status } = await fetchText(url, { Authorization: auth });
+        if (status && status >= 400) {
+          log(`  ${path} auth="${auth}" -> HTTP ${status}`);
+          continue;
+        }
+        const schedule = scheduleFromJson(JSON.parse(body));
+        log(`  ${path} auth="${auth}" -> HTTP ${status}, ${schedule ? "MATCHED" : "JSON but no times"}`);
+        if (schedule) {
+          if (!schedule.masjid) schedule.masjid = masjidLabel(chosen);
+          schedule.detail = `mis ${path}`;
+          return { schedule, apiUrl: url, auth };
+        }
+      } catch (e) {
+        log(`  ${path} auth="${auth}" failed: ${e.message}`);
+      }
     }
   }
 
@@ -797,6 +940,16 @@ function loadDiscoveredApi() {
 
 function saveDiscoveredApi(url) {
   if (url) writeCacheFile({ discoveredApi: url });
+}
+
+/** The Authorization value the server accepted, if the endpoint needed one. */
+function loadDiscoveredAuth() {
+  const c = readCacheFile();
+  return typeof c.discoveredAuth === "string" ? c.discoveredAuth : null;
+}
+
+function saveDiscoveredAuth(auth) {
+  if (auth) writeCacheFile({ discoveredAuth: auth });
 }
 
 function loadCache() {
@@ -1148,9 +1301,35 @@ async function runDiagnostics() {
               lines.push(`${p} -> ${e.message}`);
             }
           }
+          lines.push("");
+
+          // How does the app build its Authorization header?
+          const auth = authContextFromBundle(js.body);
+          lines.push(`--- "Authorization" in the bundle (${auth.length} shown) ---`);
+          lines.push(auth.join("\n---\n") || "(not found)");
         } catch (e) {
           lines.push(`bundle ${b} failed: ${e.message}`);
         }
+      }
+
+      // The masjid list is public; its field names tell us what identifier
+      // the timings endpoint is likely to want.
+      try {
+        const r = await fetchText(CONFIG.siteUrl + MIS.list);
+        const list = JSON.parse(r.body);
+        lines.push("");
+        lines.push(`--- ${MIS.list} -> HTTP ${r.status}, ${Array.isArray(list) ? list.length : "?"} masajid ---`);
+        if (Array.isArray(list) && list.length) {
+          lines.push("first record in full:");
+          lines.push(JSON.stringify(list[0], null, 1).slice(0, 1400));
+          lines.push("");
+          lines.push("all masajid (label / username):");
+          for (const m of list.slice(0, 40)) {
+            lines.push(`  ${masjidLabel(m)}  /  ${m.username || "(no username)"}`);
+          }
+        }
+      } catch (e) {
+        lines.push(`masjid list failed: ${e.message}`);
       }
     } catch (e) {
       lines.push(`could not re-fetch page for sample: ${e.message}`);

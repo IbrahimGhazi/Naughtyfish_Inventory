@@ -72,7 +72,8 @@ Everything adjustable is in the `CONFIG` block at the top of the script.
 | Option | Default | What it does |
 |---|---|---|
 | `siteUrl` | `https://masajid.masjidinformationsystem.com` | Base site, no trailing slash |
-| `pagePath` | `""` | Page to read, e.g. `/masjid/al-noor` if there's a page per masjid |
+| `masjid` | `""` | **Which masjid to show.** Matched against the site's masjid list by username or English name, case-insensitive substring — `"masjidehamza"` or just `"Hamza"`. Empty uses the first masjid the site lists |
+| `pagePath` | `""` | Only used by the HTML strategies. Leave empty for this site |
 | `apiUrl` | `""` | If you know the JSON endpoint, set it — discovery is skipped entirely and the widget gets faster and more reliable |
 | `countdownTo` | `"jamaat"` | Count down to the congregation time when available; `"start"` counts down to the adhan |
 | `use24Hour` | `false` | 24-hour clock |
@@ -83,9 +84,12 @@ Everything adjustable is in the `CONFIG` block at the top of the script.
 ### Several masjids, several widgets
 
 You don't need to duplicate the script. Add a second Scriptable widget, point
-it at the same script, and put the masjid's path (e.g. `/masjid/al-noor`) or a
-full URL in the widget's **Parameter** field. That overrides `pagePath` for
-that widget only.
+it at the same script, and put the masjid's name or username (e.g. `Hamza`) in
+the widget's **Parameter** field. That overrides `CONFIG.masjid` for that
+widget only, so two widgets can show two different masajid from one script.
+
+Run the script inside Scriptable to see the list of available masajid and
+their usernames.
 
 ---
 
@@ -103,8 +107,28 @@ recognisable prayers wins:
    surrounding script text.
 5. **Rendered HTML text** — reads `Fajr … 5:12 am … 5:30 am` straight out of
    the markup. Brittle by nature.
-6. **Endpoints read out of the app's JS bundle** — for a client-rendered SPA.
-7. **Common `/api/*` endpoint names** — a last-resort guess.
+6. **The authenticated list-then-timings handshake** (below) — what the target
+   site actually needs.
+7. **Endpoints read out of the app's JS bundle** — for a client-rendered SPA.
+8. **Common `/api/*` endpoint names** — a last-resort guess.
+
+### The authenticated handshake (strategy 6)
+
+The target site's timings endpoints exist but refuse anonymous callers:
+
+```
+GET /api/v1/timings/today   -> 400 {"error":"Authorization header is missing"}
+GET /api/v1/masjid/all      -> 200 [{"engName":…,"username":"masjidehamza",…}]
+```
+
+The masjid list is public and carries a `username` per masjid, so the sequence
+is: list the masajid → pick the one you want → call the timings endpoint
+presenting that masjid's identifier as the `Authorization` header.
+
+The exact header format isn't documented, so the widget tries the plausible
+ones (`<id>`, `Bearer <id>`, across `username`/`id`/`slug`/…) and **remembers
+whichever the server accepts**, alongside the endpoint. After the first
+success it's one request per refresh with the known credential.
 
 ### The bundle scan (strategy 6)
 
