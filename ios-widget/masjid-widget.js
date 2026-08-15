@@ -504,6 +504,137 @@ function masjidNameFromHtml(html) {
 }
 
 // ============================================================================
+// BUNDLE DISCOVERY
+//
+// For a client-rendered SPA the HTML is an empty shell, so there is nothing to
+// parse and guessing endpoint names is a lottery. The app's own JS bundle,
+// however, contains the paths it calls. We read them out of it, rank them, and
+// probe the plausible ones. The winner is cached so later refreshes skip
+// straight to it instead of re-downloading a multi-megabyte bundle.
+// ============================================================================
+
+/** Script URLs in the page that look like an app bundle (not vendor CSS/JS). */
+function bundleUrls(html) {
+  const out = [];
+  const re = /<script[^>]+src=["']([^"']+\.js)["']/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const src = m[1];
+    // Skip well-known vendor scripts — the app's own calls won't be in them.
+    if (/bootstrap|jquery|gtag|analytics|polyfill|recaptcha/i.test(src)) continue;
+    out.push(absoluteUrl(src));
+  }
+  return out;
+}
+
+function absoluteUrl(src) {
+  if (/^https?:\/\//i.test(src)) return src;
+  return CONFIG.siteUrl + (src.startsWith("/") ? src : `/${src}`);
+}
+
+const IGNORED_HOSTS = /fonts\.|googleapis|gstatic|schema\.org|w3\.org|github|sentry|google-analytics|facebook|twitter|cloudflare|jsdelivr|unpkg/i;
+
+/** Pull candidate API paths and hosts out of a JS bundle's string literals. */
+function apiCandidatesFromBundle(js) {
+  const paths = new Set();
+  const hosts = new Set();
+
+  // Same-origin API paths, e.g. "/api/masajid/timings".
+  const pathRe = /["'`](\/api\/[A-Za-z0-9_\-./]*)["'`]/g;
+  let m;
+  while ((m = pathRe.exec(js)) !== null) paths.add(m[1].replace(/\/+$/, ""));
+
+  // A separately hosted API, e.g. "https://api.example.com".
+  const urlRe = /["'`](https?:\/\/[A-Za-z0-9.\-]+(?::\d+)?(?:\/[A-Za-z0-9_\-./]*)?)["'`]/g;
+  while ((m = urlRe.exec(js)) !== null) {
+    const u = m[1];
+    if (IGNORED_HOSTS.test(u)) continue;
+    if (/\/api\b/i.test(u) || /^https?:\/\/(api|backend|server|data)\./i.test(u)) {
+      hosts.add(u.replace(/\/+$/, ""));
+    }
+  }
+
+  return { paths: [...paths], hosts: [...hosts] };
+}
+
+// Words that suggest an endpoint carries what we want, best first.
+const ENDPOINT_HINTS = [
+  /timing|prayer|salah|salaah|namaz|jamaat|jamaah|iqamah/i,
+  /masjid|masajid|mosque/i,
+  /today|schedule|time/i,
+];
+
+/** Most-likely-useful endpoints first; drop templated ones we can't fill in. */
+function rankEndpoints(paths) {
+  return paths
+    .filter((p) => !/[${}:*]|\bundefined\b/.test(p))
+    .map((p) => {
+      let score = ENDPOINT_HINTS.length;
+      for (let i = 0; i < ENDPOINT_HINTS.length; i++) {
+        if (ENDPOINT_HINTS[i].test(p)) { score = i; break; }
+      }
+      return { path: p, score };
+    })
+    .sort((a, b) => a.score - b.score || a.path.length - b.path.length)
+    .map((e) => e.path);
+}
+
+/**
+ * Fetch the app bundle, extract endpoints, and probe them for prayer times.
+ * Returns { schedule, apiUrl } so the caller can remember what worked.
+ */
+async function discoverViaBundle(html, log, maxProbes = 14) {
+  const bundles = bundleUrls(html);
+  if (!bundles.length) {
+    log("bundle scan: no app bundle found in the page");
+    return null;
+  }
+
+  const found = { paths: [], hosts: [] };
+  for (const url of bundles.slice(0, 3)) {
+    try {
+      const { body } = await fetchText(url);
+      const c = apiCandidatesFromBundle(body);
+      found.paths.push(...c.paths);
+      found.hosts.push(...c.hosts);
+      log(`bundle ${url} -> ${body.length} bytes, ${c.paths.length} api paths, ${c.hosts.length} hosts`);
+    } catch (e) {
+      log(`bundle ${url} failed: ${e.message}`);
+    }
+  }
+
+  const ranked = rankEndpoints([...new Set(found.paths)]);
+  const hostRoots = [...new Set(found.hosts)];
+  log(`bundle scan: ${ranked.length} probeable endpoints, ${hostRoots.length} api hosts`);
+
+  // Same-origin paths first, then any dedicated API host we spotted.
+  const targets = ranked.slice(0, maxProbes).map((p) => CONFIG.siteUrl + p);
+  for (const h of hostRoots.slice(0, 4)) {
+    if (!targets.includes(h)) targets.push(h);
+  }
+
+  for (const url of targets) {
+    try {
+      const { body, status } = await fetchText(url);
+      if (!body || body.trim().startsWith("<")) {
+        log(`  probe ${url} -> HTTP ${status}, not JSON`);
+        continue;
+      }
+      const schedule = scheduleFromJson(JSON.parse(body));
+      log(`  probe ${url} -> HTTP ${status}, ${schedule ? "MATCHED" : "JSON, no times"}`);
+      if (schedule) {
+        schedule.detail = `bundle ${url} ${schedule.detail}`;
+        return { schedule, apiUrl: url };
+      }
+    } catch (e) {
+      log(`  probe ${url} failed: ${e.message}`);
+    }
+  }
+
+  return null;
+}
+
+// ============================================================================
 // NETWORK
 // ============================================================================
 
@@ -534,19 +665,26 @@ async function fetchText(url) {
 async function loadSchedule(trace) {
   const log = (line) => { if (trace) trace.push(line); };
 
-  // 1. Explicit API endpoint.
-  if (CONFIG.apiUrl) {
+  // 1. A known endpoint — either configured, or remembered from an earlier
+  //    bundle scan. Either way this skips all discovery, so the common case
+  //    is a single request.
+  const known = [];
+  if (CONFIG.apiUrl) known.push(["apiUrl", CONFIG.apiUrl]);
+  const remembered = loadDiscoveredApi();
+  if (remembered && remembered !== CONFIG.apiUrl) known.push(["remembered", remembered]);
+
+  for (const [label, url] of known) {
     try {
-      const { body, status } = await fetchText(CONFIG.apiUrl);
-      log(`apiUrl ${CONFIG.apiUrl} -> HTTP ${status}, ${body.length} bytes`);
+      const { body, status } = await fetchText(url);
+      log(`${label} ${url} -> HTTP ${status}, ${body.length} bytes`);
       const schedule = scheduleFromJson(JSON.parse(body));
       if (schedule) {
-        schedule.detail = `apiUrl ${schedule.detail}`;
+        schedule.detail = `${label} ${schedule.detail}`;
         return schedule;
       }
-      log("apiUrl: responded, but no prayer times recognised in it");
+      log(`${label}: responded, but no prayer times recognised in it`);
     } catch (e) {
-      log(`apiUrl failed: ${e.message}`);
+      log(`${label} failed: ${e.message}`);
     }
   }
 
@@ -582,7 +720,22 @@ async function loadSchedule(trace) {
     }
   }
 
-  // 6. Probe common JSON endpoints — for a fully client-rendered app.
+  // 6. Read the endpoints out of the app's own JS bundle. This is the one that
+  //    works for a client-rendered SPA, where the HTML carries no data and
+  //    guessing endpoint names is hopeless.
+  if (html) {
+    try {
+      const discovered = await discoverViaBundle(html, log);
+      if (discovered) {
+        saveDiscoveredApi(discovered.apiUrl);
+        return discovered.schedule;
+      }
+    } catch (e) {
+      log(`bundle scan error: ${e.message}`);
+    }
+  }
+
+  // 7. Last resort: probe common endpoint names.
   for (const path of API_CANDIDATES) {
     const candidate = CONFIG.siteUrl + path;
     try {
@@ -614,27 +767,41 @@ function cachePath() {
   return fm.joinPath(fm.documentsDirectory(), CACHE_FILE);
 }
 
-function saveCache(schedule) {
-  try {
-    const fm = FileManager.local();
-    fm.writeString(cachePath(), JSON.stringify({
-      savedAt: new Date().toISOString(),
-      schedule,
-    }));
-  } catch (e) { /* cache is best-effort */ }
-}
-
-function loadCache() {
+function readCacheFile() {
   try {
     const fm = FileManager.local();
     const path = cachePath();
-    if (!fm.fileExists(path)) return null;
-    const parsed = JSON.parse(fm.readString(path));
-    if (!parsed || !parsed.schedule) return null;
-    return parsed;
+    if (!fm.fileExists(path)) return {};
+    return JSON.parse(fm.readString(path)) || {};
   } catch (e) {
-    return null;
+    return {};
   }
+}
+
+function writeCacheFile(patch) {
+  try {
+    const fm = FileManager.local();
+    fm.writeString(cachePath(), JSON.stringify({ ...readCacheFile(), ...patch }));
+  } catch (e) { /* cache is best-effort */ }
+}
+
+function saveCache(schedule) {
+  writeCacheFile({ savedAt: new Date().toISOString(), schedule });
+}
+
+/** The endpoint a previous bundle scan found, so we only pay for that once. */
+function loadDiscoveredApi() {
+  const c = readCacheFile();
+  return typeof c.discoveredApi === "string" ? c.discoveredApi : null;
+}
+
+function saveDiscoveredApi(url) {
+  if (url) writeCacheFile({ discoveredApi: url });
+}
+
+function loadCache() {
+  const parsed = readCacheFile();
+  return parsed && parsed.schedule ? parsed : null;
 }
 
 // ============================================================================
@@ -949,12 +1116,42 @@ async function runDiagnostics() {
     lines.push("");
     try {
       const { body } = await fetchText(pageUrl());
-      lines.push("--- first 2500 chars of page ---");
-      lines.push(body.slice(0, 2500));
+      lines.push("--- first 1200 chars of page ---");
+      lines.push(body.slice(0, 1200));
       lines.push("");
-      const scripts = body.match(/<script[^>]*src=["']([^"']+)["']/gi) || [];
-      lines.push(`--- ${scripts.length} external scripts ---`);
-      lines.push(scripts.slice(0, 25).join("\n"));
+
+      // For a client-rendered app the page tells us nothing, but its bundle
+      // names every endpoint the app calls. Dump those and what they return.
+      const bundles = bundleUrls(body);
+      lines.push(`--- app bundles (${bundles.length}) ---`);
+      lines.push(bundles.join("\n") || "(none)");
+      lines.push("");
+
+      for (const b of bundles.slice(0, 2)) {
+        try {
+          const js = await fetchText(b);
+          const c = apiCandidatesFromBundle(js.body);
+          lines.push(`--- ${b} (${js.body.length} bytes) ---`);
+          lines.push(`api paths (${c.paths.length}):`);
+          lines.push(c.paths.slice(0, 60).join("\n") || "(none)");
+          lines.push(`api hosts (${c.hosts.length}):`);
+          lines.push(c.hosts.slice(0, 20).join("\n") || "(none)");
+          lines.push("");
+
+          lines.push("--- what the top endpoints return ---");
+          for (const p of rankEndpoints(c.paths).slice(0, 8)) {
+            const url = CONFIG.siteUrl + p;
+            try {
+              const r = await fetchText(url);
+              lines.push(`${p} -> HTTP ${r.status}: ${r.body.slice(0, 240).replace(/\s+/g, " ")}`);
+            } catch (e) {
+              lines.push(`${p} -> ${e.message}`);
+            }
+          }
+        } catch (e) {
+          lines.push(`bundle ${b} failed: ${e.message}`);
+        }
+      }
     } catch (e) {
       lines.push(`could not re-fetch page for sample: ${e.message}`);
     }

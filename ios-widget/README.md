@@ -94,16 +94,33 @@ that widget only.
 Strategies are tried in order and the first that yields at least three
 recognisable prayers wins:
 
-1. **`CONFIG.apiUrl`** — an endpoint you supplied.
+1. **A known endpoint** — `CONFIG.apiUrl`, or one remembered from an earlier
+   bundle scan (below). Either way this is a single request.
 2. **`__NEXT_DATA__`** — the SSR payload of a Next.js pages-router site.
 3. **`self.__next_f`** — the streaming RSC payload of a Next.js app-router site.
 4. **Any inline JSON** mentioning a prayer name — Nuxt, Redux preloaded state,
    JSON-LD and similar. Balanced-brace scanning pulls the object out of the
    surrounding script text.
 5. **Rendered HTML text** — reads `Fajr … 5:12 am … 5:30 am` straight out of
-   the markup. Brittle by nature; it's the last resort before probing.
-6. **Common `/api/*` endpoints** — for a fully client-rendered app that ships
-   no data in its HTML.
+   the markup. Brittle by nature.
+6. **Endpoints read out of the app's JS bundle** — for a client-rendered SPA.
+7. **Common `/api/*` endpoint names** — a last-resort guess.
+
+### The bundle scan (strategy 6)
+
+This is the one that matters for the target site, which is a Create React App
+SPA: the HTML is a 1.4 KB shell containing nothing but `<div id="root">`, so
+strategies 2–5 have nothing to read, and guessing endpoint names is a lottery.
+
+The app's own JS bundle, however, contains every path it calls. So the widget
+fetches the bundle, extracts `/api/…` string literals (and any dedicated API
+host), ranks them — endpoints mentioning *timing/prayer/jamaat* first, then
+*masjid*, then *today/schedule* — and probes the plausible ones until one
+returns something with prayer times in it.
+
+**The winner is cached to disk**, so this cost is paid once. Later refreshes go
+straight to the remembered endpoint: one request, no bundle download. Copying
+that URL into `CONFIG.apiUrl` makes it permanent.
 
 Recognition is deliberately tolerant: it accepts `fajr`/`fajar`/`subh`,
 `dhuhr`/`zuhr`/`zohr`, nested `{start, jamaat}` objects, flat `fajrJamaat`
