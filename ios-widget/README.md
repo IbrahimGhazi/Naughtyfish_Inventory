@@ -8,6 +8,10 @@ the Hijri date and the masjid name.
 It runs in [Scriptable](https://apps.apple.com/app/scriptable/id1405459188)
 (free), so it needs **no Mac, no Xcode and no Apple Developer account**.
 
+**Status: confirmed working against the live site.** Verified on-device
+showing Jamia Masjid Hamza's jamaat times, with the next-prayer countdown
+agreeing with the wall clock.
+
 > **Note on where this lives.** This widget targets a different app than the
 > rest of this repository. It sits in its own `ios-widget/` folder, shares no
 > code with the Next.js app, and is not part of the build — the session that
@@ -129,6 +133,9 @@ The exact header format isn't documented, so the widget tries the plausible
 ones (`<id>`, `Bearer <id>`, across `username`/`id`/`slug`/…) and **remembers
 whichever the server accepts**, alongside the endpoint. After the first
 success it's one request per refresh with the known credential.
+
+This is the path that works in practice — it's how the live widget resolves
+its times.
 
 ### The bundle scan (strategy 6)
 
