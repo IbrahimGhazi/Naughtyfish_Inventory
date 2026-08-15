@@ -76,7 +76,7 @@ Everything adjustable is in the `CONFIG` block at the top of the script.
 | Option | Default | What it does |
 |---|---|---|
 | `siteUrl` | `https://masajid.masjidinformationsystem.com` | Base site, no trailing slash |
-| `masjid` | `""` | **Which masjid to show.** Matched against the site's masjid list by username or English name, case-insensitive substring — `"masjidehamza"` or just `"Hamza"`. Empty uses the first masjid the site lists |
+| `masjid` | `""` | **Which masjid to show.** Matched against the site's masjid list by username or English name — `"masjidehamza"` or just `"Hamza"`. Matching ignores case, punctuation and doubled letters, so `"mudasir"` finds *Masjid-e-Mudassir*. An exact name wins over a partial one. Empty uses the first masjid the site lists |
 | `pagePath` | `""` | Only used by the HTML strategies. Leave empty for this site |
 | `apiUrl` | `""` | If you know the JSON endpoint, set it — discovery is skipped entirely and the widget gets faster and more reliable |
 | `countdownTo` | `"jamaat"` | Count down to the congregation time when available; `"start"` counts down to the adhan |

@@ -810,6 +810,10 @@ const MIS = {
   timings: ["/api/v1/timings/today", "/api/v1/timings/fixed-times"],
 };
 
+// Set when discovery fails for a reason worth showing the user verbatim —
+// currently only "the masjid you named isn't in the list".
+let DISCOVERY_NOTE = null;
+
 // Fields on a masjid record that could serve as its identifier.
 const ID_FIELDS = ["username", "id", "_id", "masjidId", "uid", "slug", "code"];
 
@@ -820,17 +824,38 @@ function masjidLabel(m) {
   return "Masjid";
 }
 
-/** The masjid CONFIG.masjid names, or the first one if unset. */
+/**
+ * Fold a name down for forgiving comparison: lowercase, drop everything that
+ * isn't alphanumeric, and collapse repeated letters. That way "Mudasir",
+ * "Mudassir" and "masjid-e-mudassir" all compare equal on the same stem —
+ * transliterated names rarely agree on doubled consonants or punctuation.
+ */
+function normalizeName(s) {
+  return String(s)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .replace(/(.)\1+/g, "$1");
+}
+
+function masjidFields(m) {
+  return [m.username, m.engName, m.name, m.masjidName].filter((v) => typeof v === "string" && v);
+}
+
+/** The masjid named by the widget parameter or CONFIG.masjid; first if unset. */
 function pickMasjid(list) {
   const override = (args.widgetParameter || "").trim();
-  const want = (override || CONFIG.masjid || "").trim().toLowerCase();
+  const want = (override || CONFIG.masjid || "").trim();
   if (!want) return list[0];
 
-  return list.find((m) =>
-    [m.username, m.engName, m.name, m.masjidName].some(
-      (v) => typeof v === "string" && v.toLowerCase().includes(want)
-    )
-  ) || null;
+  const target = normalizeName(want);
+  if (!target) return list[0];
+
+  // An exact name beats a partial one, so "Hamza" can't be stolen by a longer
+  // name that merely contains it.
+  const exact = list.find((m) => masjidFields(m).some((v) => normalizeName(v) === target));
+  if (exact) return exact;
+
+  return list.find((m) => masjidFields(m).some((v) => normalizeName(v).includes(target))) || null;
 }
 
 /** Authorization header values worth trying for a given masjid. */
@@ -865,7 +890,13 @@ async function discoverViaAuthApi(log) {
 
   const chosen = pickMasjid(list);
   if (!chosen) {
-    log(`no masjid matched "${CONFIG.masjid || args.widgetParameter}" — check the name`);
+    // A typo'd masjid name should say so, not fall through to a generic
+    // "couldn't read the site" — the user needs to know which names exist.
+    const wanted = (args.widgetParameter || "").trim() || CONFIG.masjid;
+    DISCOVERY_NOTE = `No masjid matching "${wanted}". Available: ${
+      list.slice(0, 8).map(masjidLabel).join(", ")
+    }${list.length > 8 ? `, +${list.length - 8} more` : ""}`;
+    log(DISCOVERY_NOTE);
     return null;
   }
   log(`masjid: ${masjidLabel(chosen)}`);
@@ -1232,6 +1263,28 @@ function buildErrorWidget(message) {
 // be pasted to whoever is adapting the parser to this site.
 // ============================================================================
 
+/** Append every masjid the site lists, with the string that selects it. */
+async function appendMasjidList(lines) {
+  try {
+    const r = await fetchText(CONFIG.siteUrl + MIS.list);
+    const list = JSON.parse(r.body);
+    lines.push("");
+    lines.push(`--- masajid available (${Array.isArray(list) ? list.length : "?"}) ---`);
+    if (!Array.isArray(list) || !list.length) return;
+
+    lines.push('put either column into CONFIG.masjid or the widget Parameter:');
+    lines.push("");
+    for (const m of list.slice(0, 60)) {
+      lines.push(`  ${masjidLabel(m)}   [${m.username || "no username"}]`);
+    }
+    lines.push("");
+    lines.push("first record in full (field names for the parser):");
+    lines.push(JSON.stringify(list[0], null, 1).slice(0, 1200));
+  } catch (e) {
+    lines.push(`masjid list failed: ${e.message}`);
+  }
+}
+
 async function runDiagnostics() {
   const trace = [];
   const started = Date.now();
@@ -1312,29 +1365,14 @@ async function runDiagnostics() {
         }
       }
 
-      // The masjid list is public; its field names tell us what identifier
-      // the timings endpoint is likely to want.
-      try {
-        const r = await fetchText(CONFIG.siteUrl + MIS.list);
-        const list = JSON.parse(r.body);
-        lines.push("");
-        lines.push(`--- ${MIS.list} -> HTTP ${r.status}, ${Array.isArray(list) ? list.length : "?"} masajid ---`);
-        if (Array.isArray(list) && list.length) {
-          lines.push("first record in full:");
-          lines.push(JSON.stringify(list[0], null, 1).slice(0, 1400));
-          lines.push("");
-          lines.push("all masajid (label / username):");
-          for (const m of list.slice(0, 40)) {
-            lines.push(`  ${masjidLabel(m)}  /  ${m.username || "(no username)"}`);
-          }
-        }
-      } catch (e) {
-        lines.push(`masjid list failed: ${e.message}`);
-      }
     } catch (e) {
       lines.push(`could not re-fetch page for sample: ${e.message}`);
     }
   }
+
+  // Always list the masajid, success or failure — this is how you find the
+  // exact name to put in CONFIG.masjid or a widget's Parameter field.
+  await appendMasjidList(lines);
 
   const report = lines.join("\n");
   console.log(report);
@@ -1387,7 +1425,7 @@ async function main() {
 
   const widget = schedule
     ? buildWidget(schedule, nextPrayer(schedule, new Date()), stale)
-    : buildErrorWidget("Couldn't read prayer times from the site.");
+    : buildErrorWidget(DISCOVERY_NOTE || "Couldn't read prayer times from the site.");
 
   Script.setWidget(widget);
   Script.complete();
