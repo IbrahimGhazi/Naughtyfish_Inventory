@@ -1,10 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import {
-  Newsreader, IBM_Plex_Sans, IBM_Plex_Mono,
-  Playfair_Display, Inter, JetBrains_Mono,
-  Fraunces, Source_Sans_3, Source_Code_Pro,
-  Lora, Karla, Space_Mono,
-} from "next/font/google";
+import localFont from "next/font/local";
 import { cookies } from "next/headers";
 import "./globals.css";
 import AppShell from "./AppShell";
@@ -19,6 +14,19 @@ import { CopyProvider } from "@/lib/copy/CopyProvider";
  * globals.css needs no changes — only the chosen trio's classes are applied to
  * <html>.
  *
+ * SELF-HOSTED: these were `next/font/google`, which downloads font binaries
+ * from fonts.gstatic.com during `next build`. Google rotates those file URLs,
+ * and a stale entry in Next's font cache took production builds down with
+ * "404 ... fonts.gstatic.com/s/playfairdisplay/..." followed by 16 x
+ * "Can't resolve '@vercel/turbopack-next/internal/font/google/font'".
+ * The builds that passed were the ones that restored a warm font cache and
+ * skipped the fetch — which is why it looked intermittent. The .woff2 files
+ * now live in ./fonts and the build makes no network request at all.
+ * Regenerate them with `npm run fonts` after changing this list.
+ *
+ * `src` arrays are written out longhand because Next requires font-loader
+ * arguments to be literals — a helper that builds them fails the build.
+ *
  * PRELOAD: next/font emits <link rel="preload" as="font"> for every declared
  * font regardless of which classes render (~600 KB across 19 woff2 files if
  * all twelve preload). So only the default "Ledger classic" trio keeps
@@ -27,84 +35,151 @@ import { CopyProvider } from "@/lib/copy/CopyProvider";
  * on first paint — acceptable).
  * Keys must stay in sync with FONT_PRESETS in src/lib/config-shared.ts.
  */
-const newsreader = Newsreader({
+const newsreader = localFont({
   variable: "--font-newsreader",
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
   preload: true, // default trio — the only one preloaded
+  src: [
+    { path: "./fonts/newsreader-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/newsreader-400-italic.woff2", weight: "400", style: "italic" },
+    { path: "./fonts/newsreader-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/newsreader-500-italic.woff2", weight: "500", style: "italic" },
+    { path: "./fonts/newsreader-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/newsreader-600-italic.woff2", weight: "600", style: "italic" },
+    { path: "./fonts/newsreader-700-normal.woff2", weight: "700", style: "normal" },
+    { path: "./fonts/newsreader-700-italic.woff2", weight: "700", style: "italic" },
+  ],
 });
-const plexSans = IBM_Plex_Sans({
+const plexSans = localFont({
   variable: "--font-plex-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
   preload: true, // default trio — the only one preloaded
+  src: [
+    { path: "./fonts/ibm-plex-sans-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/ibm-plex-sans-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/ibm-plex-sans-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/ibm-plex-sans-700-normal.woff2", weight: "700", style: "normal" },
+  ],
 });
-const plexMono = IBM_Plex_Mono({
+const plexMono = localFont({
   variable: "--font-plex-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  display: "swap",
   preload: true, // default trio — the only one preloaded
+  src: [
+    { path: "./fonts/ibm-plex-mono-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/ibm-plex-mono-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/ibm-plex-mono-600-normal.woff2", weight: "600", style: "normal" },
+  ],
 });
 
-const playfair = Playfair_Display({
+const playfair = localFont({
   variable: "--font-newsreader",
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
   preload: false,
+  src: [
+    { path: "./fonts/playfair-display-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/playfair-display-400-italic.woff2", weight: "400", style: "italic" },
+    { path: "./fonts/playfair-display-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/playfair-display-500-italic.woff2", weight: "500", style: "italic" },
+    { path: "./fonts/playfair-display-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/playfair-display-600-italic.woff2", weight: "600", style: "italic" },
+    { path: "./fonts/playfair-display-700-normal.woff2", weight: "700", style: "normal" },
+    { path: "./fonts/playfair-display-700-italic.woff2", weight: "700", style: "italic" },
+  ],
 });
-const inter = Inter({
+const inter = localFont({
   variable: "--font-plex-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
   preload: false,
+  src: [
+    { path: "./fonts/inter-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/inter-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/inter-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/inter-700-normal.woff2", weight: "700", style: "normal" },
+  ],
 });
-const jetbrains = JetBrains_Mono({
+const jetbrains = localFont({
   variable: "--font-plex-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  display: "swap",
   preload: false,
+  src: [
+    { path: "./fonts/jetbrains-mono-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/jetbrains-mono-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/jetbrains-mono-600-normal.woff2", weight: "600", style: "normal" },
+  ],
 });
 
-const fraunces = Fraunces({
+const fraunces = localFont({
   variable: "--font-newsreader",
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
   preload: false,
+  src: [
+    { path: "./fonts/fraunces-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/fraunces-400-italic.woff2", weight: "400", style: "italic" },
+    { path: "./fonts/fraunces-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/fraunces-500-italic.woff2", weight: "500", style: "italic" },
+    { path: "./fonts/fraunces-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/fraunces-600-italic.woff2", weight: "600", style: "italic" },
+    { path: "./fonts/fraunces-700-normal.woff2", weight: "700", style: "normal" },
+    { path: "./fonts/fraunces-700-italic.woff2", weight: "700", style: "italic" },
+  ],
 });
-const sourceSans = Source_Sans_3({
+const sourceSans = localFont({
   variable: "--font-plex-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
   preload: false,
+  src: [
+    { path: "./fonts/source-sans-3-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/source-sans-3-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/source-sans-3-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/source-sans-3-700-normal.woff2", weight: "700", style: "normal" },
+  ],
 });
-const sourceCode = Source_Code_Pro({
+const sourceCode = localFont({
   variable: "--font-plex-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  display: "swap",
   preload: false,
+  src: [
+    { path: "./fonts/source-code-pro-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/source-code-pro-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/source-code-pro-600-normal.woff2", weight: "600", style: "normal" },
+  ],
 });
 
-const lora = Lora({
+const lora = localFont({
   variable: "--font-newsreader",
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
   preload: false,
+  src: [
+    { path: "./fonts/lora-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/lora-400-italic.woff2", weight: "400", style: "italic" },
+    { path: "./fonts/lora-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/lora-500-italic.woff2", weight: "500", style: "italic" },
+    { path: "./fonts/lora-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/lora-600-italic.woff2", weight: "600", style: "italic" },
+    { path: "./fonts/lora-700-normal.woff2", weight: "700", style: "normal" },
+    { path: "./fonts/lora-700-italic.woff2", weight: "700", style: "italic" },
+  ],
 });
-const karla = Karla({
+const karla = localFont({
   variable: "--font-plex-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
   preload: false,
+  src: [
+    { path: "./fonts/karla-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/karla-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/karla-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/karla-700-normal.woff2", weight: "700", style: "normal" },
+  ],
 });
-const spaceMono = Space_Mono({
+const spaceMono = localFont({
   variable: "--font-plex-mono",
-  subsets: ["latin"],
-  weight: ["400", "700"], // Space Mono ships only 400/700
-  preload: false,
+  display: "swap",
+  preload: false, // Space Mono ships only 400/700
+  src: [
+    { path: "./fonts/space-mono-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/space-mono-700-normal.woff2", weight: "700", style: "normal" },
+  ],
 });
 
 const FONT_TRIOS: Record<string, string> = {
