@@ -103,7 +103,7 @@ Everything adjustable is in the `CONFIG` block at the top of the script.
 | `use24Hour` | `false` | 24-hour clock |
 | `refreshMinutes` | `15` | Refresh cadence hint |
 | `timeout` | `12` | Per-request timeout, seconds |
-| `tapUrl` | `""` | Where tapping goes; defaults to the page being read |
+| `tapUrl` | `""` | Where tapping goes. Empty means the selected masjid's own page (`/masjid/<username>`) |
 
 ### Several masjids, several widgets
 

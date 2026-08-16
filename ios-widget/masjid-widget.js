@@ -48,8 +48,9 @@ const CONFIG = {
   // Network timeout per request, seconds.
   timeout: 12,
 
-  // Tap target when the widget is tapped.
-  tapUrl: "", // defaults to siteUrl + pagePath
+  // Where tapping the widget goes. Empty means the selected masjid's own page
+  // (siteUrl/masjid/<username>), falling back to siteUrl if unknown.
+  tapUrl: "",
 };
 
 // ----------------------------------------------------------------------------
@@ -660,11 +661,25 @@ async function discoverViaBundle(html, log, maxProbes = 14) {
 // NETWORK
 // ============================================================================
 
+/**
+ * The page the HTML strategies read. Deliberately does NOT consult the widget
+ * parameter: that field selects a masjid, so treating it as a path turned
+ * "mudassirmasjid" into /mudassirmasjid, which the site 404s to /not-found.
+ */
 function pageUrl() {
-  const override = (args.widgetParameter || "").trim();
-  const path = override || CONFIG.pagePath || "";
+  const path = CONFIG.pagePath || "";
   if (/^https?:\/\//i.test(path)) return path;
   return CONFIG.siteUrl + (path.startsWith("/") || path === "" ? path : `/${path}`);
+}
+
+/**
+ * Where tapping the widget goes: the selected masjid's own page when we know
+ * which masjid we rendered, since that's the view whose times are on screen.
+ */
+function tapTarget(schedule) {
+  if (CONFIG.tapUrl) return CONFIG.tapUrl;
+  const slug = schedule && typeof schedule.masjidSlug === "string" ? schedule.masjidSlug : null;
+  return slug ? `${CONFIG.siteUrl}/masjid/${slug}` : CONFIG.siteUrl;
 }
 
 async function fetchText(url, extraHeaders) {
@@ -933,6 +948,7 @@ async function discoverViaAuthApi(log) {
         log(`  ${path} auth="${auth}" -> HTTP ${status}, ${schedule ? "MATCHED" : "JSON but no times"}`);
         if (schedule) {
           if (!schedule.masjid) schedule.masjid = masjidLabel(chosen);
+          if (typeof chosen.username === "string") schedule.masjidSlug = chosen.username;
           schedule.detail = `mis ${path}`;
           return { schedule, apiUrl: url, auth };
         }
@@ -1065,7 +1081,7 @@ function buildWidget(schedule, next, stale) {
   gradient.locations = [0, 1];
   widget.backgroundGradient = gradient;
 
-  const tap = CONFIG.tapUrl || pageUrl();
+  const tap = tapTarget(schedule);
   if (tap) widget.url = tap;
 
   const family = config.widgetFamily || "medium";
@@ -1263,7 +1279,7 @@ function buildErrorWidget(message) {
   widget.addSpacer(4);
   styled(widget, "Run the script in Scriptable to diagnose", { size: 9, color: THEME.dim });
 
-  widget.url = pageUrl();
+  widget.url = tapTarget(null);
   widget.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
   return widget;
 }
