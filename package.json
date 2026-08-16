@@ -16,7 +16,8 @@
     "db:seed:money": "tsx prisma/seed-demo-money.ts",
     "db:backup": "bash scripts/backup-db.sh",
     "db:reset": "prisma migrate reset --force",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "fonts": "node scripts/fetch-fonts.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
