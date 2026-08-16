@@ -8,9 +8,9 @@ the Hijri date and the masjid name.
 It runs in [Scriptable](https://apps.apple.com/app/scriptable/id1405459188)
 (free), so it needs **no Mac, no Xcode and no Apple Developer account**.
 
-**Status: confirmed working against the live site.** Verified on-device
-showing Jamia Masjid Hamza's jamaat times, with the next-prayer countdown
-agreeing with the wall clock.
+**Status: confirmed working against the live site**, with the next-prayer
+countdown agreeing with the wall clock. Ships configured for
+**Mudassir Masjid**; change `CONFIG.masjid` for a different one.
 
 > **Note on where this lives.** This widget targets a different app than the
 > rest of this repository. It sits in its own `ios-widget/` folder, shares no
@@ -23,15 +23,35 @@ agreeing with the wall clock.
 ## Install (about 3 minutes)
 
 1. Install **Scriptable** from the App Store.
-2. Open Scriptable, tap **+** (top right) to create a new script.
-3. Paste in the entire contents of [`masjid-widget.js`](./masjid-widget.js).
-4. Tap the script's settings (⚙ or the name at the top) and rename it
-   **Masjid Prayer Times**.
-5. **Run it once inside Scriptable** (the ▶ button). This is the diagnostic
-   pass — see below. You should get a "Times found ✓" alert and a preview.
-6. Go to your home screen, long-press an empty area → **+** → search
+2. Open Scriptable, tap **+** (top right) to create a new script, and paste in
+   this installer — copying 1,200 lines by hand on a phone is how you end up
+   with a truncated file and a `SyntaxError`:
+
+   ```js
+   const SRC = "https://raw.githubusercontent.com/IbrahimGhazi/Naughtyfish_Inventory/claude/iphone-widget-masjid-bzhhqt/ios-widget/masjid-widget.js";
+   const NAME = "Masjid Prayer Times";
+
+   let fm;
+   try { fm = FileManager.iCloud(); fm.documentsDirectory(); } catch (e) { fm = FileManager.local(); }
+
+   const code = await new Request(SRC).loadString();
+   fm.writeString(fm.joinPath(fm.documentsDirectory(), `${NAME}.js`), code);
+
+   const a = new Alert();
+   a.title = "Installed ✓";
+   a.message = `Saved "${NAME}" (${code.length} bytes).`;
+   a.addAction("OK");
+   await a.present();
+   ```
+
+3. Tap **▶**. It downloads the widget and saves it as *Masjid Prayer Times*.
+   Re-run this any time to pull the latest version.
+4. Back in the script list, open **Masjid Prayer Times** and tap **▶**. This is
+   the diagnostic pass — see below. You should get a "Times found ✓" alert and
+   a preview.
+5. Go to your home screen, long-press an empty area → **+** → search
    **Scriptable** → pick a size (Small, Medium or Large) → **Add Widget**.
-7. Long-press the new widget → **Edit Widget** → set **Script** to
+6. Long-press the new widget → **Edit Widget** → set **Script** to
    *Masjid Prayer Times*.
 
 Done. Tapping the widget opens the site.
@@ -76,7 +96,7 @@ Everything adjustable is in the `CONFIG` block at the top of the script.
 | Option | Default | What it does |
 |---|---|---|
 | `siteUrl` | `https://masajid.masjidinformationsystem.com` | Base site, no trailing slash |
-| `masjid` | `""` | **Which masjid to show.** Matched against the site's masjid list by username or English name — `"masjidehamza"` or just `"Hamza"`. Matching ignores case, punctuation and doubled letters, so `"mudasir"` finds *Masjid-e-Mudassir*. An exact name wins over a partial one. Empty uses the first masjid the site lists |
+| `masjid` | `"mudassirmasjid"` | **Which masjid to show.** Accepts the username, the English name, or the masjid's page URL (`https://…/masjid/mudassirmasjid`) — the slug is pulled out of the URL for you. Matching ignores case, punctuation and doubled letters, so `"mudasir"` finds *Masjid-e-Mudassir*. An exact name wins over a partial one. Empty uses the first masjid the site lists |
 | `pagePath` | `""` | Only used by the HTML strategies. Leave empty for this site |
 | `apiUrl` | `""` | If you know the JSON endpoint, set it — discovery is skipped entirely and the widget gets faster and more reliable |
 | `countdownTo` | `"jamaat"` | Count down to the congregation time when available; `"start"` counts down to the adhan |
@@ -137,11 +157,12 @@ success it's one request per refresh with the known credential.
 This is the path that works in practice — it's how the live widget resolves
 its times.
 
-### The bundle scan (strategy 6)
+### The bundle scan (strategy 7)
 
-This is the one that matters for the target site, which is a Create React App
-SPA: the HTML is a 1.4 KB shell containing nothing but `<div id="root">`, so
-strategies 2–5 have nothing to read, and guessing endpoint names is a lottery.
+This is what found the endpoints in the first place. The target site is a
+Create React App SPA: the HTML is a 1.4 KB shell containing nothing but
+`<div id="root">`, so strategies 2–5 have nothing to read, and guessing
+endpoint names is a lottery.
 
 The app's own JS bundle, however, contains every path it calls. So the widget
 fetches the bundle, extracts `/api/…` string literals (and any dedicated API

@@ -20,11 +20,13 @@ const CONFIG = {
   // Base site. No trailing slash.
   siteUrl: "https://masajid.masjidinformationsystem.com",
 
-  // Which masjid to show. Matched against the site's masjid list by username
-  // or English name, case-insensitive substring — e.g. "masjidehamza" or
-  // "Hamza". Leave empty to use the first masjid the site lists. Can be
-  // overridden per-widget with the widget parameter (long-press -> Edit Widget).
-  masjid: "",
+  // Which masjid to show. Accepts the username, the English name, or the
+  // masjid's page URL — https://…/masjid/mudassirmasjid all work the same.
+  // Matching ignores case, punctuation and doubled letters, so "mudasir"
+  // finds "Masjid-e-Mudassir" too. Leave empty to use the first masjid the
+  // site lists. Override per-widget with the widget parameter
+  // (long-press widget -> Edit Widget -> Parameter).
+  masjid: "mudassirmasjid",
 
   // Page to read times from, relative to siteUrl. Only used by the HTML
   // strategies; leave empty for this site, which is a client-rendered app.
@@ -841,10 +843,21 @@ function masjidFields(m) {
   return [m.username, m.engName, m.name, m.masjidName].filter((v) => typeof v === "string" && v);
 }
 
+/**
+ * Accept a masjid's page URL wherever a name is expected — copying the link
+ * from the site is the obvious thing to reach for, so pull the slug out of
+ * ".../masjid/<slug>" rather than failing to match the whole URL.
+ */
+function masjidKeyFromInput(raw) {
+  const s = String(raw || "").trim();
+  const m = s.match(/\/masjid\/([^/?#\s]+)/i);
+  return m ? m[1] : s;
+}
+
 /** The masjid named by the widget parameter or CONFIG.masjid; first if unset. */
 function pickMasjid(list) {
   const override = (args.widgetParameter || "").trim();
-  const want = (override || CONFIG.masjid || "").trim();
+  const want = masjidKeyFromInput(override || CONFIG.masjid || "");
   if (!want) return list[0];
 
   const target = normalizeName(want);
