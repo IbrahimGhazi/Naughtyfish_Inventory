@@ -144,11 +144,20 @@ async function request(url, { method = "GET", headers = {}, body = null } = {}) 
   const req = new Request(url);
   req.method = method;
   req.timeoutInterval = CONFIG.timeout;
-  req.headers = Object.assign({ apikey: CONFIG.anonKey, Accept: "application/json" }, headers);
-  if (body != null) {
-    req.headers["Content-Type"] = "application/json";
-    req.body = JSON.stringify(body);
-  }
+
+  // Build the header dictionary completely, THEN assign it once. Scriptable's
+  // `req.headers` getter hands back a copy, so mutating it after assignment
+  // (req.headers["Content-Type"] = …) is silently discarded — which drops the
+  // JSON content type and makes the server reject the body as unparseable.
+  const allHeaders = Object.assign(
+    { apikey: CONFIG.anonKey, Accept: "application/json" },
+    headers
+  );
+  if (body != null) allHeaders["Content-Type"] = "application/json";
+  req.headers = allHeaders;
+
+  if (body != null) req.body = JSON.stringify(body);
+
   const text = await req.loadString();
   const status = req.response ? req.response.statusCode : 0;
   let json = null;
