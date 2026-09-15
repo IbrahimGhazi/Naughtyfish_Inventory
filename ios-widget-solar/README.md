@@ -56,6 +56,16 @@ renew its session, so your password is not sent on a routine refresh.
    ```
 
 3. Tap **▶**, then go back and open the new **Solar Monitor** script.
+
+   **If the byte count looks stale**, you've hit GitHub's raw CDN cache: it
+   caches branch paths for a few minutes, and a `?t=…` query string does *not*
+   bust it. Swap the branch name in `SRC` for a commit SHA — those are
+   immutable and always fresh:
+
+   ```
+   .../Naughtyfish_Inventory/<commit-sha>/ios-widget-solar/solar-widget.js
+   ```
+
 4. Tap **▶** on it. You'll get a menu — choose **Sign in** and enter your
    Solar Monitor email and password. It verifies the login *before* saving, so
    a typo never gets stored.
