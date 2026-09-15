@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Standalone Scriptable (iOS widget) script — runs in Scriptable's
+    // JS runtime with its own globals, not part of the Next.js app.
+    "ios-widget-solar/**",
   ]),
 ]);
 
