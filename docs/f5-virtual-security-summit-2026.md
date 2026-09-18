@@ -705,23 +705,26 @@ and none of the sessions has a downloadable deck.
 ## Relevance to current work
 
 This is editorial context, not something the emails assert — but the summit's subject matter
-overlaps directly with F5 work already in flight at Innovative Integration during September 2026:
+overlaps directly with F5 work in flight during September 2026:
 
-| Summit topic | Related active work |
+| Summit topic | Related area of active work |
 |---|---|
-| WAAP for the Post-Mythos World | Meezan Bank DMZ Advanced WAF (r5900) deployment; Pak-Qatar WAF on-prem evaluation |
-| Trust in the Age of AI Agents / Bot Defense | Bank Alfalah API Gateway & API Discovery requirement |
+| WAAP for the Post-Mythos World | Advanced WAF deployments; on-prem WAF evaluations |
+| Trust in the Age of AI Agents / Bot Defense | API gateway and API discovery requirements |
 | Securing AI in Production | F5 AI Insights / AI Assistant evaluation |
-| When Patching Isn't Fast Enough | F5 hardened-release cadence migrations at 1LINK and Meezan Bank |
+| When Patching Isn't Fast Enough | Hardened-release cadence migrations |
 
 Sessions 2, 3 and 5 are the highest-value watches for the team on current engagements.
 
-Two session details bear directly on these engagements. F5 moved to **hardened releases every
-six weeks** in September 2026, and advises treating every one as closing a critical gap
-(Montoya). That is the cadence the 1LINK and Meezan migrations will have to absorb, and F5
-Insight for ADSP is F5's answer to absorbing it. The **API Security Local Edition** for
-air-gapped environments (Shah) is directly relevant to on-prem-only banking requirements such as
-Pak-Qatar's.
+Two session details bear directly on this work. F5 moved to **hardened releases every six weeks**
+in September 2026, and advises treating every one as closing a critical gap (Montoya). That is
+the cadence in-flight migrations will have to absorb, and F5 Insight for ADSP is F5's answer to
+absorbing it. The **API Security Local Edition** for air-gapped environments (Shah) is directly
+relevant to on-prem-only banking requirements.
+
+> **Note.** This repository is public. Specific customer names, deployment details and engagement
+> status were deliberately removed from this section. Keep that mapping in the private archive
+> alongside the transcripts, not here.
 
 ---
 
@@ -763,5 +766,5 @@ All nine messages, in chronological order. Times are UTC.
 | Role | Name | Contact |
 |---|---|---|
 | F5 summit mailings | Olivia Anderson | `o.anderson@f5.com` |
-| Distributor — registration and summit queries | Muhammad Ahmed Khan, Channel Account Manager, Awan Distribution | `muhammad.khan@awandistribution.com` · +92 327 8822226 |
+| Distributor — registration and summit queries | Muhammad Ahmed Khan, Channel Account Manager, Awan Distribution | `muhammad.khan@awandistribution.com` |
 | Internal forwarder | Ahmer Ghazi | `ahmer.ghazi@innovativeintegration.net` |
