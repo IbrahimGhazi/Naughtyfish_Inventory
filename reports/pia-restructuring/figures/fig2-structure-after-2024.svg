@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="500" viewBox="0 0 1040 500" font-family="Georgia, 'Times New Roman', serif">
+  <style>
+    .bg{fill:#FFFFFF}
+    .gov{fill:#0B4D2C;stroke:#083A21;stroke-width:2}
+    .min{fill:#46685A;stroke:#334C41;stroke-width:2}
+    .hco{fill:#0B4D2C;stroke:#C9A227;stroke-width:3}
+    .opco{fill:#046A38;stroke:#083A21;stroke-width:2}
+    .wlbl{fill:#FFFFFF;font-size:18px;font-weight:bold}
+    .wsub{fill:#CFE3D6;font-size:14px}
+    .box{fill:#F4F7F5;stroke:#5A6B62;stroke-width:1.5}
+    .gbox{fill:#FBF3DD;stroke:#C9A227;stroke-width:1.5}
+    .bl{font-size:14px;fill:#243029;font-weight:bold}
+    .bn{font-size:12.5px;fill:#5A6B62}
+    .ln{stroke:#5A6B62;stroke-width:2;fill:none}
+    .lng{stroke:#C9A227;stroke-width:2.5;fill:none}
+    .pct{font-size:13.5px;fill:#0B4D2C;font-weight:bold}
+    .cap{font-size:13px;fill:#5A6B62;font-style:italic}
+    .tag{font-size:13px;fill:#8A6D10;font-weight:bold}
+  </style>
+  <rect class="bg" x="0" y="0" width="1040" height="500"/>
+
+  <rect class="gov" x="170" y="10" width="300" height="52" rx="6"/>
+  <text class="wlbl" x="320" y="33" text-anchor="middle">Government of Pakistan</text>
+  <text class="wsub" x="320" y="52" text-anchor="middle">majority shareholder</text>
+
+  <rect class="min" x="560" y="10" width="310" height="52" rx="6"/>
+  <text class="wlbl" x="715" y="33" text-anchor="middle">Minority public shareholders</text>
+  <text class="wsub" x="715" y="52" text-anchor="middle">same holders as before the scheme</text>
+
+  <path class="ln" d="M320 62 L320 82 L520 82 L520 100"/>
+  <path class="ln" d="M715 62 L715 82 L520 82"/>
+
+  <!-- Holding company -->
+  <rect class="hco" x="230" y="100" width="580" height="66" rx="8"/>
+  <text class="wlbl" x="520" y="126" text-anchor="middle">PIA Holding Company Limited (PIA HCL)</text>
+  <text class="wsub" x="520" y="148" text-anchor="middle">incorporated 21 Mar 2024 · listed on PSX 27 May 2024 as PIAHCLA (Rs 10) / PIAHCLB (Rs 5)</text>
+
+  <!-- spine -->
+  <path class="ln" d="M520 166 L520 196"/>
+  <path class="ln" d="M170 196 L880 196"/>
+  <path class="ln" d="M170 196 L170 224"/>
+  <path class="ln" d="M395 196 L395 224"/>
+  <path class="ln" d="M600 196 L600 224"/>
+  <path class="ln" d="M770 196 L770 224"/>
+  <path class="ln" d="M880 196 L880 224"/>
+
+  <!-- Opco -->
+  <rect class="opco" x="52" y="224" width="236" height="96" rx="8"/>
+  <text class="wlbl" x="170" y="250" text-anchor="middle">PIACL</text>
+  <text class="wsub" x="170" y="270" text-anchor="middle">the operating airline</text>
+  <text class="wsub" x="170" y="289" text-anchor="middle">delisted from PSX 25 May 2024</text>
+  <text class="wsub" x="170" y="308" text-anchor="middle">100% owned by PIA HCL</text>
+  <text class="pct" x="132" y="216" text-anchor="middle">100%</text>
+
+  <rect class="box" x="300" y="224" width="190" height="96" rx="6"/>
+  <text class="bl" x="395" y="248" text-anchor="middle">PIA Investments Ltd</text>
+  <text class="bn" x="395" y="269" text-anchor="middle">Roosevelt Hotel, NY</text>
+  <text class="bn" x="395" y="287" text-anchor="middle">Hôtel Scribe, Paris</text>
+  <text class="bn" x="395" y="305" text-anchor="middle">~99% PIA / ~1% Saudi</text>
+
+  <rect class="box" x="505" y="224" width="190" height="96" rx="6"/>
+  <text class="bl" x="600" y="248" text-anchor="middle">Skyrooms (Pvt) Ltd</text>
+  <text class="bn" x="600" y="269" text-anchor="middle">airport hotel, Karachi</text>
+  <text class="bl" x="600" y="294" text-anchor="middle">Sabre Travel Network</text>
+  <text class="bn" x="600" y="312" text-anchor="middle">(Pakistan) (Pvt) Ltd</text>
+
+  <rect class="gbox" x="710" y="224" width="130" height="96" rx="6"/>
+  <text class="bl" x="775" y="252" text-anchor="middle">Precision</text>
+  <text class="bl" x="775" y="270" text-anchor="middle">Engineering</text>
+  <text class="bl" x="775" y="288" text-anchor="middle">Complex</text>
+  <text class="bn" x="775" y="308" text-anchor="middle">non-core</text>
+
+  <rect class="gbox" x="852" y="224" width="136" height="96" rx="6"/>
+  <text class="bl" x="920" y="252" text-anchor="middle">33 retained</text>
+  <text class="bl" x="920" y="270" text-anchor="middle">properties</text>
+  <text class="bn" x="920" y="290" text-anchor="middle">PK / US / France</text>
+  <text class="bn" x="920" y="308" text-anchor="middle">incl. Avant Hotel</text>
+
+  <!-- liabilities parked -->
+  <rect x="230" y="348" width="580" height="88" rx="8" fill="#F7EAE6" stroke="#A33A2A" stroke-width="2"/>
+  <text x="520" y="372" text-anchor="middle" font-size="15.5px" font-weight="bold" fill="#8C2F20">Legacy liabilities parked in PIA HCL — about Rs 671 bn</text>
+  <text x="520" y="394" text-anchor="middle" font-size="13.5px" fill="#3A2420">Rs 268.7 bn bank loans · Rs 170 bn Government payables</text>
+  <text x="520" y="414" text-anchor="middle" font-size="13.5px" fill="#3A2420">Rs 188.3 bn historical operating liabilities · Rs 44 bn employee dues</text>
+  <text x="520" y="431" text-anchor="middle" font-size="12.5px" fill="#5A6B62">(CAA, PSO and NICL dues of ~Rs 144 bn sit inside the operating-liability figure)</text>
+  <path class="lng" d="M520 336 L520 348"/>
+  <text class="tag" x="560" y="341">carried by, and serviced from, the holding company</text>
+
+  <text class="cap" x="520" y="466" text-anchor="middle">Structure created by the Scheme of Arrangement sanctioned by SECP on 3 May 2024, effective 30 April 2024.</text>
+  <text class="cap" x="520" y="486" text-anchor="middle">Existing PIACL shareholders became PIA HCL shareholders; no cash changed hands and no new outside investor entered at this stage.</text>
+</svg>

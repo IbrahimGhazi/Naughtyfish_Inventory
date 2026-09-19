@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="470" viewBox="0 0 1040 470" font-family="Georgia, 'Times New Roman', serif">
+  <style>
+    .bg{fill:#FFFFFF}
+    .ent{fill:#0B4D2C;stroke:#083A21;stroke-width:2}
+    .entlbl{fill:#FFFFFF;font-size:19px;font-weight:bold}
+    .entsub{fill:#CFE3D6;font-size:15px}
+    .panel{fill:#FFFFFF;stroke:#0B4D2C;stroke-width:2.5}
+    .band{fill:#0B4D2C}
+    .core{fill:#E9F2EC;stroke:#046A38;stroke-width:1.5}
+    .noncore{fill:#FBF3DD;stroke:#C9A227;stroke-width:1.5}
+    .hdr{font-size:16px;font-weight:bold;fill:#0B4D2C}
+    .hdrg{font-size:16px;font-weight:bold;fill:#8A6D10}
+    .it{font-size:14.5px;fill:#243029}
+    .sub{fill:#F4F7F5;stroke:#5A6B62;stroke-width:1.5}
+    .sublbl{font-size:14px;fill:#243029;font-weight:bold}
+    .subnote{font-size:12.5px;fill:#5A6B62}
+    .ln{stroke:#5A6B62;stroke-width:2;fill:none}
+    .cap{font-size:13px;fill:#5A6B62;font-style:italic}
+    .pct{font-size:13px;fill:#0B4D2C;font-weight:bold}
+  </style>
+  <rect class="bg" x="0" y="0" width="1040" height="470"/>
+
+  <!-- shareholders -->
+  <rect class="ent" x="150" y="12" width="330" height="56" rx="6"/>
+  <text class="entlbl" x="315" y="36" text-anchor="middle">Government of Pakistan</text>
+  <text class="entsub" x="315" y="56" text-anchor="middle">majority shareholder</text>
+
+  <rect class="ent" x="560" y="12" width="330" height="56" rx="6" fill="#46685A" stroke="#334C41"/>
+  <text class="entlbl" x="725" y="36" text-anchor="middle">Minority public shareholders</text>
+  <text class="entsub" x="725" y="56" text-anchor="middle">shares traded on PSX as PIAA / PIAB</text>
+
+  <path class="ln" d="M315 68 L315 92 L520 92 L520 112"/>
+  <path class="ln" d="M725 68 L725 92 L520 92"/>
+
+  <!-- PIACL panel -->
+  <rect class="panel" x="60" y="112" width="920" height="232" rx="8"/>
+  <rect class="band" x="60" y="112" width="920" height="42" rx="8"/>
+  <rect class="band" x="60" y="140" width="920" height="14"/>
+  <text x="520" y="140" text-anchor="middle" fill="#FFFFFF" font-size="18px" font-weight="bold">Pakistan International Airlines Corporation Limited (PIACL) — ONE listed company, ONE balance sheet</text>
+
+  <rect class="core" x="80" y="170" width="430" height="158" rx="6"/>
+  <text class="hdr" x="95" y="194">CORE (airline) undertaking</text>
+  <text class="it" x="95" y="219">• Aircraft, engines, spares, aviation equipment</text>
+  <text class="it" x="95" y="242">• Route licences, traffic rights, slots</text>
+  <text class="it" x="95" y="265">• Ground handling, cargo, engineering operations</text>
+  <text class="it" x="95" y="288">• Operating receivables, deposits, inventories</text>
+  <text class="it" x="95" y="311">• Trade payables and in-service staff costs</text>
+
+  <rect class="noncore" x="530" y="170" width="430" height="158" rx="6"/>
+  <text class="hdrg" x="545" y="194">NON-CORE undertaking + legacy debt</text>
+  <text class="it" x="545" y="219">• Investments in 3 subsidiaries (below)</text>
+  <text class="it" x="545" y="242">• Precision Engineering Complex</text>
+  <text class="it" x="545" y="265">• 44-property real-estate portfolio (PK / US / France)</text>
+  <text class="it" x="545" y="288">• Bank loans, Govt borrowings, CAA / PSO / NICL dues</text>
+  <text class="it" x="545" y="311">• Pension, gratuity and post-retirement medical dues</text>
+
+  <!-- subsidiaries -->
+  <path class="ln" d="M170 344 L170 372"/>
+  <path class="ln" d="M405 344 L405 372"/>
+  <path class="ln" d="M640 344 L640 372"/>
+  <path class="ln" d="M875 344 L875 372"/>
+
+  <rect class="sub" x="62" y="372" width="216" height="76" rx="6"/>
+  <text class="sublbl" x="170" y="394" text-anchor="middle">PIA Investments Ltd</text>
+  <text class="subnote" x="170" y="414" text-anchor="middle">Roosevelt Hotel, New York</text>
+  <text class="subnote" x="170" y="432" text-anchor="middle">Hôtel Scribe, Paris</text>
+
+  <rect class="sub" x="297" y="372" width="216" height="76" rx="6"/>
+  <text class="sublbl" x="405" y="394" text-anchor="middle">Skyrooms (Pvt) Ltd</text>
+  <text class="subnote" x="405" y="414" text-anchor="middle">airport hotel, Karachi</text>
+  <text class="subnote" x="405" y="432" text-anchor="middle">4,000,000 shares of Rs 10</text>
+
+  <rect class="sub" x="532" y="372" width="216" height="76" rx="6"/>
+  <text class="sublbl" x="640" y="394" text-anchor="middle">Sabre Travel Network</text>
+  <text class="sublbl" x="640" y="412" text-anchor="middle">(Pakistan) (Pvt) Ltd</text>
+  <text class="subnote" x="640" y="432" text-anchor="middle">reservations / ticketing</text>
+
+  <rect class="sub" x="767" y="372" width="216" height="76" rx="6" fill="#FBF3DD" stroke="#C9A227"/>
+  <text class="sublbl" x="875" y="394" text-anchor="middle">Precision Engineering</text>
+  <text class="sublbl" x="875" y="412" text-anchor="middle">Complex</text>
+  <text class="subnote" x="875" y="432" text-anchor="middle">division, not a subsidiary</text>
+
+  <text class="cap" x="520" y="463" text-anchor="middle">Every item above sat inside one legal entity: total assets ≈ Rs 161 bn against total liabilities ≈ Rs 825 bn at 31 December 2023.</text>
+</svg>

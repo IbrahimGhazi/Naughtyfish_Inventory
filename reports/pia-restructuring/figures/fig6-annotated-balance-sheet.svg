@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="790" viewBox="0 0 1040 790" font-family="Georgia, 'Times New Roman', serif">
+  <style>
+    .bg{fill:#FFFFFF}
+    .ttl{font-size:17px;font-weight:bold;fill:#FFFFFF}
+    .sub{font-size:13px;fill:#CFE3D6}
+    .sec{font-size:14.5px;font-weight:bold;fill:#0B4D2C}
+    .it{font-size:13.5px;fill:#243029}
+    .amt{font-size:13.5px;fill:#243029}
+    .amtb{font-size:14px;fill:#243029;font-weight:bold}
+    .np{font-size:12.5px;fill:#96A29A;font-style:italic}
+    .dH{font-size:13px;font-weight:bold;fill:#8C2F20}
+    .dP{font-size:13px;font-weight:bold;fill:#046A38}
+    .dS{font-size:13px;font-weight:bold;fill:#7A6A2A}
+    .hdrow{font-size:12.5px;font-weight:bold;fill:#0B4D2C}
+    .note{font-size:12.5px;fill:#5A6B62}
+  </style>
+  <defs>
+    <marker id="mH" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 z" fill="#8C2F20"/>
+    </marker>
+    <marker id="mP" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 z" fill="#046A38"/>
+    </marker>
+    <marker id="mS" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 z" fill="#7A6A2A"/>
+    </marker>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1040" height="790"/>
+
+  <!-- title band -->
+  <rect x="14" y="10" width="1012" height="52" rx="6" fill="#0B4D2C"/>
+  <text class="ttl" x="30" y="32">PIACL — extract of the last pre-split balance sheet, 31 December 2023, with allocation marked</text>
+  <text class="sub" x="30" y="52">Reconstructed extract, Pakistan Rupees. The right-hand column shows where each caption went on 30 April 2024. &quot;n/p&quot; = not separately published.</text>
+
+  <!-- column headers -->
+  <text class="hdrow" x="30" y="82">BALANCE-SHEET CAPTION</text>
+  <text class="hdrow" x="646" y="82" text-anchor="end">AMOUNT</text>
+  <text class="hdrow" x="700" y="82">RECEIVING ENTITY AFTER THE SPLIT</text>
+  <line x1="14" y1="90" x2="1026" y2="90" stroke="#0B4D2C" stroke-width="1.5"/>
+
+  <!-- ASSETS -->
+  <rect x="14" y="96" width="1012" height="24" fill="#E9F2EC"/>
+  <text class="sec" x="30" y="113">ASSETS</text>
+
+  <text class="it" x="30" y="142">Property, plant and equipment — aircraft, engines, rotables, ground equipment</text>
+  <text class="np" x="646" y="142" text-anchor="end">n/p</text>
+  <line x1="660" y1="138" x2="694" y2="138" stroke="#046A38" stroke-width="2" marker-end="url(#mP)"/>
+  <text class="dP" x="700" y="142">Stays with PIACL — the flying business</text>
+
+  <rect x="14" y="150" width="1012" height="26" fill="#FAFBFA"/>
+  <text class="it" x="30" y="168">Property, plant and equipment — non-operating land, buildings, colonies, offices</text>
+  <text class="amt" x="646" y="168" text-anchor="end">33 of 44 properties</text>
+  <line x1="660" y1="164" x2="694" y2="164" stroke="#8C2F20" stroke-width="2" marker-end="url(#mH)"/>
+  <text class="dH" x="700" y="168">PIA HCL</text>
+
+  <text class="it" x="30" y="194">Long-term investments — PIA Investments Ltd, Skyrooms, Sabre Travel Network</text>
+  <text class="amt" x="646" y="194" text-anchor="end">part of ≈ 26 bn</text>
+  <line x1="660" y1="190" x2="694" y2="190" stroke="#8C2F20" stroke-width="2" marker-end="url(#mH)"/>
+  <text class="dH" x="700" y="194">PIA HCL — carries Roosevelt &amp; Scribe</text>
+
+  <rect x="14" y="202" width="1012" height="26" fill="#FAFBFA"/>
+  <text class="it" x="30" y="220">Precision Engineering Complex</text>
+  <text class="amt" x="646" y="220" text-anchor="end">part of ≈ 26 bn</text>
+  <line x1="660" y1="216" x2="694" y2="216" stroke="#8C2F20" stroke-width="2" marker-end="url(#mH)"/>
+  <text class="dH" x="700" y="220">PIA HCL</text>
+
+  <text class="it" x="30" y="246">Stores, spares, loose tools and other inventories</text>
+  <text class="np" x="646" y="246" text-anchor="end">n/p</text>
+  <line x1="660" y1="242" x2="694" y2="242" stroke="#046A38" stroke-width="2" marker-end="url(#mP)"/>
+  <text class="dP" x="700" y="246">Stays with PIACL</text>
+
+  <rect x="14" y="254" width="1012" height="26" fill="#FAFBFA"/>
+  <text class="it" x="30" y="272">Trade debts, advances, deposits and prepayments of the airline business</text>
+  <text class="np" x="646" y="272" text-anchor="end">n/p</text>
+  <line x1="660" y1="268" x2="694" y2="268" stroke="#046A38" stroke-width="2" marker-end="url(#mP)"/>
+  <text class="dP" x="700" y="272">Stays with PIACL</text>
+
+  <text class="it" x="30" y="298">Cash and bank balances</text>
+  <text class="np" x="646" y="298" text-anchor="end">n/p</text>
+  <line x1="660" y1="294" x2="694" y2="294" stroke="#7A6A2A" stroke-width="2" marker-end="url(#mS)"/>
+  <text class="dS" x="700" y="298">Split — the allocation is not published</text>
+
+  <rect x="14" y="306" width="1012" height="26" fill="#FAFBFA"/>
+  <text class="it" x="30" y="324">Deferred tax asset</text>
+  <text class="amt" x="646" y="324" text-anchor="end">nil in 2023</text>
+  <line x1="660" y1="320" x2="694" y2="320" stroke="#046A38" stroke-width="2" marker-end="url(#mP)"/>
+  <text class="dP" x="700" y="324">PIACL — Rs 31.6 bn newly recognised in 2024</text>
+
+  <line x1="14" y1="338" x2="1026" y2="338" stroke="#5A6B62" stroke-width="1"/>
+  <text class="amtb" x="30" y="358">TOTAL ASSETS</text>
+  <text class="amtb" x="646" y="358" text-anchor="end">≈ Rs 161 bn</text>
+  <text class="note" x="700" y="358">≈ Rs 146.6 bn measured at the effective date</text>
+
+  <!-- LIABILITIES -->
+  <rect x="14" y="372" width="1012" height="24" fill="#E9F2EC"/>
+  <text class="sec" x="30" y="389">EQUITY AND LIABILITIES</text>
+
+  <text class="it" x="30" y="418">Long-term financing and lease liabilities</text>
+  <text class="amtb" x="646" y="418" text-anchor="end">over 295 bn</text>
+  <line x1="660" y1="414" x2="694" y2="414" stroke="#8C2F20" stroke-width="2" marker-end="url(#mH)"/>
+  <text class="dH" x="700" y="418">PIA HCL — PIACL's balance fell to Rs 13 bn</text>
+
+  <rect x="14" y="426" width="1012" height="26" fill="#FAFBFA"/>
+  <text class="it" x="30" y="444">Bank loans and commercial borrowings that were renegotiated</text>
+  <text class="amtb" x="646" y="444" text-anchor="end">268.7 bn</text>
+  <line x1="660" y1="440" x2="694" y2="440" stroke="#8C2F20" stroke-width="2" marker-end="url(#mH)"/>
+  <text class="dH" x="700" y="444">PIA HCL — 10-year term, rate capped at 12%</text>
+
+  <text class="it" x="30" y="470">Payable to the Government of Pakistan (loans and advances)</text>
+  <text class="amtb" x="646" y="470" text-anchor="end">170.0 bn</text>
+  <line x1="660" y1="466" x2="694" y2="466" stroke="#8C2F20" stroke-width="2" marker-end="url(#mH)"/>
+  <text class="dH" x="700" y="470">PIA HCL</text>
+
+  <rect x="14" y="478" width="1012" height="26" fill="#FAFBFA"/>
+  <text class="it" x="30" y="496">Historical operating liabilities — includes CAA, PSO and NICL dues ≈ Rs 144 bn</text>
+  <text class="amtb" x="646" y="496" text-anchor="end">188.3 bn</text>
+  <line x1="660" y1="492" x2="694" y2="492" stroke="#8C2F20" stroke-width="2" marker-end="url(#mH)"/>
+  <text class="dH" x="700" y="496">PIA HCL</text>
+
+  <text class="it" x="30" y="522">Employee retirement benefits — pension, gratuity, post-retirement medical</text>
+  <text class="amtb" x="646" y="522" text-anchor="end">44.0 bn</text>
+  <line x1="660" y1="518" x2="694" y2="518" stroke="#8C2F20" stroke-width="2" marker-end="url(#mH)"/>
+  <text class="dH" x="700" y="522">PIA HCL</text>
+
+  <rect x="14" y="530" width="1012" height="26" fill="#FAFBFA"/>
+  <text class="it" x="30" y="548">Further employee obligation identified after the scheme was executed</text>
+  <text class="amtb" x="646" y="548" text-anchor="end">≈ 36–40 bn</text>
+  <line x1="660" y1="544" x2="694" y2="544" stroke="#046A38" stroke-width="2" marker-end="url(#mP)"/>
+  <text class="dP" x="700" y="548">Left inside PIACL — see Section 6</text>
+
+  <text class="it" x="30" y="574">Trade and other payables of the continuing flying business</text>
+  <text class="np" x="646" y="574" text-anchor="end">n/p</text>
+  <line x1="660" y1="570" x2="694" y2="570" stroke="#046A38" stroke-width="2" marker-end="url(#mP)"/>
+  <text class="dP" x="700" y="574">Stays with PIACL</text>
+
+  <rect x="14" y="582" width="1012" height="26" fill="#FAFBFA"/>
+  <text class="it" x="30" y="600">Accumulated losses</text>
+  <text class="amtb" x="646" y="600" text-anchor="end">≈ (713) bn</text>
+  <line x1="660" y1="596" x2="694" y2="596" stroke="#8C2F20" stroke-width="2" marker-end="url(#mH)"/>
+  <text class="dH" x="700" y="600">Follows the debt to PIA HCL</text>
+
+  <line x1="14" y1="614" x2="1026" y2="614" stroke="#5A6B62" stroke-width="1"/>
+  <text class="amtb" x="30" y="634">TOTAL LIABILITIES</text>
+  <text class="amtb" x="646" y="634" text-anchor="end">≈ Rs 825 bn</text>
+  <text class="note" x="700" y="634">of which ≈ Rs 671 bn moved to PIA HCL</text>
+  <text class="amtb" x="30" y="658">SHAREHOLDERS' DEFICIT</text>
+  <text class="amtb" x="646" y="658" text-anchor="end" fill="#8C2F20">≈ Rs (664) bn</text>
+  <text class="note" x="700" y="658">PIACL's own deficit became ≈ nil, then +Rs 3.55 bn</text>
+  <line x1="14" y1="668" x2="1026" y2="668" stroke="#0B4D2C" stroke-width="1.5"/>
+
+  <!-- legend -->
+  <rect x="14" y="682" width="1012" height="96" rx="6" fill="#F4F7F5" stroke="#5A6B62" stroke-width="1"/>
+  <text class="note" x="30" y="704" font-weight="bold" fill="#0B4D2C">How to read this extract</text>
+  <text class="note" x="30" y="724">Bold amounts are figures stated in the public sources cited in Sections 5 and 6. &quot;n/p&quot; means PIA has never published that caption split between the two companies,</text>
+  <text class="note" x="30" y="742">so no number is shown rather than an estimate. The Rs 161 bn and Rs 825 bn totals are as reported for 31 December 2023; other filings state Rs 850.75 bn and Rs 864 bn</text>
+  <text class="note" x="30" y="760">for liabilities at nearby dates — see the reconciliation in Section 4.3. This is a reconstruction for teaching, not a facsimile of the audited statement.</text>
+</svg>
