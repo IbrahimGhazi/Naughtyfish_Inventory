@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="620" viewBox="0 0 1040 620" font-family="Georgia, 'Times New Roman', serif">
+  <style>
+    .bg{fill:#FFFFFF}
+    .hd{font-size:16px;font-weight:bold;fill:#FFFFFF}
+    .num{font-size:15px;fill:#243029}
+    .numb{font-size:15px;fill:#243029;font-weight:bold}
+    .lbl{font-size:14px;fill:#243029}
+    .neg{font-size:16px;font-weight:bold;fill:#8C2F20}
+    .pos{font-size:16px;font-weight:bold;fill:#046A38}
+    .mv{font-size:13px;fill:#243029}
+    .mvh{font-size:13.5px;font-weight:bold;fill:#8A6D10}
+    .cap{font-size:13px;fill:#5A6B62;font-style:italic}
+    .note{font-size:12.5px;fill:#5A6B62}
+  </style>
+  <defs>
+    <marker id="ar" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 z" fill="#C9A227"/>
+    </marker>
+    <marker id="ag" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 z" fill="#046A38"/>
+    </marker>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1040" height="620"/>
+
+  <!-- BEFORE -->
+  <rect x="290" y="10" width="460" height="150" rx="8" fill="#FFFFFF" stroke="#0B4D2C" stroke-width="2.5"/>
+  <rect x="290" y="10" width="460" height="34" rx="8" fill="#0B4D2C"/>
+  <rect x="290" y="30" width="460" height="14" fill="#0B4D2C"/>
+  <text class="hd" x="520" y="33" text-anchor="middle">BEFORE — PIACL alone, 31 December 2023</text>
+  <text class="lbl" x="312" y="70">Total assets</text>
+  <text class="numb" x="728" y="70" text-anchor="end">Rs 161 bn</text>
+  <text class="lbl" x="312" y="96">Total liabilities</text>
+  <text class="numb" x="728" y="96" text-anchor="end">Rs 825 bn</text>
+  <line x1="312" y1="110" x2="728" y2="110" stroke="#5A6B62" stroke-width="1"/>
+  <text class="lbl" x="312" y="132" font-weight="bold">Shareholders' deficit</text>
+  <text class="neg" x="728" y="132" text-anchor="end">≈ Rs (664) bn</text>
+  <text class="note" x="312" y="152">Accumulated losses ≈ Rs 713 bn · one legal entity · one set of accounts</text>
+
+  <!-- middle: what moved -->
+  <rect x="120" y="196" width="800" height="150" rx="8" fill="#FBF3DD" stroke="#C9A227" stroke-width="2"/>
+  <text class="mvh" x="140" y="220">WHAT THE SCHEME MOVED OUT OF THE AIRLINE (effective 30 April 2024) — about Rs 671 bn of liabilities and ~Rs 26 bn of assets</text>
+  <text class="mv" x="140" y="246">→  Rs 268.7 bn  bank loans and other commercial borrowings</text>
+  <text class="mv" x="600" y="246">→  Rs 44.0 bn  employee pension / gratuity / medical dues</text>
+  <text class="mv" x="140" y="270">→  Rs 170.0 bn  amounts payable to the Government of Pakistan</text>
+  <text class="mv" x="600" y="270">→  Investments in PIAIL, Skyrooms and Sabre TN</text>
+  <text class="mv" x="140" y="294">→  Rs 188.3 bn  historical operating liabilities</text>
+  <text class="mv" x="600" y="294">→  Precision Engineering Complex</text>
+  <text class="mv" x="140" y="318">→  The accumulated losses that those liabilities had created</text>
+  <text class="mv" x="600" y="318">→  33 of the 44 properties, incl. Roosevelt &amp; Scribe hotels</text>
+  <text class="note" x="140" y="338">Nothing was repaid or forgiven here — including ~Rs 144 bn of CAA, PSO and NICL dues, the obligations simply changed debtor.</text>
+
+  <path d="M430 160 L430 178 L300 178 L300 196" stroke="#C9A227" stroke-width="2.5" fill="none"/>
+  <path d="M610 160 L610 178 L740 178 L740 196" stroke="#C9A227" stroke-width="2.5" fill="none"/>
+
+  <!-- split arrows -->
+  <path d="M300 346 L300 372 L270 372 L270 400" stroke="#046A38" stroke-width="3" fill="none" marker-end="url(#ag)"/>
+  <path d="M740 346 L740 372 L770 372 L770 400" stroke="#C9A227" stroke-width="3" fill="none" marker-end="url(#ar)"/>
+
+  <!-- AFTER left: PIACL -->
+  <rect x="30" y="404" width="470" height="164" rx="8" fill="#FFFFFF" stroke="#046A38" stroke-width="2.5"/>
+  <rect x="30" y="404" width="470" height="34" rx="8" fill="#046A38"/>
+  <rect x="30" y="424" width="470" height="14" fill="#046A38"/>
+  <text class="hd" x="265" y="427" text-anchor="middle">AFTER — PIACL (airline only), 31 Dec 2024</text>
+  <text class="lbl" x="50" y="464">Total assets</text>
+  <text class="numb" x="480" y="464" text-anchor="end">≈ Rs 160 bn</text>
+  <text class="lbl" x="50" y="490">Total liabilities</text>
+  <text class="numb" x="480" y="490" text-anchor="end">≈ Rs 190–202 bn</text>
+  <line x1="50" y1="504" x2="480" y2="504" stroke="#5A6B62" stroke-width="1"/>
+  <text class="lbl" x="50" y="526" font-weight="bold">Net equity</text>
+  <text class="pos" x="480" y="526" text-anchor="end">+ Rs 3.55 bn</text>
+  <text class="note" x="50" y="546">Long-term financing incl. leases fell from over Rs 295 bn to Rs 13 bn.</text>
+  <text class="note" x="50" y="562">Includes a one-off Rs 31.6 bn deferred tax asset recognised in 2024.</text>
+
+  <!-- AFTER right: PIAHCL -->
+  <rect x="540" y="404" width="470" height="164" rx="8" fill="#FFFFFF" stroke="#8C2F20" stroke-width="2.5"/>
+  <rect x="540" y="404" width="470" height="34" rx="8" fill="#8C2F20"/>
+  <rect x="540" y="424" width="470" height="14" fill="#8C2F20"/>
+  <text class="hd" x="775" y="427" text-anchor="middle">AFTER — PIA HCL consolidated, 31 Dec 2024</text>
+  <text class="lbl" x="560" y="464">Total assets</text>
+  <text class="numb" x="990" y="464" text-anchor="end">Rs 396 bn</text>
+  <text class="lbl" x="560" y="490">Total liabilities</text>
+  <text class="numb" x="990" y="490" text-anchor="end">Rs 959 bn</text>
+  <line x1="560" y1="504" x2="990" y2="504" stroke="#5A6B62" stroke-width="1"/>
+  <text class="lbl" x="560" y="526" font-weight="bold">Net negative equity</text>
+  <text class="neg" x="990" y="526" text-anchor="end">Rs (563) bn</text>
+  <text class="note" x="560" y="546">Consolidated figures INCLUDE PIACL for 2024 — so the two boxes</text>
+  <text class="note" x="560" y="562">above must not be added together. The right box is the whole group.</text>
+
+  <text class="cap" x="520" y="596" text-anchor="middle">Read the bridge downwards: the deficit did not shrink because debt was paid off. It moved up a level, from the airline to its State-owned parent.</text>
+  <text class="cap" x="520" y="614" text-anchor="middle">All amounts in Pakistan Rupees. Left box: separate-company (unconsolidated) figures. Right box: consolidated group figures.</text>
+</svg>

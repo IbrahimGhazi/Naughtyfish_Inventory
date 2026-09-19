@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="700" viewBox="0 0 1040 700" font-family="Georgia, 'Times New Roman', serif">
+  <style>
+    .bg{fill:#FFFFFF}
+    .spine{stroke:#0B4D2C;stroke-width:6}
+    .yr{fill:#0B4D2C;font-size:17px;font-weight:bold}
+    .dt{fill:#0B4D2C;font-size:14px;font-weight:bold}
+    .tx{fill:#243029;font-size:14px}
+    .tx2{fill:#5A6B62;font-size:12.5px;font-style:italic}
+    .dotP{fill:#FFFFFF;stroke:#5A6B62;stroke-width:3}
+    .dotL{fill:#0B4D2C;stroke:#0B4D2C;stroke-width:3}
+    .dotO{fill:#C9A227;stroke:#8A6D10;stroke-width:3}
+    .key{font-size:13.5px;fill:#243029}
+    .keyh{font-size:13.5px;fill:#0B4D2C;font-weight:bold}
+  </style>
+  <rect class="bg" x="0" y="0" width="1040" height="700"/>
+
+  <!-- key -->
+  <rect x="30" y="8" width="980" height="42" rx="6" fill="#F4F7F5" stroke="#5A6B62" stroke-width="1"/>
+  <text class="keyh" x="46" y="34">Status key:</text>
+  <circle class="dotP" cx="150" cy="29" r="7"/>
+  <text class="key" x="164" y="34">planned / decided</text>
+  <circle class="dotL" cx="330" cy="29" r="7"/>
+  <text class="key" x="344" y="34">legally completed</text>
+  <circle class="dotO" cx="510" cy="29" r="7"/>
+  <text class="key" x="524" y="34">ongoing or still open</text>
+  <text class="tx2" x="700" y="34">Dates are as reported in the sources listed in Section 14.</text>
+
+  <line class="spine" x1="150" y1="72" x2="150" y2="662"/>
+
+  <!-- 2021 -->
+  <text class="yr" x="30" y="94">2021</text>
+  <circle class="dotP" cx="150" cy="88" r="8"/>
+  <text class="dt" x="180" y="84">April 2021</text>
+  <text class="tx" x="180" y="104">Government floats a plan to split PIA into two companies — a &quot;good airline&quot; and a legacy-debt vehicle.</text>
+
+  <!-- 2023 -->
+  <text class="yr" x="30" y="150">2023</text>
+  <circle class="dotP" cx="150" cy="144" r="8"/>
+  <text class="dt" x="180" y="140">Year ended 31 December 2023</text>
+  <text class="tx" x="180" y="160">Last full pre-split financial year. Total assets ≈ Rs 161 bn, total liabilities ≈ Rs 825 bn, accumulated losses ≈ Rs 713 bn.</text>
+  <text class="tx" x="180" y="180">Fuel supply disrupted by unpaid Pakistan State Oil bills; many aircraft grounded for want of spares.</text>
+
+  <!-- 2024 -->
+  <text class="yr" x="30" y="228">2024</text>
+  <circle class="dotL" cx="150" cy="222" r="8"/>
+  <text class="dt" x="180" y="218">21 March 2024</text>
+  <text class="tx" x="180" y="238">PIA Holding Company Limited incorporated as a public limited company.</text>
+
+  <circle class="dotP" cx="150" cy="266" r="8"/>
+  <text class="dt" x="180" y="262">28 March 2024</text>
+  <text class="tx" x="180" y="282">Scheme of Arrangement filed with SECP under sections 279–282 of the Companies Act, 2017.</text>
+
+  <circle class="dotL" cx="150" cy="310" r="8"/>
+  <text class="dt" x="180" y="306">20–21 April 2024</text>
+  <text class="tx" x="180" y="326">Shareholders approve the scheme at an EOGM (reported 99.97% in favour); creditors and the Cabinet also approve.</text>
+
+  <circle class="dotL" cx="150" cy="354" r="8"/>
+  <text class="dt" x="180" y="350">30 April 2024 — EFFECTIVE DATE</text>
+  <text class="tx" x="180" y="370">Assets, liabilities and subsidiaries legally vest in the new owners. Core stays with PIACL; non-core moves to PIA HCL.</text>
+
+  <circle class="dotL" cx="150" cy="398" r="8"/>
+  <text class="dt" x="180" y="394">3 May 2024</text>
+  <text class="tx" x="180" y="414">SECP sanctions the Scheme of Arrangement. Competition Commission clears PIA HCL's acquisition of PIACL.</text>
+
+  <circle class="dotL" cx="150" cy="442" r="8"/>
+  <text class="dt" x="180" y="438">24–27 May 2024</text>
+  <text class="tx" x="180" y="458">PIACL's last trading day 24 May; delisted with effect from 25 May. PIA HCL lists on PSX 27 May as PIAHCLA / PIAHCLB.</text>
+
+  <!-- 2025 -->
+  <text class="yr" x="30" y="506">2025</text>
+  <circle class="dotO" cx="150" cy="500" r="8"/>
+  <text class="dt" x="180" y="496">Through 2025</text>
+  <text class="tx" x="180" y="516">PIACL's FY2023 audited accounts finally adopted at the 8th AGM on 7 Feb 2025. PIA HCL holds its first AGM 19 Aug 2025.</text>
+  <text class="tx" x="180" y="536">PIACL reports its first half-year profit in about two decades (H1 2025: Rs 11.5 bn pre-tax, Rs 6.8 bn after tax).</text>
+
+  <circle class="dotL" cx="150" cy="562" r="8"/>
+  <text class="dt" x="180" y="558">22 December 2025</text>
+  <text class="tx" x="180" y="578">Open auction: Arif Habib-led consortium wins 75% of PIACL with a Rs 135 bn bid (PIACL valued at Rs 180 bn).</text>
+
+  <!-- 2026 -->
+  <text class="yr" x="30" y="620">2026</text>
+  <circle class="dotL" cx="150" cy="614" r="8"/>
+  <text class="dt" x="180" y="610">29 Jan 2026 → 29 June 2026</text>
+  <text class="tx" x="180" y="630">Share Purchase and Subscription Agreement signed; first financial closing completed and management control</text>
+  <text class="tx" x="180" y="650">transferred to PIA Equity Limited. July 2026: 11 properties worth Rs 14.2 bn handed to the buyer.</text>
+
+  <circle class="dotO" cx="150" cy="676" r="8"/>
+  <text class="dt" x="180" y="672">Still open</text>
+  <text class="tx" x="180" y="692">Second closing (residual 25% for Rs 45 bn) due within 12 months · Rs 41.6 bn second equity tranche · Roosevelt Hotel sale.</text>
+</svg>

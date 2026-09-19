@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="440" viewBox="0 0 1040 440" font-family="Georgia, 'Times New Roman', serif">
+  <style>
+    .bg{fill:#FFFFFF}
+    .gov{fill:#0B4D2C;stroke:#083A21;stroke-width:2}
+    .hco{fill:#0B4D2C;stroke:#C9A227;stroke-width:3}
+    .opco{fill:#046A38;stroke:#C9A227;stroke-width:3}
+    .spv{fill:#1F4E79;stroke:#123A5C;stroke-width:2}
+    .wlbl{fill:#FFFFFF;font-size:17px;font-weight:bold}
+    .wsub{fill:#CFE3D6;font-size:13px}
+    .bsub{fill:#CBDDEC;font-size:13px}
+    .gbox{fill:#FBF3DD;stroke:#C9A227;stroke-width:1.5}
+    .bl{font-size:13.5px;fill:#243029;font-weight:bold}
+    .bn{font-size:12.5px;fill:#5A6B62}
+    .ln{stroke:#5A6B62;stroke-width:2;fill:none}
+    .pct{font-size:14px;font-weight:bold}
+    .cap{font-size:12.5px;fill:#5A6B62;font-style:italic}
+  </style>
+  <rect class="bg" x="0" y="0" width="1040" height="440"/>
+
+  <!-- LEFT: the holding company, unchanged -->
+  <rect class="gov" x="20" y="10" width="330" height="48" rx="6"/>
+  <text class="wlbl" x="185" y="32" text-anchor="middle">Government of Pakistan</text>
+  <text class="wsub" x="185" y="50" text-anchor="middle">+ minority public shareholders</text>
+
+  <path class="ln" d="M185 58 L185 84"/>
+  <rect class="hco" x="20" y="84" width="330" height="58" rx="8"/>
+  <text class="wlbl" x="185" y="108" text-anchor="middle">PIA Holding Company Ltd</text>
+  <text class="wsub" x="185" y="128" text-anchor="middle">still listed · still State-controlled</text>
+
+  <path class="ln" d="M185 142 L185 168"/>
+  <rect class="gbox" x="20" y="168" width="330" height="122" rx="6"/>
+  <text class="bl" x="185" y="192" text-anchor="middle">Keeps the legacy balance sheet</text>
+  <text class="bn" x="36" y="216">• ~Rs 671 bn of legacy liabilities, serviced by the State</text>
+  <text class="bn" x="36" y="238">• PIA Investments Ltd — Roosevelt &amp; Scribe hotels</text>
+  <text class="bn" x="36" y="260">• Skyrooms · Sabre TN · Precision Engineering Complex</text>
+  <text class="bn" x="36" y="282">• 33 properties (44 less the 11 sold with the airline)</text>
+
+  <!-- RIGHT: new owners -->
+  <rect class="spv" x="560" y="10" width="460" height="48" rx="6"/>
+  <text class="wlbl" x="790" y="32" text-anchor="middle">Arif Habib Corporation-led consortium</text>
+  <text class="bsub" x="790" y="50" text-anchor="middle">AHCL · Fatima Fertilizer · Lake City Holdings · City Group · AKD Group</text>
+
+  <path class="ln" d="M790 58 L790 84"/>
+  <rect class="spv" x="620" y="84" width="340" height="58" rx="8"/>
+  <text class="wlbl" x="790" y="108" text-anchor="middle">PIA Equity Limited (PIA EL)</text>
+  <text class="bsub" x="790" y="128" text-anchor="middle">special-purpose acquisition vehicle</text>
+
+  <!-- MIDDLE: residual government stake -->
+  <rect class="gov" x="390" y="84" width="190" height="58" rx="8"/>
+  <text class="wlbl" x="485" y="107" text-anchor="middle" font-size="15px">Government</text>
+  <text class="wsub" x="485" y="127" text-anchor="middle">residual holder</text>
+
+  <path class="ln" d="M485 142 L485 176 L600 176 L600 200"/>
+  <path class="ln" d="M790 142 L790 176 L840 176 L840 200"/>
+  <text class="pct" x="530" y="170" text-anchor="middle" fill="#0B4D2C">25%</text>
+  <text class="pct" x="806" y="170" text-anchor="middle" fill="#1F4E79">75%</text>
+
+  <rect class="opco" x="390" y="200" width="630" height="90" rx="8"/>
+  <text class="wlbl" x="705" y="228" text-anchor="middle">Pakistan International Airlines Corporation Ltd (PIACL)</text>
+  <text class="wsub" x="705" y="252" text-anchor="middle">the operating airline · management control transferred 29 June 2026</text>
+  <text class="wsub" x="705" y="274" text-anchor="middle">11 properties worth Rs 14.2 bn transferred with the business</text>
+
+  <!-- note -->
+  <rect x="20" y="308" width="1000" height="70" rx="6" fill="#E9F2EC" stroke="#046A38" stroke-width="1.5"/>
+  <text x="38" y="332" font-size="14px" font-weight="bold" fill="#0B4D2C">Where the money went:</text>
+  <text x="212" y="332" font-size="13px" fill="#243029">of the Rs 135 bn winning bid, only 7.5% (Rs 10.125 bn) was paid to the Government for shares.</text>
+  <text x="38" y="356" font-size="13px" fill="#243029">The other 92.5% (Rs 124.875 bn) is subscribed into PIACL itself as fresh equity through a rights issue, in two tranches — so most of the &quot;price&quot; funds the airline, not the seller.</text>
+
+  <text class="cap" x="520" y="404" text-anchor="middle">PIACL is no longer a subsidiary of PIA HCL. The holding company kept the debt; the buyer got the airline.</text>
+  <text class="cap" x="520" y="424" text-anchor="middle">A call option lets the consortium buy the residual 25% for a further Rs 45 bn at a second closing due within 12 months of the first.</text>
+</svg>
