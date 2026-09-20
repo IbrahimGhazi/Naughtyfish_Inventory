@@ -39,7 +39,7 @@ renew its session, so your password is not sent on a routine refresh.
    ~700 lines by hand on a phone):
 
    ```js
-   const SRC = "https://raw.githubusercontent.com/IbrahimGhazi/Naughtyfish_Inventory/claude/solar-widget/ios-widget-solar/solar-widget.js";
+   const SRC = "https://raw.githubusercontent.com/IbrahimGhazi/Naughtyfish_Inventory/90d3326/ios-widget-solar/solar-widget.js";
    const NAME = "Solar Monitor";
 
    let fm;
