@@ -3,7 +3,7 @@
 An iOS home screen widget for the Emergy solar monitor
 ([solar-monitor-rose.vercel.app](https://solar-monitor-rose.vercel.app/)):
 generation now, house load, battery state of charge, grid import/export,
-grid-outage status and today's kWh.
+grid-outage status, today's kWh, and a chart of the day's curve.
 
 Runs in [Scriptable](https://apps.apple.com/app/scriptable/id1405459188)
 (free) — **no Mac, no Xcode, no Apple Developer account**.
@@ -90,13 +90,46 @@ Run the script inside Scriptable. The menu offers:
 
 | Size | Shows |
 |---|---|
-| **Small** | Generation now, today's kWh, battery %, grid state |
-| **Medium** | Generation now + load on the left; battery and grid on the right; today's kWh |
-| **Large** | Generation now and today's total, then load / battery / battery flow / grid, then the day's ledger (used, imported, exported, self-used), plus inverter temperature and battery ETA |
+| **Small** | Generation now, today's kWh, battery %, grid state, and the day's solar curve |
+| **Medium** | Generation now + load on the left; battery and grid on the right; today's kWh; solar and load charted below |
+| **Large** | Generation now and today's total, a tall solar/load chart, then load / battery / battery flow / grid, then the day's ledger (used, imported, exported, self-used), plus inverter temperature and battery ETA |
 
 Grid state reads **`1.37 kW in`** when importing, **`1.50 kW out`** when
 exporting, and a red **`GRID OUT`** when the grid is down — which on a solar
 system is usually the thing you actually want to know at a glance.
+
+## The chart
+
+Today's 5-minute history, from local midnight to now, read from
+`snapshots_5min`. **Solar** is the filled amber series; **load** is the blue
+line over it, on medium and large. Small plots solar alone — at that size a
+second line is just a smudge, and the `SOLAR NOW` heading above it already says
+what the curve is.
+
+Both series share **one axis in watts based at zero**. They're the same unit,
+so a second scale would only invent crossings that aren't in the data — and the
+point of drawing them together is exactly where they cross: below the amber
+line you're running the house on sunlight, above it you're buying the
+difference.
+
+Some details worth knowing:
+
+- **The x axis is time, not row order.** An hour of missed reporting stretches
+  across an hour of the chart rather than closing up to look like normal
+  five-minute cadence.
+- **A full day is averaged into 72 buckets**, not plotted row by row — 288 rows
+  across a couple of hundred points would alias, and averaging keeps the shape
+  of the curve rather than letting whichever row got sampled stand in for five
+  minutes.
+- **No chart before dawn.** Under three readings, or a day that's still flat
+  zero, draws nothing and falls back to the plain layout instead of showing an
+  empty box.
+- **A chart failure never costs you the figures.** If the history request
+  fails, the widget drops the chart and shows everything else — it is not
+  reported as an outage, because it isn't one.
+- **Chart colours don't follow a live theme switch.** The chart is drawn to a
+  bitmap, which bakes in the appearance it was drawn under; it re-resolves on
+  the next refresh. The figures around it switch immediately, as usual.
 
 ---
 
@@ -108,6 +141,7 @@ At the top of the script:
 |---|---|---|
 | `device` | `""` | Which inverter, matched on device name (e.g. `Emergy`). Empty uses the first one your account can see. A widget's **Parameter** field overrides it, so two widgets can show two inverters |
 | `staleAfterMinutes` | `20` | Readings older than this are labelled with their age |
+| `showChart` | `true` | Draw the day's curve. Costs one extra request; set `false` for a figures-only widget |
 | `refreshMinutes` | `5` | Refresh hint. The inverter reports every 5 minutes, so asking more often gains nothing |
 | `timeout` | `20` | Per-request timeout, seconds |
 
@@ -135,7 +169,9 @@ exactly as they affect the web app:
 - **Subscription.** `device_status` is readable only while
   `devices.subscription_until` is in the future. At the time of writing yours
   runs to **2026-09-27** — after that the API returns no rows and the widget
-  will show the "Subscription expired" message.
+  will show the "Subscription expired" message. `snapshots_5min` sits behind
+  the identical policy, so the chart needs no access the figures don't already
+  have, and lapses at the same moment.
 - **MFA.** A policy requires `aal2` *if* the account has a verified MFA factor.
   None are enrolled today, so email + password is enough. If you later turn on
   MFA, a password-only login drops to `aal1` and reads nothing — the widget
@@ -158,5 +194,6 @@ exactly as they affect the web app:
 
 - Scriptable must stay installed; this can't ship on the App Store.
 - Read-only. It shows the system; it can't control it.
-- No history or charts — it reads the current snapshot, not the 5-minute
-  series, though `snapshots_5min` is available if a sparkline is wanted later.
+- The chart covers today only. There's no week or month view, and no axis
+  labels or tap-to-inspect — a home screen widget can't take a gesture without
+  opening the app.

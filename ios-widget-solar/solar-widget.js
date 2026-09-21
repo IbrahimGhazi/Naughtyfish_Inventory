@@ -34,6 +34,11 @@ const CONFIG = {
   // Treat readings older than this as stale and say so on the widget.
   staleAfterMinutes: 20,
 
+  // Draw today's solar curve. Costs one extra request against snapshots_5min,
+  // which sits behind exactly the same row-level security as the live reading,
+  // so it needs no additional access. Set false for a figures-only widget.
+  showChart: true,
+
   // How often iOS is asked to refresh. The inverter reports every 5 minutes,
   // so there is nothing to gain from asking more often than that.
   refreshMinutes: 5,
@@ -63,6 +68,36 @@ const THEME = {
   bad: Color.dynamic(new Color("#a11d1d"), new Color("#ff6b6b")),
   rule: Color.dynamic(new Color("#00000012"), new Color("#ffffff14")),
 };
+
+/*
+ * Chart series colours, as raw hex per appearance.
+ *
+ * These can't be Color.dynamic like THEME: a chart is rasterised by
+ * DrawContext into a bitmap, which bakes in whatever colour it resolved at
+ * draw time and cannot re-resolve when the system flips appearance. So the
+ * mode is read once, up front, and the matching hex used for both the plotted
+ * marks and the legend dots — keeping the two in agreement, which matters more
+ * than a dot that follows a theme switch before the next refresh.
+ *
+ * Both pairs are checked against this widget's own surfaces (#f2eee0 light,
+ * #141207 dark) for lightness, chroma, colour-blind separation and contrast.
+ * The amber is deliberately a step darker than THEME.sun — that lighter gold
+ * is right for a 34pt number and too light to read as a 2pt line.
+ */
+const SERIES = {
+  solar: { light: "#a67a0a", dark: "#c98500" },
+  load: { light: "#2a78d6", dark: "#3987e5" },
+};
+
+function darkAppearance() {
+  try {
+    return Device.isUsingDarkAppearance() === true;
+  } catch (e) {
+    return false;
+  }
+}
+
+const seriesHex = (name, dark) => SERIES[name][dark ? "dark" : "light"];
 
 // ============================================================================
 // FORMATTING
@@ -317,7 +352,20 @@ async function loadReading(log) {
     return { error: "No live data for this device yet." };
   }
 
-  return { reading: shapeReading(device, statusRes.json[0]) };
+  const reading = shapeReading(device, statusRes.json[0]);
+
+  // The chart is an enhancement, never a requirement: if the history request
+  // fails the figures are still good, so it degrades to a widget without one
+  // rather than reporting an error over a working reading.
+  if (CONFIG.showChart) {
+    try {
+      reading.series = await loadSeries(device.id, token, log);
+    } catch (e) {
+      log(`snapshots failed: ${e.message}`);
+    }
+  }
+
+  return { reading };
 }
 
 /**
@@ -357,6 +405,54 @@ function shapeReading(device, row) {
     dailyExport: num(l.daily_grid_export),
     dailySelfBurn: num(l.daily_self_burn),
   };
+}
+
+// ============================================================================
+// HISTORY — today's 5-minute series, for the chart.
+// ============================================================================
+
+/** Local midnight today. `snapshots_5min.ts` is epoch SECONDS, not millis. */
+function startOfTodaySeconds() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return Math.floor(d.getTime() / 1000);
+}
+
+/**
+ * Average into at most `target` buckets. A full day is 288 rows against a
+ * chart a couple of hundred points wide, so plotting every row would alias —
+ * and averaging rather than sampling keeps the shape of the curve instead of
+ * letting whichever row happened to be picked stand in for five minutes.
+ */
+function downsample(points, target) {
+  if (points.length <= target) return points;
+  const out = [];
+  for (let i = 0; i < target; i++) {
+    const from = Math.floor((i * points.length) / target);
+    const to = Math.max(Math.floor(((i + 1) * points.length) / target), from + 1);
+    const bucket = points.slice(from, to);
+    const mean = (key) => {
+      const vals = bucket.map((p) => p[key]).filter((v) => v != null);
+      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    };
+    out.push({ ts: bucket[bucket.length - 1].ts, pv: mean("pv"), load: mean("load") });
+  }
+  return out;
+}
+
+async function loadSeries(deviceId, token, log) {
+  const res = await rest(
+    `snapshots_5min?device_id=eq.${deviceId}&ts=gte.${startOfTodaySeconds()}` +
+      `&select=ts,pv_total,load_power&order=ts.asc`,
+    token
+  );
+  log(`snapshots -> HTTP ${res.status}, ${Array.isArray(res.json) ? res.json.length : "?"} row(s)`);
+  if (res.status !== 200 || !Array.isArray(res.json)) return null;
+
+  const points = res.json
+    .map((row) => ({ ts: num(row.ts), pv: num(row.pv_total), load: num(row.load_power) }))
+    .filter((p) => p.ts != null);
+  return downsample(points, 72);
 }
 
 // ============================================================================
@@ -415,6 +511,134 @@ function metric(container, label, value, color) {
   return cell;
 }
 
+/**
+ * Today's curve, rasterised by DrawContext. Solar is the filled hero series
+ * and load rides over it as a bare line, both on one shared watts axis based
+ * at zero — they are the same unit, and a second scale would invent crossings
+ * that aren't in the data.
+ *
+ * Returns null when there is too little of the day to draw, so callers fall
+ * back to the plain layout instead of showing a near-empty box.
+ */
+function drawChart(series, width, height, withLoad) {
+  const points = (series || []).filter((p) => p && p.ts != null && (p.pv != null || p.load != null));
+  if (points.length < 3) return null;
+
+  let peak = 0;
+  for (const p of points) {
+    if (p.pv != null) peak = Math.max(peak, p.pv);
+    if (withLoad && p.load != null) peak = Math.max(peak, p.load);
+  }
+  if (peak <= 0) return null; // a flat-zero night has no curve worth the space
+
+  const dark = darkAppearance();
+  const solarHex = seriesHex("solar", dark);
+  const loadHex = seriesHex("load", dark);
+
+  const ctx = new DrawContext();
+  ctx.size = new Size(width, height);
+  ctx.opaque = false;
+  ctx.respectScreenScale = true;
+
+  const inset = 2; // keeps a 2pt stroke from clipping against the edges
+  const base = height - inset;
+  const plotH = base - inset;
+
+  // x by timestamp rather than row index: an hour of missed reporting should
+  // stretch across an hour of the chart, not compress into what looks like a
+  // normal five-minute step.
+  const first = points[0].ts;
+  const span = Math.max(points[points.length - 1].ts - first, 1);
+  const x = (p) => inset + ((p.ts - first) / span) * (width - inset * 2);
+  const y = (w) => base - (Math.max(w, 0) / peak) * plotH;
+
+  const trace = (key) => {
+    const path = new Path();
+    let started = false;
+    for (const p of points) {
+      if (p[key] == null) continue;
+      const pt = new Point(x(p), y(p[key]));
+      if (started) path.addLine(pt);
+      else {
+        path.move(pt);
+        started = true;
+      }
+    }
+    return started ? path : null;
+  };
+
+  // Area first, so the load line stays legible where the two overlap.
+  const filled = points.filter((p) => p.pv != null);
+  if (filled.length >= 2) {
+    const area = new Path();
+    area.move(new Point(x(filled[0]), base));
+    for (const p of filled) area.addLine(new Point(x(p), y(p.pv)));
+    area.addLine(new Point(x(filled[filled.length - 1]), base));
+    area.closeSubpath();
+    ctx.setFillColor(new Color(solarHex, 0.22));
+    ctx.addPath(area);
+    ctx.fillPath();
+  }
+
+  for (const [key, hex] of [["pv", solarHex], ["load", withLoad ? loadHex : null]]) {
+    if (!hex) continue;
+    const path = trace(key);
+    if (!path) continue;
+    ctx.setStrokeColor(new Color(hex));
+    ctx.setLineWidth(2);
+    ctx.addPath(path);
+    ctx.strokePath();
+  }
+
+  return { image: ctx.getImage(), peak, dark };
+}
+
+/**
+ * Two series means identity must not rest on colour alone, so a load line
+ * always ships a labelled key. The dots take the same resolved hex as the
+ * plotted marks, so the key can't drift from the chart across an appearance
+ * change.
+ */
+function chartKey(container, chart, withLoad, trailing) {
+  const row = container.addStack();
+  row.layoutHorizontally();
+  row.centerAlignContent();
+
+  const entry = (hex, label) => {
+    const dot = row.addStack();
+    dot.size = new Size(6, 6);
+    dot.cornerRadius = 3;
+    dot.backgroundColor = new Color(hex);
+    row.addSpacer(4);
+    styled(row, label, { size: 9, color: THEME.dim, bold: true });
+  };
+
+  entry(seriesHex("solar", chart.dark), "Solar");
+  if (withLoad) {
+    row.addSpacer(10);
+    entry(seriesHex("load", chart.dark), "Load");
+  }
+  row.addSpacer();
+  if (trailing) styled(row, trailing, { size: 9, color: THEME.dim });
+  return row;
+}
+
+/**
+ * Widget point sizes differ by handset — a medium is 291pt wide on an SE and
+ * 364pt on a Pro Max — and Scriptable can't report the box it was handed. So
+ * the chart is drawn once at the widest case and dropped into a height-capped
+ * stack to be scaled down to fit: a fixed width would either overflow the
+ * small phones or strand 80pt of dead space on the large ones.
+ */
+function placeChart(container, chart, height) {
+  const frame = container.addStack();
+  frame.size = new Size(0, height); // 0 = take the width you're given
+  const img = frame.addImage(chart.image);
+  img.resizable = true;
+  img.applyFittingContentMode();
+  return img;
+}
+
 /** Grid status is the headline during an outage, so it gets its own colour. */
 function gridSummary(r) {
   if (r.gridPresent === false) return { text: "GRID OUT", color: THEME.bad };
@@ -433,15 +657,23 @@ function headerLine(r) {
 function renderSmall(widget, r) {
   const h = headerLine(r);
   styled(widget, h.text, { size: 10, color: h.color, bold: true });
-  widget.addSpacer(6);
+  widget.addSpacer(4);
 
   styled(widget, "SOLAR NOW", { size: 9, color: THEME.dim, bold: true });
   styled(widget, formatPower(r.pv), { size: 26, color: THEME.sun, bold: true });
 
-  widget.addSpacer(4);
+  widget.addSpacer(2);
   const row = widget.addStack();
   row.layoutHorizontally();
   styled(row, `Today ${formatEnergy(r.dailyPv)}`, { size: 11, color: THEME.text });
+
+  // Solar alone here — at this size a second line is a smudge, and one series
+  // needs no key because "SOLAR NOW" above it already says what it is.
+  const chart = drawChart(r.series, 142, 22, false);
+  if (chart) {
+    widget.addSpacer(4);
+    placeChart(widget, chart, 22);
+  }
 
   widget.addSpacer();
   const bottom = widget.addStack();
@@ -460,7 +692,7 @@ function renderMedium(widget, r) {
   top.addSpacer();
   styled(top, `Today ${formatEnergy(r.dailyPv)}`, { size: 10, color: THEME.sun, bold: true });
 
-  widget.addSpacer(8);
+  widget.addSpacer(6);
 
   const body = widget.addStack();
   body.layoutHorizontally();
@@ -470,7 +702,7 @@ function renderMedium(widget, r) {
   left.layoutVertically();
   left.size = new Size(110, 0);
   styled(left, "SOLAR NOW", { size: 9, color: THEME.dim, bold: true });
-  styled(left, formatPower(r.pv), { size: 24, color: THEME.sun, bold: true });
+  styled(left, formatPower(r.pv), { size: 22, color: THEME.sun, bold: true });
   if (r.load != null) styled(left, `Load ${formatPower(r.load)}`, { size: 11, color: THEME.dim });
 
   body.addSpacer();
@@ -483,8 +715,19 @@ function renderMedium(widget, r) {
   right.addSpacer(6);
   metric(right, "GRID", g.text, g.color);
 
+  const updated = r.updatedAt ? `Updated ${formatAge(r.ageMinutes)}` : "";
+  const chart = drawChart(r.series, 336, 30, true);
+  if (chart) {
+    widget.addSpacer(4);
+    placeChart(widget, chart, 30);
+    // The key's trailing slot carries the freshness line, which would
+    // otherwise need a row of its own that this size can't spare.
+    chartKey(widget, chart, true, updated);
+    return;
+  }
+
   widget.addSpacer();
-  styled(widget, r.updatedAt ? `Updated ${formatAge(r.ageMinutes)}` : "", { size: 9, color: THEME.dim });
+  styled(widget, updated, { size: 9, color: THEME.dim });
 }
 
 function renderLarge(widget, r) {
@@ -511,6 +754,14 @@ function renderLarge(widget, r) {
   heroRight.layoutVertically();
   styled(heroRight, "GENERATED TODAY", { size: 9, color: THEME.dim, bold: true });
   styled(heroRight, formatEnergy(r.dailyPv), { size: 22, color: THEME.text, bold: true });
+
+  // The day's shape, directly under the day's headline figures.
+  const chart = drawChart(r.series, 336, 76, true);
+  if (chart) {
+    widget.addSpacer(8);
+    placeChart(widget, chart, 76);
+    chartKey(widget, chart, true, `Peak ${formatPower(chart.peak)}`);
+  }
 
   widget.addSpacer(12);
   const rule = widget.addStack();
